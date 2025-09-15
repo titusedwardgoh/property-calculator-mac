@@ -1,7 +1,9 @@
-import { Cormorant, Unbounded } from "next/font/google";
+import { Roboto, Unbounded } from "next/font/google";
 import "./globals.css";
+import Footer from '../components/Footer';
+import Header from "../components/Header";
 
-const cormorantFont = Cormorant({
+const robotoFont = Roboto({
   display: "swap",
   subsets: ["latin"],
 });
@@ -14,31 +16,21 @@ const unbounded = Unbounded({
 
 export const metadata = {
   title: "Property Calculator",
-  description: "Change description",
+  description: "Calculate your property costs",
   icons: {
-    icon: [
-      { url: "/favicon.png", type: "image/png" },
-      { url: "/favicon.ico", type: "image/x-icon" }
-    ],
-    shortcut: "/favicon.png",
-    apple: "/favicon.png"
+    icon: "/favicon.png",
   }
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" data-theme="corporate">
-      <head>
-        <link rel="icon" href="/favicon.png" type="image/png" />
-        <link rel="shortcut icon" href="/favicon.png" type="image/png" />
-      </head>
+    <html lang="en" data-theme="flyingwizard">
       <body
-        className={cormorantFont.className}
+        className={robotoFont.className}
       >
+        <Header />
         {children}
-        <footer className="">
-          <div className = "bg-accent text-base-100">Footer goes here</div>
-        </footer>
+        <Footer />
       </body>
     </html>
   );
