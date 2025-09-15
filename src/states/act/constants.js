@@ -31,3 +31,13 @@ export const ACT_HBCS_INCOME_THRESHOLDS = {
   4: 268400,   // 4 dependents
   5: 273000    // 5+ dependents
 };
+
+// Off the Plan Unit Duty Exemption
+export const ACT_OFF_THE_PLAN_EXEMPTION = {
+  AVAILABLE: true,
+  DESCRIPTION: "Off the Plan Unit Duty Exemption",
+  REQUIREMENTS: "Owner-occupier PPR, off-the-plan apartments/townhouses ≤ $1,020,000",
+  PROPERTY_PRICE_CAP: 1020000,
+  PROPERTY_TYPE_RESTRICTIONS: ['off-the-plan'],
+  PROPERTY_CATEGORY_RESTRICTIONS: ['apartment', 'townhouse']
+};

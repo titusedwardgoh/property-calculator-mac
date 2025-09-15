@@ -214,6 +214,7 @@ export default function UpfrontCosts() {
                            concession.type === 'First Home Owner' ? 'First Home Owner Concession' :
                            concession.type === 'First Home Duty Relief' ? 'First Home Duty Relief' :
                            concession.type === 'Off-The-Plan' ? 'Off-The-Plan Concession' :
+                           concession.type === 'Off the Plan Exemption' ? 'Off the Plan Exemption' :
                            concession.type === 'Temp Off-The-Plan' ? 'Temp Off-The-Plan Concession' :
                            concession.type === 'Home Concession' ? 'Home Concession' :
                            concession.type === 'First Home Concession' ? 'First Home Concession' :
@@ -850,7 +851,8 @@ export default function UpfrontCosts() {
                               {upfrontCosts.ineligibleConcessions.map((concession, index) => (
                                 <div key={`ineligible-${index}`} className="flex justify-between items-center">
                                   <span className="text-gray-800 text-md md:text-sm lg:text-base xl:text-xl">
-                                    {concession.type === 'Home Buyer Concession' ? 'Home Buyer Concession' : concession.type}
+                                    {concession.type === 'Home Buyer Concession' ? 'Home Buyer Concession' : 
+                                     concession.type === 'Off the Plan Exemption' ? 'Off the Plan Exemption' : concession.type}
                                   </span>
                                   <span className="text-gray-600 text-md md:text-sm lg:text-base xl:text-xl text-red-600 relative group cursor-help" title={concession.reason}>
                                     Not Eligible

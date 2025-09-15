@@ -2,7 +2,8 @@ import {
   ACT_STAMP_DUTY_RATES, 
   ACT_HBCS_MAX_CONCESSION,
   ACT_HBCS_INCOME_THRESHOLDS,
-  ACT_HBCS_DUTY_BRACKETS
+  ACT_HBCS_DUTY_BRACKETS,
+  ACT_OFF_THE_PLAN_EXEMPTION
 } from './constants.js';
 
 export const calculateACTStampDuty = (propertyPrice, selectedState) => {
@@ -110,9 +111,9 @@ export const calculateACTHBCSDuty = (propertyPrice, formData) => {
         return excessAmount * bracket.rate;
       }
       
-      // Property ≥ $1,455,000: $4.54 per $100 of total value
+      // Property ≥ $1,455,000: $4.54 per $100 of total value, less $35,238
       if (bracket.rate && bracket.flatRate) {
-        return price * bracket.rate;
+        return Math.max(0, price * bracket.rate - ACT_HBCS_MAX_CONCESSION);
       }
     }
   }
@@ -126,13 +127,78 @@ export const calculateACTHBCSConcession = (propertyPrice, formData) => {
     return 0;
   }
 
+  const price = parseInt(propertyPrice) || 0;
   const baseStampDuty = calculateACTStampDuty(propertyPrice, formData.selectedState);
   const hbcsDuty = calculateACTHBCSDuty(propertyPrice, formData);
   
   const concession = baseStampDuty - hbcsDuty;
   
-  // Cap at maximum concession amount
-  return Math.min(concession, ACT_HBCS_MAX_CONCESSION);
+  // Only cap at maximum concession amount for properties ≥ $1,455,000
+  if (price >= 1455000) {
+    return Math.min(concession, ACT_HBCS_MAX_CONCESSION);
+  }
+  
+  return concession;
+};
+
+// Calculate Off the Plan Unit Duty Exemption
+export const calculateACTOffThePlanExemption = (buyerData, propertyData, selectedState, stampDutyAmount) => {
+  // 1. State validation
+  if (selectedState !== 'ACT') {
+    return { eligible: false, concessionAmount: 0, reason: 'Only available in ACT' };
+  }
+
+  // 2. Buyer type
+  if (buyerData.buyerType !== 'owner-occupier') {
+    return { eligible: false, concessionAmount: 0, reason: 'Must be owner-occupier' };
+  }
+
+  // 3. PPR requirement
+  if (buyerData.isPPR !== 'yes') {
+    return { eligible: false, concessionAmount: 0, reason: 'Must be Principal Place of Residence' };
+  }
+
+  // 4. Property type restriction
+  if (propertyData.propertyType !== 'off-the-plan') {
+    return { eligible: false, concessionAmount: 0, reason: 'Must be off-the-plan property' };
+  }
+
+  // 5. Property category restriction
+  if (!ACT_OFF_THE_PLAN_EXEMPTION.PROPERTY_CATEGORY_RESTRICTIONS.includes(propertyData.propertyCategory)) {
+    return { eligible: false, concessionAmount: 0, reason: 'Must be apartment or townhouse' };
+  }
+
+  // 6. Price validation
+  const price = parseInt(propertyData.propertyPrice) || 0;
+  if (price <= 0) {
+    return { eligible: false, concessionAmount: 0, reason: 'Invalid property price' };
+  }
+
+  // 7. Price cap check
+  if (price > ACT_OFF_THE_PLAN_EXEMPTION.PROPERTY_PRICE_CAP) {
+    return { 
+      eligible: false, 
+      concessionAmount: 0, 
+      reason: `Property price $${price.toLocaleString()} exceeds cap of $${ACT_OFF_THE_PLAN_EXEMPTION.PROPERTY_PRICE_CAP.toLocaleString()}` 
+    };
+  }
+
+  // If all checks pass, full exemption
+  return {
+    eligible: true,
+    concessionAmount: stampDutyAmount, // Full stamp duty exemption
+    reason: 'Eligible for Off the Plan Unit Duty Exemption',
+    details: {
+      propertyPrice: price,
+      baseStampDuty: stampDutyAmount,
+      concessionalStampDuty: 0,
+      concessionAmount: stampDutyAmount,
+      netStampDuty: 0,
+      propertyType: propertyData.propertyType,
+      propertyCategory: propertyData.propertyCategory,
+      priceCap: ACT_OFF_THE_PLAN_EXEMPTION.PROPERTY_PRICE_CAP
+    }
+  };
 };
 
 // Main upfront costs calculation for ACT
@@ -154,6 +220,9 @@ export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) =>
   // Calculate base stamp duty
   const stampDutyAmount = calculateACTStampDuty(price, selectedState);
   
+  // Calculate Off the Plan exemption (highest priority)
+  const offThePlanExemption = calculateACTOffThePlanExemption(buyerData, propertyData, selectedState, stampDutyAmount);
+  
   // Calculate HBCS concession
   const hbcsConcessionAmount = calculateACTHBCSConcession(price, buyerData);
   const isHBCSEligible = isACTHBCSEligible(buyerData);
@@ -161,25 +230,80 @@ export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) =>
   // Prepare concessions arrays
   const concessions = [];
   const ineligibleConcessions = [];
+  const allConcessions = {};
   
-  if (isHBCSEligible && hbcsConcessionAmount > 0) {
+  // Priority logic: Off the Plan Exemption > HBCS
+  
+  // Store all concession results for UI display
+  allConcessions.offThePlanExemption = offThePlanExemption;
+  allConcessions.hbcs = {
+    eligible: isHBCSEligible,
+    concessionAmount: hbcsConcessionAmount,
+    reason: isHBCSEligible ? 'Eligible for HBCS - income below threshold' : 'Not eligible for HBCS'
+  };
+  
+  if (offThePlanExemption.eligible) {
+    // Off the Plan Exemption takes priority
     concessions.push({
-      type: 'Home Buyer Concession',
-      amount: hbcsConcessionAmount,
+      type: 'Off the Plan Exemption',
+      amount: offThePlanExemption.concessionAmount,
       eligible: true,
-      reason: 'Eligible for HBCS - income below threshold',
-      details: {
-        income: parseInt(buyerData.income) || 0,
-        dependants: parseInt(buyerData.dependants) || 0,
-        incomeThreshold: ACT_HBCS_INCOME_THRESHOLDS[Math.min(parseInt(buyerData.dependants) || 0, 5)],
-        baseStampDuty: stampDutyAmount,
-        hbcsDuty: calculateACTHBCSDuty(price, buyerData),
-        concessionAmount: hbcsConcessionAmount,
-        maxConcession: ACT_HBCS_MAX_CONCESSION
-      }
+      reason: offThePlanExemption.reason,
+      details: offThePlanExemption.details
     });
-  } else if (buyerData.income && buyerData.dependants) {
-    // User provided income/dependants but not eligible
+    
+    // Add HBCS to ineligible if it was also eligible
+    if (isHBCSEligible && hbcsConcessionAmount > 0) {
+      ineligibleConcessions.push({
+        type: 'Home Buyer Concession',
+        amount: hbcsConcessionAmount,
+        eligible: false,
+        reason: 'Off the Plan Exemption takes priority',
+        details: {
+          income: parseInt(buyerData.income) || 0,
+          dependants: parseInt(buyerData.dependants) || 0,
+          incomeThreshold: ACT_HBCS_INCOME_THRESHOLDS[Math.min(parseInt(buyerData.dependants) || 0, 5)],
+          baseStampDuty: stampDutyAmount,
+          hbcsDuty: calculateACTHBCSDuty(price, buyerData),
+          concessionAmount: hbcsConcessionAmount,
+          maxConcession: ACT_HBCS_MAX_CONCESSION
+        }
+      });
+    }
+  } else {
+    // Off the Plan Exemption not eligible, check HBCS
+    if (isHBCSEligible && hbcsConcessionAmount > 0) {
+      concessions.push({
+        type: 'Home Buyer Concession',
+        amount: hbcsConcessionAmount,
+        eligible: true,
+        reason: 'Eligible for HBCS - income below threshold',
+        details: {
+          income: parseInt(buyerData.income) || 0,
+          dependants: parseInt(buyerData.dependants) || 0,
+          incomeThreshold: ACT_HBCS_INCOME_THRESHOLDS[Math.min(parseInt(buyerData.dependants) || 0, 5)],
+          baseStampDuty: stampDutyAmount,
+          hbcsDuty: calculateACTHBCSDuty(price, buyerData),
+          concessionAmount: hbcsConcessionAmount,
+          maxConcession: ACT_HBCS_MAX_CONCESSION
+        }
+      });
+    }
+  }
+  
+  // Always add ineligible concessions
+  if (!offThePlanExemption.eligible) {
+    ineligibleConcessions.push({
+      type: 'Off the Plan Exemption',
+      amount: 0,
+      eligible: false,
+      reason: offThePlanExemption.reason,
+      details: offThePlanExemption.details
+    });
+  }
+  
+  if (!isHBCSEligible && buyerData.income && buyerData.dependants) {
+    // User provided income/dependants but not eligible for HBCS
     const income = parseInt(buyerData.income) || 0;
     const dependants = parseInt(buyerData.dependants) || 0;
     const incomeThreshold = ACT_HBCS_INCOME_THRESHOLDS[Math.min(dependants, 5)];
@@ -192,7 +316,6 @@ export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) =>
     } else if (income >= incomeThreshold) {
       reason = `Income $${income.toLocaleString()} exceeds threshold of $${incomeThreshold.toLocaleString()} for ${dependants} dependent${dependants !== 1 ? 's' : ''}`;
     }
-    
     
     ineligibleConcessions.push({
       type: 'Home Buyer Concession',
@@ -221,6 +344,7 @@ export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) =>
     stampDuty: { amount: stampDutyAmount, label: "Stamp Duty" },
     concessions: concessions,
     ineligibleConcessions: ineligibleConcessions,
+    allConcessions: allConcessions,
     grants: [], // No grants implemented yet for ACT
     foreignDuty: { amount: 0, applicable: false }, // Foreign duty not implemented yet for ACT
     netStateDuty: netStateDuty,
