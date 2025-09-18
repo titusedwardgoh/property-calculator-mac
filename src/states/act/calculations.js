@@ -3,7 +3,8 @@ import {
   ACT_HBCS_MAX_CONCESSION,
   ACT_HBCS_INCOME_THRESHOLDS,
   ACT_HBCS_DUTY_BRACKETS,
-  ACT_OFF_THE_PLAN_EXEMPTION
+  ACT_OFF_THE_PLAN_EXEMPTION,
+  ACT_PENSIONER_CONCESSION
 } from './constants.js';
 
 export const calculateACTStampDuty = (propertyPrice, selectedState) => {
@@ -201,6 +202,83 @@ export const calculateACTOffThePlanExemption = (buyerData, propertyData, selecte
   };
 };
 
+// Calculate ACT Pensioner Duty Concession
+export const calculateACTPensionerConcession = (buyerData, propertyData, selectedState, stampDutyAmount) => {
+  // 1. State validation
+  if (selectedState !== 'ACT') {
+    return { eligible: false, concessionAmount: 0, reason: 'Only available in ACT' };
+  }
+
+  // 2. Buyer type
+  if (buyerData.buyerType !== 'owner-occupier') {
+    return { eligible: false, concessionAmount: 0, reason: 'Must be owner-occupier' };
+  }
+
+  // 3. PPR requirement
+  if (buyerData.isPPR !== 'yes') {
+    return { eligible: false, concessionAmount: 0, reason: 'Must be Principal Place of Residence' };
+  }
+
+  // 4. Pensioner card requirement
+  if (buyerData.hasPensionCard !== 'yes') {
+    return { eligible: false, concessionAmount: 0, reason: 'Must have a pension or concession card' };
+  }
+
+  // 5. Price validation
+  const price = parseInt(propertyData.propertyPrice) || 0;
+  if (price <= 0) {
+    return { eligible: false, concessionAmount: 0, reason: 'Invalid property price' };
+  }
+
+  // If all checks pass, calculate concession using same rates as HBCS
+  const baseStampDuty = calculateACTStampDuty(price, selectedState);
+  
+  // Calculate pensioner duty using HBCS rates directly (not the HBCS function which checks eligibility)
+  let pensionerDuty = 0;
+  for (const bracket of ACT_HBCS_DUTY_BRACKETS) {
+    if (price > bracket.min && price <= bracket.max) {
+      // Property ≤ $1,020,000: $0 duty
+      if (bracket.duty === 0) {
+        pensionerDuty = 0;
+        break;
+      }
+      
+      // Property $1,020,001 - $1,454,999: $6.40 per $100 over $1,020,000
+      if (bracket.rate && bracket.threshold) {
+        const excessAmount = price - bracket.threshold;
+        pensionerDuty = excessAmount * bracket.rate;
+        break;
+      }
+      
+      // Property ≥ $1,455,000: $4.54 per $100 of total value, less $35,238
+      if (bracket.rate && bracket.flatRate) {
+        pensionerDuty = Math.max(0, price * bracket.rate - ACT_HBCS_MAX_CONCESSION);
+        break;
+      }
+    }
+  }
+  
+  const concession = baseStampDuty - pensionerDuty;
+  
+  // Only cap at maximum concession amount for properties ≥ $1,455,000
+  const finalConcession = price >= 1455000 ? Math.min(concession, ACT_HBCS_MAX_CONCESSION) : concession;
+
+  return {
+    eligible: true,
+    concessionAmount: finalConcession,
+    reason: 'Eligible for Pensioner Duty Concession',
+    details: {
+      propertyPrice: price,
+      baseStampDuty: baseStampDuty,
+      pensionerDuty: pensionerDuty,
+      concessionAmount: finalConcession,
+      netStampDuty: baseStampDuty - finalConcession,
+      propertyType: propertyData.propertyType,
+      maxConcession: ACT_HBCS_MAX_CONCESSION
+    }
+  };
+};
+
 // Main upfront costs calculation for ACT
 export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) => {
   // Only calculate if ACT is selected
@@ -227,12 +305,15 @@ export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) =>
   const hbcsConcessionAmount = calculateACTHBCSConcession(price, buyerData);
   const isHBCSEligible = isACTHBCSEligible(buyerData);
   
+  // Calculate Pensioner concession
+  const pensionerConcession = calculateACTPensionerConcession(buyerData, propertyData, selectedState, stampDutyAmount);
+  
   // Prepare concessions arrays
   const concessions = [];
   const ineligibleConcessions = [];
   const allConcessions = {};
   
-  // Priority logic: Off the Plan Exemption > HBCS
+  // Priority logic: Off the Plan Exemption > HBCS > Pensioner Concession
   
   // Store all concession results for UI display
   allConcessions.offThePlanExemption = offThePlanExemption;
@@ -241,6 +322,7 @@ export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) =>
     concessionAmount: hbcsConcessionAmount,
     reason: isHBCSEligible ? 'Eligible for HBCS - income below threshold' : 'Not eligible for HBCS'
   };
+  allConcessions.pensioner = pensionerConcession;
   
   if (offThePlanExemption.eligible) {
     // Off the Plan Exemption takes priority
@@ -270,25 +352,54 @@ export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) =>
         }
       });
     }
-  } else {
-    // Off the Plan Exemption not eligible, check HBCS
-    if (isHBCSEligible && hbcsConcessionAmount > 0) {
-      concessions.push({
-        type: 'Home Buyer Concession',
-        amount: hbcsConcessionAmount,
-        eligible: true,
-        reason: 'Eligible for HBCS - income below threshold',
-        details: {
-          income: parseInt(buyerData.income) || 0,
-          dependants: parseInt(buyerData.dependants) || 0,
-          incomeThreshold: ACT_HBCS_INCOME_THRESHOLDS[Math.min(parseInt(buyerData.dependants) || 0, 5)],
-          baseStampDuty: stampDutyAmount,
-          hbcsDuty: calculateACTHBCSDuty(price, buyerData),
-          concessionAmount: hbcsConcessionAmount,
-          maxConcession: ACT_HBCS_MAX_CONCESSION
-        }
+    
+    // Add Pensioner to ineligible if it was also eligible
+    if (pensionerConcession.eligible) {
+      ineligibleConcessions.push({
+        type: 'Pensioner Concession',
+        amount: pensionerConcession.concessionAmount,
+        eligible: false,
+        reason: 'Off the Plan Exemption takes priority',
+        details: pensionerConcession.details
       });
     }
+  } else if (isHBCSEligible && hbcsConcessionAmount > 0) {
+    // HBCS takes priority over Pensioner
+    concessions.push({
+      type: 'Home Buyer Concession',
+      amount: hbcsConcessionAmount,
+      eligible: true,
+      reason: 'Eligible for HBCS - income below threshold',
+      details: {
+        income: parseInt(buyerData.income) || 0,
+        dependants: parseInt(buyerData.dependants) || 0,
+        incomeThreshold: ACT_HBCS_INCOME_THRESHOLDS[Math.min(parseInt(buyerData.dependants) || 0, 5)],
+        baseStampDuty: stampDutyAmount,
+        hbcsDuty: calculateACTHBCSDuty(price, buyerData),
+        concessionAmount: hbcsConcessionAmount,
+        maxConcession: ACT_HBCS_MAX_CONCESSION
+      }
+    });
+    
+    // Add Pensioner to ineligible if it was also eligible
+    if (pensionerConcession.eligible) {
+      ineligibleConcessions.push({
+        type: 'Pensioner Concession',
+        amount: pensionerConcession.concessionAmount,
+        eligible: false,
+        reason: 'Home Buyer Concession takes priority',
+        details: pensionerConcession.details
+      });
+    }
+  } else if (pensionerConcession.eligible) {
+    // Only Pensioner is eligible
+    concessions.push({
+      type: 'Pensioner Concession',
+      amount: pensionerConcession.concessionAmount,
+      eligible: true,
+      reason: pensionerConcession.reason,
+      details: pensionerConcession.details
+    });
   }
   
   // Always add ineligible concessions
@@ -329,6 +440,17 @@ export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) =>
         ownedPropertyLast5Years: buyerData.ownedPropertyLast5Years,
         baseStampDuty: stampDutyAmount
       }
+    });
+  }
+  
+  if (!pensionerConcession.eligible && buyerData.hasPensionCard) {
+    // User has pensioner card but not eligible for pensioner concession
+    ineligibleConcessions.push({
+      type: 'Pensioner Concession',
+      amount: 0,
+      eligible: false,
+      reason: pensionerConcession.reason,
+      details: pensionerConcession.details
     });
   }
   

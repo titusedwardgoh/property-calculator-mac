@@ -7,7 +7,7 @@ import { calculateQLDStampDuty, calculateQLDFirstHomeOwnersGrant, calculateQLDHo
 import { calculateSAStampDuty, calculateSAFirstHomeOwnersGrant, calculateSAFirstHomeBuyerConcession, calculateSAForeignBuyerDuty, calculateUpfrontCosts as calculateSAUpfrontCosts } from './sa/calculations.js';
 import { calculateWAStampDuty, calculateWAFirstHomeOwnersGrant, calculateWAFirstHomeOwnerConcession, calculateWAOffThePlanConcession, calculateWAForeignBuyerDuty, calculateUpfrontCosts as calculateWAUpfrontCosts } from './wa/calculations.js';
 import { calculateTASStampDuty, calculateTASFirstHomeOwnersGrant, calculateTASFirstHomeDutyRelief, calculateTASForeignBuyerDuty, calculateUpfrontCosts as calculateTASUpfrontCosts } from './tas/calculations.js';
-import { calculateACTStampDuty, calculateACTOffThePlanExemption, calculateUpfrontCosts as calculateACTUpfrontCosts } from './act/calculations.js';
+import { calculateACTStampDuty, calculateACTOffThePlanExemption, calculateACTPensionerConcession, calculateUpfrontCosts as calculateACTUpfrontCosts } from './act/calculations.js';
 import { calculateNTStampDuty, calculateNTHomeGrownTerritoryGrant, calculateNTFreshStartGrant, calculateNTHouseAndLandConcession, calculateUpfrontCosts as calculateNTUpfrontCosts } from './nt/calculations.js';
 
 // Import shared functions only (these exist)
@@ -94,6 +94,7 @@ export const useStateSelector = (selectedState) => {
     calculateVICPensionConcession: selectedState === 'VIC' ? calculateVICPensionConcession : null,
     calculateVICTempOffThePlanConcession: selectedState === 'VIC' ? calculateVICTempOffThePlanConcession : null,
     calculateACTOffThePlanExemption: selectedState === 'ACT' ? calculateACTOffThePlanExemption : null,
+    calculateACTPensionerConcession: selectedState === 'ACT' ? calculateACTPensionerConcession : null,
     calculateNSWForeignPurchaserDuty: selectedState === 'NSW' ? calculateNSWForeignPurchaserDuty : null,
     calculateVICForeignPurchaserDuty: selectedState === 'VIC' ? calculateVICForeignPurchaserDuty : null,
     calculateWAForeignBuyerDuty: selectedState === 'WA' ? calculateWAForeignBuyerDuty : null,

@@ -41,3 +41,12 @@ export const ACT_OFF_THE_PLAN_EXEMPTION = {
   PROPERTY_TYPE_RESTRICTIONS: ['off-the-plan'],
   PROPERTY_CATEGORY_RESTRICTIONS: ['apartment', 'townhouse']
 };
+
+// Pensioner Duty Concession
+export const ACT_PENSIONER_CONCESSION = {
+  AVAILABLE: true,
+  DESCRIPTION: "Pensioner Duty Concession",
+  REQUIREMENTS: "Owner-occupier PPR with pensioner card, all property types, no income test",
+  PROPERTY_TYPE_RESTRICTIONS: ['all'],
+  INCOME_TESTED: false
+};
