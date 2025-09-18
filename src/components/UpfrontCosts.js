@@ -216,6 +216,7 @@ export default function UpfrontCosts() {
                            concession.type === 'Off-The-Plan' ? 'Off-The-Plan Concession' :
                            concession.type === 'Off the Plan Exemption' ? 'Off the Plan Exemption' :
                            concession.type === 'Pensioner Concession' ? 'Pensioner Concession' :
+                           concession.type === 'Owner Occupier Concession' ? 'Owner Occupier Concession' :
                            concession.type === 'Temp Off-The-Plan' ? 'Temp Off-The-Plan Concession' :
                            concession.type === 'Home Concession' ? 'Home Concession' :
                            concession.type === 'First Home Concession' ? 'First Home Concession' :
@@ -854,7 +855,8 @@ export default function UpfrontCosts() {
                                   <span className="text-gray-800 text-md md:text-sm lg:text-base xl:text-xl">
                                     {concession.type === 'Home Buyer Concession' ? 'Home Buyer Concession' : 
                                      concession.type === 'Off the Plan Exemption' ? 'Off the Plan Exemption' : 
-                                     concession.type === 'Pensioner Concession' ? 'Pensioner Concession' : concession.type}
+                                     concession.type === 'Pensioner Concession' ? 'Pensioner Concession' :
+                                     concession.type === 'Owner Occupier Concession' ? 'Owner Occupier Concession' : concession.type}
                                   </span>
                                   <span className="text-gray-600 text-md md:text-sm lg:text-base xl:text-xl text-red-600 relative group cursor-help" title={concession.reason}>
                                     Not Eligible

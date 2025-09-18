@@ -51,6 +51,13 @@ export default function BuyerDetails() {
     }
   }, [formData.isAustralianResident, formData.hasPensionCard, updateFormData]);
 
+  // Auto-set isPPR to "no" if buyer type is "investor"
+  useEffect(() => {
+    if (formData.buyerType === 'investor' && formData.isPPR !== 'no') {
+      updateFormData('isPPR', 'no');
+    }
+  }, [formData.buyerType, formData.isPPR, updateFormData]);
+
   const nextStep = () => {
     // Initialize the store with current step if this is the first call
     if (currentStep === 1) {
@@ -255,34 +262,43 @@ export default function BuyerDetails() {
               Will you live in this property?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
-              This affects your eligibility for principal place of residence (PPR) concessions
+              {formData.buyerType === 'investor' 
+                ? "You have indicated you are an investor"
+                : "This affects your eligibility for principal place of residence (PPR) concessions"
+              }
             </p>
             <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex gap-2 mb-8">
               {[
                 { value: 'yes', label: 'Yes', description: 'This will be my main home' },
                 { value: 'no', label: 'No', description: 'This will not be my main home' }
-              ].map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => updateFormData('isPPR', option.value)}
-                  className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start transition-all duration-200 hover:scale-105 ${
-                    formData.isPPR === option.value
-                      ? 'border-gray-800 bg-secondary text-white shadow-lg'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
-                  <div className={`text-xs leading-none text-left ${
-                    formData.buyerType === option.value || 
-                    formData.isPPR === option.value || 
-                    formData.isAustralianResident === option.value || 
-                    formData.isFirstHomeBuyer === option.value || 
-                    formData.needsLoan === option.value
-                      ? 'text-gray-400'
-                      : 'text-gray-500'
-                  }`}>{option.description}</div>
-                </button>
-              ))}
+              ].map((option) => {
+                const isDisabled = formData.buyerType === 'investor' && option.value === 'yes';
+                return (
+                  <button
+                    key={option.value}
+                    onClick={() => !isDisabled && updateFormData('isPPR', option.value)}
+                    disabled={isDisabled}
+                    className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start transition-all duration-200 ${
+                      isDisabled 
+                        ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
+                        : formData.isPPR === option.value
+                          ? 'border-gray-800 bg-secondary text-white shadow-lg hover:scale-105'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:scale-105'
+                    }`}
+                  >
+                    <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
+                    <div className={`text-xs leading-none text-left ${
+                      formData.buyerType === option.value || 
+                      formData.isPPR === option.value || 
+                      formData.isAustralianResident === option.value || 
+                      formData.isFirstHomeBuyer === option.value || 
+                      formData.needsLoan === option.value
+                        ? 'text-gray-400'
+                        : 'text-gray-500'
+                    }`}>{option.description}</div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         );

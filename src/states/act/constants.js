@@ -50,3 +50,23 @@ export const ACT_PENSIONER_CONCESSION = {
   PROPERTY_TYPE_RESTRICTIONS: ['all'],
   INCOME_TESTED: false
 };
+
+// Owner Occupier Duty Rates (for Eligible Owner Occupier concession)
+export const ACT_OWNER_OCCUPIER_DUTY_RATES = [
+  { min: 0, max: 200000, rate: 0.012, fixedFee: 0 }, // $1.20 per $100 = 1.2% up to $200,000
+  { min: 200000, max: 300000, rate: 0.022, fixedFee: 2400 }, // $2,400 + $2.20 per $100 over $200,000
+  { min: 300000, max: 500000, rate: 0.034, fixedFee: 4600 }, // $4,600 + $3.40 per $100 over $300,000
+  { min: 500000, max: 750000, rate: 0.0432, fixedFee: 11400 }, // $11,400 + $4.32 per $100 over $500,000
+  { min: 750000, max: 1000000, rate: 0.059, fixedFee: 22200 }, // $22,200 + $5.90 per $100 over $750,000
+  { min: 1000000, max: 1455000, rate: 0.064, fixedFee: 33958 }, // $33,958 + $6.40 per $100 over $1,000,000
+  { min: 1455000, max: Infinity, rate: 0.0454, fixedFee: 0 } // Flat rate of $4.54 per $100 for total transaction value
+];
+
+// Eligible Owner Occupier Concession
+export const ACT_OWNER_OCCUPIER_CONCESSION = {
+  AVAILABLE: true,
+  DESCRIPTION: "Eligible Owner Occupier Concession",
+  REQUIREMENTS: "Owner-occupier PPR, all property types, no other restrictions",
+  PROPERTY_TYPE_RESTRICTIONS: ['all'],
+  INCOME_TESTED: false
+};

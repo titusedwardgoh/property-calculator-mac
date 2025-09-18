@@ -4,7 +4,9 @@ import {
   ACT_HBCS_INCOME_THRESHOLDS,
   ACT_HBCS_DUTY_BRACKETS,
   ACT_OFF_THE_PLAN_EXEMPTION,
-  ACT_PENSIONER_CONCESSION
+  ACT_PENSIONER_CONCESSION,
+  ACT_OWNER_OCCUPIER_DUTY_RATES,
+  ACT_OWNER_OCCUPIER_CONCESSION
 } from './constants.js';
 
 export const calculateACTStampDuty = (propertyPrice, selectedState) => {
@@ -279,6 +281,88 @@ export const calculateACTPensionerConcession = (buyerData, propertyData, selecte
   };
 };
 
+// Calculate ACT Owner Occupier Duty (for Eligible Owner Occupier concession)
+export const calculateACTOwnerOccupierDuty = (propertyPrice, selectedState) => {
+  // Only calculate if ACT is selected
+  if (selectedState !== 'ACT') {
+    return 0;
+  }
+
+  // Convert propertyPrice to number if it's a string
+  const price = parseInt(propertyPrice) || 0;
+  
+  if (price <= 0) {
+    return 0;
+  }
+
+  // Find the applicable rate bracket
+  let applicableRate = null;
+  for (const bracket of ACT_OWNER_OCCUPIER_DUTY_RATES) {
+    if (price > bracket.min && price <= bracket.max) {
+      applicableRate = bracket;
+      break;
+    }
+  }
+
+  if (!applicableRate) {
+    return 0;
+  }
+
+  // Special case for properties over $1,455,000 - flat rate on total value
+  if (price > 1455000) {
+    return price * applicableRate.rate;
+  }
+
+  // Calculate stamp duty: (price - min) * rate + fixed fee
+  const stampDuty = (price - applicableRate.min) * applicableRate.rate + applicableRate.fixedFee;
+
+  return stampDuty;
+};
+
+// Calculate ACT Eligible Owner Occupier Concession
+export const calculateACTOwnerOccupierConcession = (buyerData, propertyData, selectedState, stampDutyAmount) => {
+  // 1. State validation
+  if (selectedState !== 'ACT') {
+    return { eligible: false, concessionAmount: 0, reason: 'Only available in ACT' };
+  }
+
+  // 2. Buyer type
+  if (buyerData.buyerType !== 'owner-occupier') {
+    return { eligible: false, concessionAmount: 0, reason: 'Must be owner-occupier' };
+  }
+
+  // 3. PPR requirement
+  if (buyerData.isPPR !== 'yes') {
+    return { eligible: false, concessionAmount: 0, reason: 'Must be Principal Place of Residence' };
+  }
+
+  // 4. Price validation
+  const price = parseInt(propertyData.propertyPrice) || 0;
+  if (price <= 0) {
+    return { eligible: false, concessionAmount: 0, reason: 'Invalid property price' };
+  }
+
+  // If all checks pass, calculate concession
+  const baseStampDuty = calculateACTStampDuty(price, selectedState);
+  const ownerOccupierDuty = calculateACTOwnerOccupierDuty(price, selectedState);
+  
+  const concession = baseStampDuty - ownerOccupierDuty;
+
+  return {
+    eligible: true,
+    concessionAmount: concession,
+    reason: 'Eligible for Owner Occupier Concession',
+    details: {
+      propertyPrice: price,
+      baseStampDuty: baseStampDuty,
+      ownerOccupierDuty: ownerOccupierDuty,
+      concessionAmount: concession,
+      netStampDuty: baseStampDuty - concession,
+      propertyType: propertyData.propertyType
+    }
+  };
+};
+
 // Main upfront costs calculation for ACT
 export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) => {
   // Only calculate if ACT is selected
@@ -308,12 +392,15 @@ export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) =>
   // Calculate Pensioner concession
   const pensionerConcession = calculateACTPensionerConcession(buyerData, propertyData, selectedState, stampDutyAmount);
   
+  // Calculate Owner Occupier concession
+  const ownerOccupierConcession = calculateACTOwnerOccupierConcession(buyerData, propertyData, selectedState, stampDutyAmount);
+  
   // Prepare concessions arrays
   const concessions = [];
   const ineligibleConcessions = [];
   const allConcessions = {};
   
-  // Priority logic: Off the Plan Exemption > HBCS > Pensioner Concession
+  // Priority logic: Off the Plan Exemption > HBCS > Pensioner Concession > Owner Occupier Concession
   
   // Store all concession results for UI display
   allConcessions.offThePlanExemption = offThePlanExemption;
@@ -323,6 +410,7 @@ export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) =>
     reason: isHBCSEligible ? 'Eligible for HBCS - income below threshold' : 'Not eligible for HBCS'
   };
   allConcessions.pensioner = pensionerConcession;
+  allConcessions.ownerOccupier = ownerOccupierConcession;
   
   if (offThePlanExemption.eligible) {
     // Off the Plan Exemption takes priority
@@ -363,8 +451,19 @@ export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) =>
         details: pensionerConcession.details
       });
     }
+    
+    // Add Owner Occupier to ineligible if it was also eligible
+    if (ownerOccupierConcession.eligible) {
+      ineligibleConcessions.push({
+        type: 'Owner Occupier Concession',
+        amount: ownerOccupierConcession.concessionAmount,
+        eligible: false,
+        reason: 'Off the Plan Exemption takes priority',
+        details: ownerOccupierConcession.details
+      });
+    }
   } else if (isHBCSEligible && hbcsConcessionAmount > 0) {
-    // HBCS takes priority over Pensioner
+    // HBCS takes priority over Pensioner and Owner Occupier
     concessions.push({
       type: 'Home Buyer Concession',
       amount: hbcsConcessionAmount,
@@ -391,14 +490,45 @@ export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) =>
         details: pensionerConcession.details
       });
     }
+    
+    // Add Owner Occupier to ineligible if it was also eligible
+    if (ownerOccupierConcession.eligible) {
+      ineligibleConcessions.push({
+        type: 'Owner Occupier Concession',
+        amount: ownerOccupierConcession.concessionAmount,
+        eligible: false,
+        reason: 'Home Buyer Concession takes priority',
+        details: ownerOccupierConcession.details
+      });
+    }
   } else if (pensionerConcession.eligible) {
-    // Only Pensioner is eligible
+    // Pensioner takes priority over Owner Occupier
     concessions.push({
       type: 'Pensioner Concession',
       amount: pensionerConcession.concessionAmount,
       eligible: true,
       reason: pensionerConcession.reason,
       details: pensionerConcession.details
+    });
+    
+    // Add Owner Occupier to ineligible if it was also eligible
+    if (ownerOccupierConcession.eligible) {
+      ineligibleConcessions.push({
+        type: 'Owner Occupier Concession',
+        amount: ownerOccupierConcession.concessionAmount,
+        eligible: false,
+        reason: 'Pensioner Concession takes priority',
+        details: ownerOccupierConcession.details
+      });
+    }
+  } else if (ownerOccupierConcession.eligible) {
+    // Only Owner Occupier is eligible
+    concessions.push({
+      type: 'Owner Occupier Concession',
+      amount: ownerOccupierConcession.concessionAmount,
+      eligible: true,
+      reason: ownerOccupierConcession.reason,
+      details: ownerOccupierConcession.details
     });
   }
   
@@ -451,6 +581,17 @@ export const calculateUpfrontCosts = (buyerData, propertyData, selectedState) =>
       eligible: false,
       reason: pensionerConcession.reason,
       details: pensionerConcession.details
+    });
+  }
+  
+  if (!ownerOccupierConcession.eligible && buyerData.buyerType === 'owner-occupier' && buyerData.isPPR === 'yes') {
+    // User is owner-occupier PPR but not eligible for owner occupier concession
+    ineligibleConcessions.push({
+      type: 'Owner Occupier Concession',
+      amount: 0,
+      eligible: false,
+      reason: ownerOccupierConcession.reason,
+      details: ownerOccupierConcession.details
     });
   }
   
