@@ -264,7 +264,7 @@ export default function BuyerDetails() {
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
               {formData.buyerType === 'investor' 
                 ? "You have indicated you are an investor"
-                : "This affects your eligibility for principal place of residence (PPR) concessions"
+                : "This affects your eligibility for some concessions"
               }
             </p>
             <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex gap-2 mb-8">
