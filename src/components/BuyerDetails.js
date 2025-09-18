@@ -37,7 +37,19 @@ export default function BuyerDetails() {
     }
   }, [formData.buyerDetailsCurrentStep, updateFormData, formData.buyerDetailsComplete]);
 
+  // Auto-set ownedPropertyLast5Years to "no" if first home buyer is "yes"
+  useEffect(() => {
+    if (formData.isFirstHomeBuyer === 'yes' && !formData.ownedPropertyLast5Years) {
+      updateFormData('ownedPropertyLast5Years', 'no');
+    }
+  }, [formData.isFirstHomeBuyer, formData.ownedPropertyLast5Years, updateFormData]);
 
+  // Auto-set hasPensionCard to "no" if not Australian resident
+  useEffect(() => {
+    if (formData.isAustralianResident !== 'yes' && !formData.hasPensionCard) {
+      updateFormData('hasPensionCard', 'no');
+    }
+  }, [formData.isAustralianResident, formData.hasPensionCard, updateFormData]);
 
   const nextStep = () => {
     // Initialize the store with current step if this is the first call
@@ -355,11 +367,6 @@ export default function BuyerDetails() {
 
       case 5:
         if (formData.isACT) {
-          // Auto-set to "no" if first home buyer is "yes"
-          if (formData.isFirstHomeBuyer === 'yes' && !formData.ownedPropertyLast5Years) {
-            updateFormData('ownedPropertyLast5Years', 'no');
-          }
-          
           return (
             <div className="flex flex-col mt-12 pr-2">
               <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
@@ -415,34 +422,45 @@ export default function BuyerDetails() {
                 Are you a holder of a pensioneer card?
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
-                This may affect your eligibility for additional concessions and grants.
+                {formData.isAustralianResident !== 'yes' 
+                  ? "You have indicated you are not an Australian Citizen or permanent resident"
+                  : "This may affect your eligibility for additional concessions and grants."
+                }
               </p>
               <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex gap-2 mb-8">
                 {[
                   { value: 'yes', label: 'Yes', description: 'I have a pension or concession card' },
                   { value: 'no', label: 'No', description: 'I do not have a pension or concession card' }
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => updateFormData('hasPensionCard', option.value)}
-                    className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start transition-all duration-200 hover:scale-105 ${
-                      formData.hasPensionCard === option.value
-                        ? 'border-gray-800 bg-secondary text-white shadow-lg'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
+                ].map((option) => {
+                  const isDisabled = formData.isAustralianResident !== 'yes' && option.value === 'yes';
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => !isDisabled && updateFormData('hasPensionCard', option.value)}
+                      disabled={isDisabled}
+                      className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start transition-all duration-200 ${
+                        isDisabled 
+                          ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
+                          : formData.hasPensionCard === option.value
+                            ? 'border-gray-800 bg-secondary text-white shadow-lg hover:scale-105'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:scale-105'
+                      }`}
                   >
                     <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
                     <div className={`text-xs leading-none text-left ${
-                      formData.buyerType === option.value || 
-                      formData.isPPR === option.value || 
-                      formData.isAustralianResident === option.value || 
-                      formData.isFirstHomeBuyer === option.value || 
-                      formData.hasPensionCard === option.value
+                      isDisabled
                         ? 'text-gray-400'
-                        : 'text-gray-500'
+                        : formData.buyerType === option.value || 
+                          formData.isPPR === option.value || 
+                          formData.isAustralianResident === option.value || 
+                          formData.isFirstHomeBuyer === option.value || 
+                          formData.hasPensionCard === option.value
+                            ? 'text-gray-400'
+                            : 'text-gray-500'
                     }`}>{option.description}</div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
@@ -456,34 +474,45 @@ export default function BuyerDetails() {
                 Are you a holder of a pensioneer card?
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
-                This may affect your eligibility for additional concessions and grants.
+                {formData.isAustralianResident !== 'yes' 
+                  ? "You have indicated you are not an Australian Citizen or permanent resident"
+                  : "This may affect your eligibility for additional concessions and grants."
+                }
               </p>
               <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex gap-2 mb-8">
                 {[
                   { value: 'yes', label: 'Yes', description: 'I have a pension or concession card' },
                   { value: 'no', label: 'No', description: 'I do not have a pension or concession card' }
-                ].map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => updateFormData('hasPensionCard', option.value)}
-                    className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start transition-all duration-200 hover:scale-105 ${
-                      formData.hasPensionCard === option.value
-                        ? 'border-gray-800 bg-secondary text-white shadow-lg'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
+                ].map((option) => {
+                  const isDisabled = formData.isAustralianResident !== 'yes' && option.value === 'yes';
+                  return (
+                    <button
+                      key={option.value}
+                      onClick={() => !isDisabled && updateFormData('hasPensionCard', option.value)}
+                      disabled={isDisabled}
+                      className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start transition-all duration-200 ${
+                        isDisabled 
+                          ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
+                          : formData.hasPensionCard === option.value
+                            ? 'border-gray-800 bg-secondary text-white shadow-lg hover:scale-105'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:scale-105'
+                      }`}
                   >
                     <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
                     <div className={`text-xs leading-none text-left ${
-                      formData.buyerType === option.value || 
-                      formData.isPPR === option.value || 
-                      formData.isAustralianResident === option.value || 
-                      formData.isFirstHomeBuyer === option.value || 
-                      formData.hasPensionCard === option.value
+                      isDisabled
                         ? 'text-gray-400'
-                        : 'text-gray-500'
+                        : formData.buyerType === option.value || 
+                          formData.isPPR === option.value || 
+                          formData.isAustralianResident === option.value || 
+                          formData.isFirstHomeBuyer === option.value || 
+                          formData.hasPensionCard === option.value
+                            ? 'text-gray-400'
+                            : 'text-gray-500'
                     }`}>{option.description}</div>
                   </button>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
