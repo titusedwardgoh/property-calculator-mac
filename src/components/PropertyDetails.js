@@ -347,7 +347,7 @@ export default function PropertyDetails() {
             </p>
             <div className="  relative pr-8">
               <input
-                type="tel"
+                type="text"
                 placeholder="Enter street address"
                 value={formData.propertyAddress || ''}
                 onChange={(e) => updateFormData('propertyAddress', e.target.value)}
