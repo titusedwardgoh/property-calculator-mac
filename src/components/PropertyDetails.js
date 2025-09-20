@@ -351,7 +351,7 @@ export default function PropertyDetails() {
                 placeholder="Enter street address"
                 value={formData.propertyAddress || ''}
                 onChange={(e) => updateFormData('propertyAddress', e.target.value)}
-                className="w-full pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
+                className="w-full pl-4 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
               />
             </div>
           </div>

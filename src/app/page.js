@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import UpfrontCosts from '../components/UpfrontCosts';
+import OngoingCosts from '../components/OngoingCosts';
 import PropertyDetails from '../components/PropertyDetails';
 import BuyerDetails from '../components/BuyerDetails';
 import LoanDetails from '../components/LoanDetails';
@@ -33,7 +34,7 @@ export default function Page() {
     return (
         <div className="min-h-screen bg-base-200">
             <main className="container mx-auto px-4 py-4 lg:py-10 max-w-7xl">
-                <div className="flex flex-col md:flex-row gap-6">
+                <div className="flex flex-col md:flex-row ">
                     {/* Progress Bar - above UpfrontCosts on medium+ screens */}
                     <div className="order-1 md:order-2 md:w-2/5 md:flex-shrink-0 md:p-6 md:rounded-r-lg md:mt-22">
                                                 {/* Progress Bar */}
@@ -126,6 +127,10 @@ export default function Page() {
                         </div>
                         
                         <UpfrontCosts />
+                        
+                        <div className="mt-4">
+                            <OngoingCosts />
+                        </div>
                     </div>
                     
                     {/* Main content area */}
