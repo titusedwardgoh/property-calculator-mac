@@ -9,9 +9,34 @@ export default function OngoingCosts() {
     
     // Check if PropertyDetails form is actually complete (after pressing Complete button)
     const isPropertyComplete = formData.propertyDetailsFormComplete;
+    const buyerDetailsComplete = formData.buyerDetailsComplete;
+    const needsLoan = formData.needsLoan;
+    const loanDetailsComplete = formData.loanDetailsComplete;
+    const showSellerQuestions = formData.showSellerQuestions;
+    const sellerQuestionsComplete = formData.sellerQuestionsComplete;
 
     // Get state-specific functions when state is selected
     const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW');
+
+    // Determine if ongoing costs should be available
+    const shouldShowOngoingCosts = () => {
+        if (!isPropertyComplete || !buyerDetailsComplete) return false;
+        
+        // If loan is required, show after loan details complete
+        if (needsLoan === 'yes') {
+            return loanDetailsComplete;
+        }
+        
+        // If no loan but seller questions required, show after seller questions complete
+        if (showSellerQuestions) {
+            return sellerQuestionsComplete;
+        }
+        
+        // If no loan and no seller questions, show after buyer details complete
+        return true;
+    };
+
+    const canShowDropdown = shouldShowOngoingCosts();
 
     // Close expanded state when formData changes (navigation occurs)
     useEffect(() => {
@@ -19,74 +44,43 @@ export default function OngoingCosts() {
     }, [formData]);
 
     const toggleExpanded = () => {
-        if (isPropertyComplete) {
+        if (canShowDropdown) {
             setIsExpanded(!isExpanded);
         }
     };
 
-    // Calculate ongoing costs
-    const calculateAllOngoingCosts = () => {
-        if (!formData.propertyDetailsFormComplete) {
+    // Get ongoing costs (placeholder for now)
+    const getOngoingCosts = () => {
+        if (!canShowDropdown) {
             return {
                 totalOngoingCosts: 0,
                 costs: []
             };
         }
 
-        const propertyPrice = parseInt(formData.propertyPrice) || 0;
-        const costs = [];
-
-        // Council Rates - estimated at 0.5% of property value per year
-        const councilRates = propertyPrice * 0.005;
-        costs.push({
-            type: 'Council Rates',
-            amount: councilRates,
-            description: 'Estimated annual council rates (0.5% of property value)'
-        });
-
-        // Water Rates - estimated at $800-1500 per year
-        const waterRates = 1200;
-        costs.push({
-            type: 'Water Rates',
-            amount: waterRates,
-            description: 'Estimated annual water and sewerage rates'
-        });
-
-        // Insurance - estimated at 0.3% of property value per year
-        const insurance = propertyPrice * 0.003;
-        costs.push({
-            type: 'Home Insurance',
-            amount: insurance,
-            description: 'Estimated annual home and contents insurance (0.3% of property value)'
-        });
-
-        // Strata Fees (for units/apartments)
-        if (formData.propertyType === 'unit' || formData.propertyType === 'apartment') {
-            const strataFees = 3000; // Estimated $3000 per year
-            costs.push({
-                type: 'Strata Fees',
-                amount: strataFees,
-                description: 'Estimated annual strata/body corporate fees'
-            });
-        }
-
-        // Property Management (if investment property)
-        if (formData.isPPR === 'no') {
-            const propertyManagement = propertyPrice * 0.006; // 6% of annual rent (assuming 6% rental yield)
-            costs.push({
-                type: 'Property Management',
-                amount: propertyManagement,
-                description: 'Estimated annual property management fees (6% of rental income)'
-            });
-        }
-
-        // Maintenance and Repairs - estimated at 1% of property value per year
-        const maintenance = propertyPrice * 0.01;
-        costs.push({
-            type: 'Maintenance & Repairs',
-            amount: maintenance,
-            description: 'Estimated annual maintenance and repair costs (1% of property value)'
-        });
+        // Placeholder costs for testing dropdown functionality
+        const costs = [
+            {
+                type: 'Council Rates',
+                amount: 2500,
+                description: 'Annual council rates (placeholder)'
+            },
+            {
+                type: 'Water Rates',
+                amount: 1200,
+                description: 'Annual water and sewerage rates (placeholder)'
+            },
+            {
+                type: 'Home Insurance',
+                amount: 1800,
+                description: 'Annual home and contents insurance (placeholder)'
+            },
+            {
+                type: 'Maintenance',
+                amount: 3000,
+                description: 'Annual maintenance and repairs (placeholder)'
+            }
+        ];
 
         const totalOngoingCosts = costs.reduce((sum, cost) => sum + cost.amount, 0);
 
@@ -100,7 +94,7 @@ export default function OngoingCosts() {
         <div className="relative">
             <div 
                 onClick={toggleExpanded}
-                className={`bg-secondary rounded-lg shadow-lg px-4 py-3 ${isPropertyComplete ? 'cursor-pointer hover:shadow-xl transition-shadow duration-200' : ''}`}
+                className={`bg-secondary rounded-lg shadow-lg px-4 py-3 ${canShowDropdown ? 'cursor-pointer hover:shadow-xl transition-shadow duration-200' : ''}`}
             >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center">
@@ -108,7 +102,7 @@ export default function OngoingCosts() {
                     </div>
                     <div className="text-right">
                         <div className="text-md lg:text-lg xl:text-xl font-semibold text-base-100">
-                            {isPropertyComplete ? formatCurrency(calculateAllOngoingCosts().totalOngoingCosts) : '$0'}
+                            {canShowDropdown ? formatCurrency(getOngoingCosts().totalOngoingCosts) : '$0'}
                         </div>
                         <div className="text-xs text-base-100 opacity-75"></div>
                     </div>
@@ -116,11 +110,11 @@ export default function OngoingCosts() {
             </div>
             
             {/* Dropdown overlay - appears above the component without pushing content down */}
-            {isExpanded && isPropertyComplete && (
+            {isExpanded && canShowDropdown && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 px-4 py-3 z-10">
                     <div className="space-y-3">
                         {(() => {
-                            const ongoingCosts = calculateAllOngoingCosts();
+                            const ongoingCosts = getOngoingCosts();
                             
                             return (
                                 <>
