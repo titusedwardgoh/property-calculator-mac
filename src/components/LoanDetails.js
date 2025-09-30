@@ -54,6 +54,7 @@ export default function LoanDetails() {
       loanLMI: formData.loanLMI,
       loanSettlementFees: formData.loanSettlementFees,
       loanEstablishmentFee: formData.loanEstablishmentFee,
+      LVR: formData.LVR,
       // Seller Questions
       councilRates: formData.councilRates,
       waterRates: formData.waterRates,
@@ -107,6 +108,7 @@ export default function LoanDetails() {
         loanLMI: formData.loanLMI,
         loanSettlementFees: formData.loanSettlementFees,
         loanEstablishmentFee: formData.loanEstablishmentFee,
+      LVR: formData.LVR,
         // Seller Questions
         councilRates: formData.councilRates,
         waterRates: formData.waterRates,
@@ -200,7 +202,18 @@ export default function LoanDetails() {
     }
   }, [formData.loanDetailsCurrentStep, updateFormData, formData.loanDetailsComplete]);
 
+  // Update LVR when deposit amount or property price changes
+  useEffect(() => {
+    formData.updateLVR();
+  }, [formData.loanDeposit, formData.propertyPrice, formData.updateLVR]);
 
+  // Set default LMI selection based on LVR
+  useEffect(() => {
+    if (formData.LVR > 0 && !formData.loanLMI) {
+      const defaultLMI = formData.LVR >= 0.8 ? 'yes' : 'no';
+      updateFormData('loanLMI', defaultLMI);
+    }
+  }, [formData.LVR, formData.loanLMI, updateFormData]);
 
   const renderStep = () => {
     // Show completion message if form is complete
@@ -225,7 +238,13 @@ export default function LoanDetails() {
               What is your deposit amount?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
-              This will help us calculate your loan amount and LMI requirements
+              {(() => {
+                const propertyPrice = parseInt(formData.propertyPrice) || 0;
+                const minimumDeposit = Math.round(propertyPrice * 0.05);
+                const formattedPropertyPrice = propertyPrice.toLocaleString('en-AU');
+                const formattedMinimumDeposit = minimumDeposit.toLocaleString('en-AU');
+                return `You will need a minimum of $${formattedMinimumDeposit} which is 5% of the Property's Price of $${formattedPropertyPrice}`;
+              })()}
             </p>
             <div className="relative pr-8">
               <div className={`absolute left-0 top-1/2 transform -translate-y-1/2 text-2xl pointer-events-none ${
@@ -362,7 +381,16 @@ export default function LoanDetails() {
               Do you need Lenders Mortgage Insurance?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
-              LMI is typically required when your deposit is less than 20% of the property value
+              {(() => {
+                const lvr = formData.LVR;
+                const lvrPercentage = Math.round(lvr * 100);
+                
+                if (lvr < 0.8) {
+                  return "You are unlikely to need LMI as your Loan-to-Value ratio is less than 80%.";
+                } else {
+                  return `You would typically need LMI as your Loan-to-Value ratio is ${lvrPercentage}%.`;
+                }
+              })()}
             </p>
             <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex gap-2 mb-8">
               {[

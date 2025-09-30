@@ -138,6 +138,7 @@ export default function SellerQuestions() {
       loanLMI: formData.loanLMI,
       loanSettlementFees: formData.loanSettlementFees,
       loanEstablishmentFee: formData.loanEstablishmentFee,
+      LVR: formData.LVR,
       // Seller Questions
       councilRates: formData.councilRates,
       waterRates: formData.waterRates,
@@ -212,6 +213,7 @@ export default function SellerQuestions() {
       loanLMI: formData.loanLMI,
       loanSettlementFees: formData.loanSettlementFees,
       loanEstablishmentFee: formData.loanEstablishmentFee,
+      LVR: formData.LVR,
         // Seller Questions
         councilRates: formData.councilRates,
         waterRates: formData.waterRates,

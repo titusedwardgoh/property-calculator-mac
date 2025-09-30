@@ -70,6 +70,9 @@ export const useFormStore = create((set, get) => ({
   showDepositInUpfront: false,
   showBankFeesInUpfront: false,
   
+  // Calculated values
+  LVR: 0, // Loan-to-Value Ratio: 1 - (deposit amount / property price)
+  
   // Actions to update state
   updateFormData: (field, value) => set((state) => ({ 
     ...state, 
@@ -116,6 +119,7 @@ export const useFormStore = create((set, get) => ({
     loanDetailsEverCompleted: false,
     loanDetailsCurrentStep: null,
     loanDetailsActiveStep: 1,
+    LVR: 0,
     councilRates: '',
     waterRates: '',
     constructionStarted: '',
@@ -131,6 +135,7 @@ export const useFormStore = create((set, get) => ({
     showUpfrontDropdown: false,
     showDepositInUpfront: false,
     showBankFeesInUpfront: false,
+    
   }),
   
   // Helper to get all current form data
@@ -172,5 +177,25 @@ export const useFormStore = create((set, get) => ({
     } else {
       set({ openDropdown: 'upfront' })
     }
+  },
+
+  // Calculate LVR (Loan-to-Value Ratio)
+  calculateLVR: () => {
+    const state = get()
+    const propertyPrice = parseInt(state.propertyPrice) || 0
+    const depositAmount = parseInt(state.loanDeposit) || 0
+    
+    if (propertyPrice === 0) {
+      return 0
+    }
+    
+    const lvr = 1 - (depositAmount / propertyPrice)
+    return Math.max(0, Math.min(1, lvr)) // Ensure LVR is between 0 and 1
+  },
+
+  // Update LVR when relevant fields change
+  updateLVR: () => {
+    const lvr = get().calculateLVR()
+    set({ LVR: lvr })
   }
 }))

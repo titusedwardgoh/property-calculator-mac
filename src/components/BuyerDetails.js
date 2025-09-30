@@ -92,6 +92,7 @@ export default function BuyerDetails() {
       loanLMI: formData.loanLMI,
       loanSettlementFees: formData.loanSettlementFees,
       loanEstablishmentFee: formData.loanEstablishmentFee,
+      LVR: formData.LVR,
       // Seller Questions
       councilRates: formData.councilRates,
       waterRates: formData.waterRates,
