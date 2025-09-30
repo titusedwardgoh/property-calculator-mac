@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useStateSelector } from '../states/useStateSelector.js';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { calculateNTStampDuty } from '../states/nt/calculations.js';
@@ -15,22 +15,28 @@ import { useFormStore } from '../stores/formStore';
 
 export default function UpfrontCosts() {
     const formData = useFormStore();
-  const [isExpanded, setIsExpanded] = useState(false);
   
-  // Check if PropertyDetails form is actually complete (after pressing Complete button)
-  const isPropertyComplete = formData.propertyDetailsFormComplete;
-
   // Get state-specific functions when state is selected
   const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW');
 
-  // Close expanded state when formData changes (navigation occurs)
+  // Get display state from form store
+  const displayState = formData.getUpfrontCostsDisplay();
+
+  // Close dropdown when navigating between form sections
   useEffect(() => {
-    setIsExpanded(false);
-  }, [formData]);
+    if (formData.openDropdown === 'upfront') {
+      formData.updateFormData('openDropdown', null);
+    }
+  }, [
+    formData.propertyDetailsCurrentStep,
+    formData.buyerDetailsCurrentStep, 
+    formData.loanDetailsCurrentStep,
+    formData.sellerQuestionsActiveStep
+  ]);
 
   const toggleExpanded = () => {
-    if (isPropertyComplete) {
-      setIsExpanded(!isExpanded);
+    if (displayState.canShowDropdown) {
+      formData.toggleUpfrontDropdown();
     }
   };
 
@@ -88,6 +94,11 @@ export default function UpfrontCosts() {
 
         // If temp concession is eligible, show it
         if (tempConcession.eligible) {
+          const baseTotal = stampDutyAmount - tempConcession.concessionAmount;
+          const depositAmount = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanDeposit) || 0) : 0;
+          const settlementFee = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanSettlementFees) || 0) : 0;
+          const establishmentFee = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanEstablishmentFee) || 0) : 0;
+          
           return {
             stampDuty: { amount: stampDutyAmount, label: "Stamp Duty" },
             concessions: [{
@@ -101,7 +112,7 @@ export default function UpfrontCosts() {
             grants: [],
             foreignDuty: { amount: 0, applicable: false },
             netStateDuty: stampDutyAmount - tempConcession.concessionAmount,
-            totalUpfrontCosts: stampDutyAmount - tempConcession.concessionAmount,
+            totalUpfrontCosts: baseTotal + depositAmount + settlementFee + establishmentFee,
             allConcessions: {
               tempOffThePlan: tempConcession
             }
@@ -109,13 +120,18 @@ export default function UpfrontCosts() {
         }
       }
 
+      const stampDutyAmount = calculateStampDuty();
+      const depositAmount = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanDeposit) || 0) : 0;
+      const settlementFee = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanSettlementFees) || 0) : 0;
+      const establishmentFee = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanEstablishmentFee) || 0) : 0;
+      
       return {
-        stampDuty: { amount: calculateStampDuty(), label: "Stamp Duty" },
+        stampDuty: { amount: stampDutyAmount, label: "Stamp Duty" },
         concessions: [],
         grants: [],
         foreignDuty: { amount: 0, applicable: false },
-        netStateDuty: calculateStampDuty(),
-        totalUpfrontCosts: calculateStampDuty()
+        netStateDuty: stampDutyAmount,
+        totalUpfrontCosts: stampDutyAmount + depositAmount + settlementFee + establishmentFee
       };
     }
 
@@ -145,14 +161,27 @@ export default function UpfrontCosts() {
       isACT: formData.isACT
     };
 
-    return stateFunctions.calculateUpfrontCosts(buyerData, propertyData, formData.selectedState);
+    const upfrontCostsResult = stateFunctions.calculateUpfrontCosts(buyerData, propertyData, formData.selectedState);
+    
+    // Add loan-related amounts to total if loan details are currently complete
+    if (formData.loanDetailsComplete && formData.needsLoan === 'yes') {
+      const depositAmount = parseInt(formData.loanDeposit) || 0;
+      const settlementFee = parseInt(formData.loanSettlementFees) || 0;
+      const establishmentFee = parseInt(formData.loanEstablishmentFee) || 0;
+      return {
+        ...upfrontCostsResult,
+        totalUpfrontCosts: upfrontCostsResult.totalUpfrontCosts + depositAmount + settlementFee + establishmentFee
+      };
+    }
+    
+    return upfrontCostsResult;
   };
 
   return (
     <div className="relative">
       <div 
         onClick={toggleExpanded}
-        className={`bg-secondary rounded-lg shadow-lg px-4 py-3 ${isPropertyComplete ? 'cursor-pointer hover:shadow-xl transition-shadow duration-200' : ''}`}
+        className={`bg-secondary rounded-lg shadow-lg px-4 py-3 ${displayState.canShowDropdown ? 'cursor-pointer hover:shadow-xl transition-shadow duration-200' : ''}`}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center">
@@ -160,14 +189,14 @@ export default function UpfrontCosts() {
           </div>
           <div className="text-right">
             <div className="text-md lg:text-lg xl:text-xl font-semibold text-base-100">
-              {isPropertyComplete ? formatCurrency(calculateAllUpfrontCosts().totalUpfrontCosts) : '$0'}
+              {displayState.canShowDropdown ? formatCurrency(calculateAllUpfrontCosts().totalUpfrontCosts) : '$0'}
             </div>
           </div>
         </div>
       </div>
       
             {/* Dropdown overlay - appears above the component without pushing content down */}
-      {isExpanded && isPropertyComplete && (
+      {displayState.isDropdownOpen && displayState.canShowDropdown && (
         <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 px-4 py-3 z-10">
           <div className="space-y-3">
             {(() => {
@@ -181,6 +210,36 @@ export default function UpfrontCosts() {
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Property Price</span>
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
                         {formatCurrency(parseInt(formData.propertyPrice) || 0)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Show Deposit if loan details are currently complete */}
+                  {displayState.showDeposit && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Deposit</span>
+                      <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                        {formatCurrency(parseInt(formData.loanDeposit) || 0)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Show Bank Settlement Fee if loan details are currently complete */}
+                  {displayState.showBankFees && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Bank Settlement Fee</span>
+                      <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                        {formatCurrency(parseInt(formData.loanSettlementFees) || 0)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* Show Loan Establishment Fee if loan details are currently complete */}
+                  {displayState.showBankFees && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Loan Establishment Fee</span>
+                      <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                        {formatCurrency(parseInt(formData.loanEstablishmentFee) || 0)}
                       </span>
                     </div>
                   )}

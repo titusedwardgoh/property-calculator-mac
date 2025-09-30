@@ -44,9 +44,9 @@ export default function BuyerDetails() {
     }
   }, [formData.isFirstHomeBuyer, formData.ownedPropertyLast5Years, updateFormData]);
 
-  // Auto-set hasPensionCard to "no" if not Australian resident
+  // Auto-set hasPensionCard to "no" if explicitly not Australian resident
   useEffect(() => {
-    if (formData.isAustralianResident !== 'yes' && !formData.hasPensionCard) {
+    if (formData.isAustralianResident === 'no' && formData.hasPensionCard === '') {
       updateFormData('hasPensionCard', 'no');
     }
   }, [formData.isAustralianResident, formData.hasPensionCard, updateFormData]);

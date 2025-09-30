@@ -78,6 +78,7 @@ export default function LoanDetails() {
     } else if (currentStep === totalSteps) {
       // Form is complete
       updateFormData('loanDetailsComplete', true);
+      updateFormData('loanDetailsEverCompleted', true);
       
       // Log final form completion
       console.log('📊 Final Form Summary:', {
@@ -176,6 +177,7 @@ export default function LoanDetails() {
       } else {
         // Handle form completion
         updateFormData('loanDetailsComplete', true);
+        updateFormData('loanDetailsEverCompleted', true);
       }
     },
     onBack: handleBack,

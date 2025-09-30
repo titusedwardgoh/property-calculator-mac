@@ -43,6 +43,7 @@ export const useFormStore = create((set, get) => ({
   loanSettlementFees: '',
   loanEstablishmentFee: '',
   loanDetailsComplete: false,
+  loanDetailsEverCompleted: false, // Track if loan details were ever completed
   loanDetailsCurrentStep: null,
   loanDetailsActiveStep: 1,
   
@@ -60,6 +61,14 @@ export const useFormStore = create((set, get) => ({
   
   // Final completion
   allFormsComplete: false,
+  
+  // Dropdown state management
+  openDropdown: null, // 'upfront' or 'ongoing' or null
+  
+  // Upfront costs display state
+  showUpfrontDropdown: false,
+  showDepositInUpfront: false,
+  showBankFeesInUpfront: false,
   
   // Actions to update state
   updateFormData: (field, value) => set((state) => ({ 
@@ -104,6 +113,7 @@ export const useFormStore = create((set, get) => ({
     loanSettlementFees: '',
     loanEstablishmentFee: '',
     loanDetailsComplete: false,
+    loanDetailsEverCompleted: false,
     loanDetailsCurrentStep: null,
     loanDetailsActiveStep: 1,
     councilRates: '',
@@ -117,6 +127,10 @@ export const useFormStore = create((set, get) => ({
     sellerQuestionsComplete: false,
     sellerQuestionsActiveStep: 1,
     allFormsComplete: false,
+    openDropdown: null,
+    showUpfrontDropdown: false,
+    showDepositInUpfront: false,
+    showBankFeesInUpfront: false,
   }),
   
   // Helper to get all current form data
@@ -136,6 +150,27 @@ export const useFormStore = create((set, get) => ({
         return state.sellerQuestionsComplete
       default:
         return false
+    }
+  },
+
+  // Upfront costs display logic
+  getUpfrontCostsDisplay: () => {
+    const state = get()
+    return {
+      showDeposit: state.loanDetailsComplete && state.needsLoan === 'yes',
+      showBankFees: state.loanDetailsComplete && state.needsLoan === 'yes',
+      canShowDropdown: state.propertyDetailsFormComplete,
+      isDropdownOpen: state.openDropdown === 'upfront'
+    }
+  },
+
+  // Toggle upfront costs dropdown
+  toggleUpfrontDropdown: () => {
+    const state = get()
+    if (state.openDropdown === 'upfront') {
+      set({ openDropdown: null })
+    } else {
+      set({ openDropdown: 'upfront' })
     }
   }
 }))

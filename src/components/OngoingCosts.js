@@ -43,9 +43,20 @@ export default function OngoingCosts() {
         setIsExpanded(false);
     }, [formData]);
 
+    // Sync with shared dropdown state
+    useEffect(() => {
+        setIsExpanded(formData.openDropdown === 'ongoing');
+    }, [formData.openDropdown]);
+
     const toggleExpanded = () => {
         if (canShowDropdown) {
-            setIsExpanded(!isExpanded);
+            if (isExpanded) {
+                // Close this dropdown
+                formData.updateFormData('openDropdown', null);
+            } else {
+                // Close other dropdown first, then open this one
+                formData.updateFormData('openDropdown', 'ongoing');
+            }
         }
     };
 
@@ -145,15 +156,6 @@ export default function OngoingCosts() {
                                         <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
                                             {formatCurrency(ongoingCosts.totalOngoingCosts)}
                                         </span>
-                                    </div>
-                                    
-                                    {/* Disclaimer */}
-                                    <div className="border-t border-gray-200 pt-3 mt-3">
-                                        <div className="text-xs text-gray-500">
-                                            <strong>Disclaimer:</strong> These are estimated costs based on typical property expenses. 
-                                            Actual costs may vary significantly based on location, property condition, local rates, 
-                                            and personal circumstances. Please consult with local professionals for accurate estimates.
-                                        </div>
                                     </div>
                                 </>
                             );
