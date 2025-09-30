@@ -55,6 +55,7 @@ export default function LoanDetails() {
       loanSettlementFees: formData.loanSettlementFees,
       loanEstablishmentFee: formData.loanEstablishmentFee,
       LVR: formData.LVR,
+      LMI_COST: formData.LMI_COST,
       // Seller Questions
       councilRates: formData.councilRates,
       waterRates: formData.waterRates,
@@ -109,6 +110,7 @@ export default function LoanDetails() {
         loanSettlementFees: formData.loanSettlementFees,
         loanEstablishmentFee: formData.loanEstablishmentFee,
       LVR: formData.LVR,
+      LMI_COST: formData.LMI_COST,
         // Seller Questions
         councilRates: formData.councilRates,
         waterRates: formData.waterRates,
@@ -214,6 +216,11 @@ export default function LoanDetails() {
       updateFormData('loanLMI', defaultLMI);
     }
   }, [formData.LVR, formData.loanLMI, updateFormData]);
+
+  // Update LMI cost when relevant fields change
+  useEffect(() => {
+    formData.updateLMI();
+  }, [formData.loanLMI, formData.LVR, formData.propertyPrice, formData.updateLMI]);
 
   const renderStep = () => {
     // Show completion message if form is complete
