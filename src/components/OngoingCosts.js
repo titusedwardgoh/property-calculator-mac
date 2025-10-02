@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useStateSelector } from '../states/useStateSelector.js';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { useFormStore } from '../stores/formStore';
+import { ChevronDown } from 'lucide-react';
 
 export default function OngoingCosts() {
     const formData = useFormStore();
@@ -38,10 +39,26 @@ export default function OngoingCosts() {
 
     const canShowDropdown = shouldShowOngoingCosts();
 
-    // Close expanded state when formData changes (navigation occurs)
+    // Close dropdown when navigating between form sections
     useEffect(() => {
-        setIsExpanded(false);
-    }, [formData]);
+        if (formData.openDropdown === 'ongoing') {
+            formData.updateFormData('openDropdown', null);
+        }
+    }, [
+        formData.propertyDetailsCurrentStep,
+        formData.propertyDetailsActiveStep,
+        formData.buyerDetailsCurrentStep,
+        formData.buyerDetailsActiveStep,
+        formData.loanDetailsCurrentStep,
+        formData.loanDetailsActiveStep,
+        formData.sellerQuestionsActiveStep,
+        formData.showLoanDetails,
+        formData.showSellerQuestions,
+        formData.propertyDetailsComplete,
+        formData.buyerDetailsComplete,
+        formData.loanDetailsComplete,
+        formData.sellerQuestionsComplete
+    ]);
 
     // Sync with shared dropdown state
     useEffect(() => {
@@ -60,7 +77,7 @@ export default function OngoingCosts() {
         }
     };
 
-    // Get ongoing costs (placeholder for now)
+    // Get ongoing costs
     const getOngoingCosts = () => {
         if (!canShowDropdown) {
             return {
@@ -69,35 +86,10 @@ export default function OngoingCosts() {
             };
         }
 
-        // Placeholder costs for testing dropdown functionality
-        const costs = [
-            {
-                type: 'Council Rates',
-                amount: 2500,
-                description: 'Annual council rates (placeholder)'
-            },
-            {
-                type: 'Water Rates',
-                amount: 1200,
-                description: 'Annual water and sewerage rates (placeholder)'
-            },
-            {
-                type: 'Home Insurance',
-                amount: 1800,
-                description: 'Annual home and contents insurance (placeholder)'
-            },
-            {
-                type: 'Maintenance',
-                amount: 3000,
-                description: 'Annual maintenance and repairs (placeholder)'
-            }
-        ];
-
-        const totalOngoingCosts = costs.reduce((sum, cost) => sum + cost.amount, 0);
-
+        // No costs to display yet
         return {
-            totalOngoingCosts,
-            costs
+            totalOngoingCosts: 0,
+            costs: []
         };
     };
 
@@ -112,10 +104,12 @@ export default function OngoingCosts() {
                         <h3 className="text-md lg:text-lg xl:text-xl font-medium text-base-100">Ongoing Costs</h3>
                     </div>
                     <div className="text-right">
-                        <div className="text-md lg:text-lg xl:text-xl font-semibold text-base-100">
-                            {canShowDropdown ? formatCurrency(getOngoingCosts().totalOngoingCosts) : '$0'}
-                        </div>
-                        <div className="text-xs text-base-100 opacity-75"></div>
+                        {canShowDropdown && (
+                            <ChevronDown 
+                                size={20} 
+                                className={`text-base-100 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                            />
+                        )}
                     </div>
                 </div>
             </div>
@@ -124,42 +118,59 @@ export default function OngoingCosts() {
             {isExpanded && canShowDropdown && (
                 <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 px-4 py-3 z-10">
                     <div className="space-y-3">
-                        {(() => {
-                            const ongoingCosts = getOngoingCosts();
-                            
-                            return (
-                                <>
-                                    <div className="text-xs text-gray-500 mb-3">Estimated Annual Ongoing Costs:</div>
-                                    
-                                    {/* Individual cost items */}
-                                    {ongoingCosts.costs.map((cost, index) => (
-                                        <div key={index} className="flex justify-between items-center">
-                                            <span 
-                                                className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg relative group cursor-help" 
-                                                title={cost.description}
-                                            >
-                                                {cost.type}
-                                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none max-w-xs z-20">
-                                                    {cost.description}
-                                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
-                                                </div>
-                                            </span>
-                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
-                                                {formatCurrency(cost.amount)}
-                                            </span>
-                                        </div>
-                                    ))}
-                                    
-                                    {/* Total */}
-                                    <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-3">
-                                        <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">Total Annual Ongoing Costs</span>
-                                        <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
-                                            {formatCurrency(ongoingCosts.totalOngoingCosts)}
+                        {loanDetailsComplete && needsLoan === 'yes' && formData.MONTHLY_LOAN_REPAYMENT > 0 ? (
+                            <>
+                                <div className="text-xs text-gray-500 mb-3">Ongoing Costs:</div>
+                                
+                                {/* Monthly Section */}
+                                <div className="mb-6">
+                                    {/* Monthly Loan Repayment */}
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                            Monthly Loan Repayment
+                                        </span>
+                                        <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                            {formatCurrency(formData.MONTHLY_LOAN_REPAYMENT)}
                                         </span>
                                     </div>
-                                </>
-                            );
-                        })()}
+                                    
+                                    {/* Monthly Total */}
+                                    <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-2 pb-2 border-b border-gray-200">
+                                        <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
+                                            Total Monthly Ongoing Costs
+                                        </span>
+                                        <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
+                                            {formatCurrency(formData.MONTHLY_LOAN_REPAYMENT)}
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                {/* Annual Section */}
+                                <div>
+                                    {/* Annual Loan Repayment */}
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                            Annual Loan Repayment
+                                        </span>
+                                        <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                            {formatCurrency(formData.ANNUAL_LOAN_REPAYMENT)}
+                                        </span>
+                                    </div>
+                                    
+                                    {/* Annual Total */}
+                                    <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-2 pb-2 border-b border-gray-200">
+                                        <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
+                                            Total Annual Ongoing Costs
+                                        </span>
+                                        <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
+                                            {formatCurrency(formData.ANNUAL_LOAN_REPAYMENT)}
+                                        </span>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="text-xs text-gray-500 mb-3">No ongoing costs calculated yet.</div>
+                        )}
                     </div>
                 </div>
             )}

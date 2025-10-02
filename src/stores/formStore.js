@@ -38,6 +38,7 @@ export const useFormStore = create((set, get) => ({
   loanDeposit: '',
   loanType: '',
   loanTerm: '',
+  loanInterestOnlyPeriod: '',
   loanRate: '',
   loanLMI: '',
   loanSettlementFees: '',
@@ -73,6 +74,8 @@ export const useFormStore = create((set, get) => ({
   // Calculated values
   LVR: 0, // Loan-to-Value Ratio: 1 - (deposit amount / property price)
   LMI_COST: 0, // Lenders Mortgage Insurance cost
+  MONTHLY_LOAN_REPAYMENT: 0, // Monthly loan repayment amount
+  ANNUAL_LOAN_REPAYMENT: 0, // Annual loan repayment amount
   
   // LMI Rates
   LMI_RATES: {
@@ -110,6 +113,13 @@ export const useFormStore = create((set, get) => ({
       '500K-600K': 0.03513,
       '600K-750K': 0.03783,
       '750K-1M': 0.03820
+    },
+    '91.01-94%': {
+      '0-300K': 0.02309,
+      '300K-500K': 0.02982,
+      '500K-600K': 0.03756,
+      '600K-750K': 0.04198,
+      '750K-1M': 0.04212
     },
     '94.01-95%': {
       '0-300K': 0.02609,
@@ -158,6 +168,7 @@ export const useFormStore = create((set, get) => ({
     loanDeposit: '',
     loanType: '',
     loanTerm: '',
+    loanInterestOnlyPeriod: '',
     loanRate: '',
     loanLMI: '',
     loanSettlementFees: '',
@@ -168,6 +179,8 @@ export const useFormStore = create((set, get) => ({
     loanDetailsActiveStep: 1,
     LVR: 0,
     LMI_COST: 0,
+    MONTHLY_LOAN_REPAYMENT: 0,
+    ANNUAL_LOAN_REPAYMENT: 0,
     councilRates: '',
     waterRates: '',
     constructionStarted: '',
@@ -263,6 +276,7 @@ export const useFormStore = create((set, get) => ({
     else if (lvr >= 0.8801 && lvr <= 0.89) lvrRange = '88.01-89%'
     else if (lvr >= 0.8901 && lvr <= 0.90) lvrRange = '89.01-90%'
     else if (lvr >= 0.9001 && lvr <= 0.91) lvrRange = '90.01-91%'
+    else if (lvr >= 0.9101 && lvr <= 0.94) lvrRange = '91.01-94%'
     else if (lvr >= 0.9401 && lvr <= 0.95) lvrRange = '94.01-95%'
     
     if (!lvrRange) return 0
@@ -290,7 +304,96 @@ export const useFormStore = create((set, get) => ({
 
   // Update LMI cost when relevant fields change
   updateLMI: () => {
-    const lmiCost = get().calculateLMI()
-    set({ LMI_COST: lmiCost })
+    const state = get()
+    const lmiCost = state.calculateLMI()
+    
+    // Calculate loan repayments with the new LMI cost
+    const propertyPrice = parseInt(state.propertyPrice) || 0
+    const depositAmount = parseInt(state.loanDeposit) || 0
+    const newLmiCost = state.loanLMI === 'yes' ? lmiCost : 0
+    const loanAmount = propertyPrice + newLmiCost - depositAmount
+    const interestRate = parseFloat(state.loanRate) || 0
+    const loanTerm = parseInt(state.loanTerm) || 0
+    const loanType = state.loanType
+    const interestOnlyPeriod = parseInt(state.loanInterestOnlyPeriod) || 0
+    
+    let monthlyRepayment = 0
+    let annualRepayment = 0
+    
+    if (loanAmount > 0 && interestRate > 0 && loanTerm > 0) {
+      const monthlyRate = interestRate / 100 / 12
+      
+      if (loanType === 'interest-only') {
+        monthlyRepayment = Math.round(loanAmount * monthlyRate)
+      } else {
+        if (monthlyRate === 0) {
+          monthlyRepayment = loanAmount / (loanTerm * 12)
+        } else {
+          const numPayments = loanTerm * 12
+          monthlyRepayment = Math.round((loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
+                                       (Math.pow(1 + monthlyRate, numPayments) - 1))
+        }
+      }
+      annualRepayment = monthlyRepayment * 12
+    }
+    
+    set({ 
+      LMI_COST: lmiCost,
+      MONTHLY_LOAN_REPAYMENT: monthlyRepayment,
+      ANNUAL_LOAN_REPAYMENT: annualRepayment
+    })
+  },
+
+  // Calculate monthly loan repayment
+  calculateMonthlyRepayment: () => {
+    const state = get()
+    const propertyPrice = parseInt(state.propertyPrice) || 0
+    const depositAmount = parseInt(state.loanDeposit) || 0
+    const lmiCost = state.loanLMI === 'yes' ? (state.LMI_COST || 0) : 0
+    // Loan amount includes LMI: Property Price + LMI - Deposit
+    const loanAmount = propertyPrice + lmiCost - depositAmount
+    const interestRate = parseFloat(state.loanRate) || 0
+    const loanTerm = parseInt(state.loanTerm) || 0
+    const loanType = state.loanType
+    const interestOnlyPeriod = parseInt(state.loanInterestOnlyPeriod) || 0
+    
+    if (loanAmount <= 0 || interestRate <= 0 || loanTerm <= 0) {
+      return 0
+    }
+    
+    const monthlyRate = interestRate / 100 / 12
+    
+    if (loanType === 'interest-only') {
+      // Interest-only calculation - always show interest-only payment
+      return Math.round(loanAmount * monthlyRate)
+    } else {
+      // Principal and interest calculation
+      if (monthlyRate === 0) {
+        return loanAmount / (loanTerm * 12)
+      }
+      
+      const numPayments = loanTerm * 12
+      const monthlyPayment = (loanAmount * monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
+                            (Math.pow(1 + monthlyRate, numPayments) - 1)
+      
+      return Math.round(monthlyPayment)
+    }
+  },
+
+  // Calculate annual loan repayment
+  calculateAnnualRepayment: () => {
+    const state = get()
+    const monthlyRepayment = state.calculateMonthlyRepayment()
+    return monthlyRepayment * 12
+  },
+
+  // Update loan repayments when relevant fields change
+  updateLoanRepayments: () => {
+    const monthlyRepayment = get().calculateMonthlyRepayment()
+    const annualRepayment = get().calculateAnnualRepayment()
+    set({ 
+      MONTHLY_LOAN_REPAYMENT: monthlyRepayment,
+      ANNUAL_LOAN_REPAYMENT: annualRepayment
+    })
   }
 }))

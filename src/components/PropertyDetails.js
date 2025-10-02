@@ -154,6 +154,8 @@ export default function PropertyDetails() {
       loanEstablishmentFee: formData.loanEstablishmentFee,
       LVR: formData.LVR,
       LMI_COST: formData.LMI_COST,
+      MONTHLY_LOAN_REPAYMENT: formData.MONTHLY_LOAN_REPAYMENT,
+      ANNUAL_LOAN_REPAYMENT: formData.ANNUAL_LOAN_REPAYMENT,
       // Seller Questions
       councilRates: formData.councilRates,
       waterRates: formData.waterRates,
@@ -227,6 +229,8 @@ export default function PropertyDetails() {
       loanEstablishmentFee: formData.loanEstablishmentFee,
       LVR: formData.LVR,
       LMI_COST: formData.LMI_COST,
+      MONTHLY_LOAN_REPAYMENT: formData.MONTHLY_LOAN_REPAYMENT,
+      ANNUAL_LOAN_REPAYMENT: formData.ANNUAL_LOAN_REPAYMENT,
       // Seller Questions
       councilRates: formData.councilRates,
       waterRates: formData.waterRates,

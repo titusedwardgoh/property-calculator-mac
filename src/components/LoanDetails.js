@@ -105,12 +105,15 @@ export default function LoanDetails() {
         loanDeposit: formData.loanDeposit,
         loanType: formData.loanType,
         loanTerm: formData.loanTerm,
+        loanInterestOnlyPeriod: formData.loanInterestOnlyPeriod,
         loanRate: formData.loanRate,
         loanLMI: formData.loanLMI,
         loanSettlementFees: formData.loanSettlementFees,
         loanEstablishmentFee: formData.loanEstablishmentFee,
       LVR: formData.LVR,
       LMI_COST: formData.LMI_COST,
+      MONTHLY_LOAN_REPAYMENT: formData.MONTHLY_LOAN_REPAYMENT,
+      ANNUAL_LOAN_REPAYMENT: formData.ANNUAL_LOAN_REPAYMENT,
         // Seller Questions
         councilRates: formData.councilRates,
         waterRates: formData.waterRates,
@@ -149,11 +152,24 @@ export default function LoanDetails() {
   const isCurrentStepValid = () => {
     switch (currentStep) {
       case 1:
-        return formData.loanDeposit && parseInt(formData.loanDeposit) > 0;
+        const depositAmount = parseInt(formData.loanDeposit) || 0;
+        const propertyPrice = parseInt(formData.propertyPrice) || 0;
+        const minimumDeposit = Math.round(propertyPrice * 0.05);
+        return depositAmount > 0 && depositAmount >= minimumDeposit;
       case 2:
         return formData.loanType && formData.loanType.trim() !== '';
       case 3:
-        return formData.loanTerm && parseInt(formData.loanTerm) >= 1 && parseInt(formData.loanTerm) <= 30;
+        const loanTermValid = formData.loanTerm && parseInt(formData.loanTerm) >= 1 && parseInt(formData.loanTerm) <= 30;
+        if (formData.loanType === 'interest-only') {
+          const interestOnlyPeriod = parseInt(formData.loanInterestOnlyPeriod) || 0;
+          const loanTerm = parseInt(formData.loanTerm) || 0;
+          return loanTermValid && 
+                 formData.loanInterestOnlyPeriod && 
+                 interestOnlyPeriod >= 1 && 
+                 interestOnlyPeriod <= 5 &&
+                 interestOnlyPeriod <= loanTerm;
+        }
+        return loanTermValid;
       case 4:
         return formData.loanRate && parseFloat(formData.loanRate) >= 0.01 && parseFloat(formData.loanRate) <= 20;
       case 5:
@@ -222,6 +238,11 @@ export default function LoanDetails() {
     formData.updateLMI();
   }, [formData.loanLMI, formData.LVR, formData.propertyPrice, formData.updateLMI]);
 
+  // Update loan repayments when relevant fields change
+  useEffect(() => {
+    formData.updateLoanRepayments();
+  }, [formData.loanDeposit, formData.propertyPrice, formData.loanRate, formData.loanTerm, formData.loanType, formData.loanInterestOnlyPeriod, formData.loanLMI, formData.LMI_COST, formData.updateLoanRepayments]);
+
   const renderStep = () => {
     // Show completion message if form is complete
     if (formData.loanDetailsComplete) {
@@ -231,7 +252,7 @@ export default function LoanDetails() {
             Loan Details Complete
           </h2>
           <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
-            Now let&apos;s ask a few additional questions some of which you need to ask the seller...
+            Now let&apos;s ask a few additional final questions...
           </p>
         </div>
       );
@@ -268,9 +289,33 @@ export default function LoanDetails() {
                   const numericValue = e.target.value.replace(/[^\d]/g, '');
                   updateFormData('loanDeposit', numericValue);
                 }}
-                className="w-64 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
+                className={`w-64 pl-8 pr-8 py-2 text-2xl border-b-2 rounded-none focus:outline-none transition-all duration-200 hover:border-gray-300 ${
+                  (() => {
+                    const depositAmount = parseInt(formData.loanDeposit) || 0;
+                    const propertyPrice = parseInt(formData.propertyPrice) || 0;
+                    const minimumDeposit = Math.round(propertyPrice * 0.05);
+                    return depositAmount > 0 && depositAmount < minimumDeposit 
+                      ? 'border-red-500 focus:border-red-500' 
+                      : 'border-gray-200 focus:border-secondary';
+                  })()
+                }`}
               />
             </div>
+            {(() => {
+              const depositAmount = parseInt(formData.loanDeposit) || 0;
+              const propertyPrice = parseInt(formData.propertyPrice) || 0;
+              const minimumDeposit = Math.round(propertyPrice * 0.05);
+              const formattedMinimumDeposit = minimumDeposit.toLocaleString('en-AU');
+              
+              if (depositAmount > 0 && depositAmount < minimumDeposit) {
+                return (
+                  <p className="text-red-500 text-sm mt-2">
+                    Deposit must be at least ${formattedMinimumDeposit} (5% of property price)
+                  </p>
+                );
+              }
+              return null;
+            })()}
           </div>
         );
 
@@ -315,31 +360,76 @@ export default function LoanDetails() {
             <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
               How long do you want your mortgage for?
             </h2>
-            <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
+            <p className="lg:text-lg xl:text-xl lg:mb-10 text-gray-500 leading-relaxed mb-8">
               Enter the number of years for your loan (1-30 years)
             </p>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                min="1"
-                max="30"
-                step="1"
-                placeholder="30"
-                value={formData.loanTerm || ''}
-                onChange={(e) => {
-                  const value = parseInt(e.target.value);
-                  if (value >= 1 && value <= 30) {
-                    updateFormData('loanTerm', value.toString());
-                  } else if (e.target.value === '') {
-                    updateFormData('loanTerm', '');
-                  }
-                }}
-                className="w-15 pl-4 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300 text-left [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-              />
-              <span className="pl-4 text-xl text-gray-500">
-                years
-              </span>
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="1"
+                  max="30"
+                  step="1"
+                  placeholder="30"
+                  value={formData.loanTerm || ''}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (value >= 1 && value <= 30) {
+                      updateFormData('loanTerm', value.toString());
+                    } else if (e.target.value === '') {
+                      updateFormData('loanTerm', '');
+                    }
+                  }}
+                  className="w-15 pl-4 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300 text-left [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <span className="pl-4 text-xl text-gray-500">
+                  years
+                </span>
+              </div>
+              
+              {/* Interest-only period dropdown - only show if Interest Only is selected */}
+              {formData.loanType === 'interest-only' && (
+                <div className="flex items-center gap-2">
+                  <select
+                    value={formData.loanInterestOnlyPeriod || ''}
+                    onChange={(e) => updateFormData('loanInterestOnlyPeriod', e.target.value)}
+                    className={`px-3 py-2 text-2xl border-b-2 rounded-none focus:outline-none transition-all duration-200 hover:border-gray-300 text-left bg-base ${
+                      (() => {
+                        const interestOnlyPeriod = parseInt(formData.loanInterestOnlyPeriod) || 0;
+                        const loanTerm = parseInt(formData.loanTerm) || 0;
+                        return interestOnlyPeriod > 0 && interestOnlyPeriod > loanTerm 
+                          ? 'border-red-500 focus:border-red-500' 
+                          : 'border-gray-200 focus:border-secondary';
+                      })()
+                    }`}
+                  >
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                  </select>
+                  <span className="pl-4 text-xl text-gray-500">
+                    years interest-only period
+                  </span>
+                </div>
+              )}
             </div>
+            
+            {/* Error message for interest-only period validation - appears below both inputs */}
+            {formData.loanType === 'interest-only' && (() => {
+              const interestOnlyPeriod = parseInt(formData.loanInterestOnlyPeriod) || 0;
+              const loanTerm = parseInt(formData.loanTerm) || 0;
+              
+              if (interestOnlyPeriod > 0 && interestOnlyPeriod > loanTerm) {
+                return (
+                  <p className="text-red-500 text-sm mt-2">
+                    Interest-only period cannot exceed loan term ({loanTerm} years)
+                  </p>
+                );
+              }
+              return null;
+            })()}
           </div>
         );
 

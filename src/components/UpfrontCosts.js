@@ -10,6 +10,7 @@ import { SAStateComponent, hasSAIneligibleItems, hasSAActualItems } from '../sta
 import { NTStateComponent, hasNTIneligibleItems, hasNTActualItems } from '../states/nt/components.js';
 import { TASStateComponent, hasTASIneligibleItems, hasTASActualItems } from '../states/tas/components.js';
 import { NSWStateComponent, hasNSWIneligibleItems, hasNSWActualItems } from '../states/nsw/components.js';
+import { ChevronDown } from 'lucide-react';
 
 import { useFormStore } from '../stores/formStore';
 
@@ -29,9 +30,18 @@ export default function UpfrontCosts() {
     }
   }, [
     formData.propertyDetailsCurrentStep,
-    formData.buyerDetailsCurrentStep, 
+    formData.propertyDetailsActiveStep,
+    formData.buyerDetailsCurrentStep,
+    formData.buyerDetailsActiveStep,
     formData.loanDetailsCurrentStep,
-    formData.sellerQuestionsActiveStep
+    formData.loanDetailsActiveStep,
+    formData.sellerQuestionsActiveStep,
+    formData.showLoanDetails,
+    formData.showSellerQuestions,
+    formData.propertyDetailsComplete,
+    formData.buyerDetailsComplete,
+    formData.loanDetailsComplete,
+    formData.sellerQuestionsComplete
   ]);
 
   const toggleExpanded = () => {
@@ -188,9 +198,12 @@ export default function UpfrontCosts() {
             <h3 className="text-md lg:text-lg xl:text-xl font-medium text-base-100">Upfront Costs</h3>
           </div>
           <div className="text-right">
-            <div className="text-md lg:text-lg xl:text-xl font-semibold text-base-100">
-              {displayState.canShowDropdown ? formatCurrency(calculateAllUpfrontCosts().totalUpfrontCosts) : '$0'}
-            </div>
+            {displayState.canShowDropdown && (
+              <ChevronDown 
+                size={20} 
+                className={`text-base-100 transition-transform duration-200 ${displayState.isDropdownOpen ? 'rotate-180' : ''}`}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -398,7 +411,17 @@ export default function UpfrontCosts() {
                     );
                   })}
                   
-                  {/* Show Ineligible Grants/Concessions below Net State Duty */}
+                  {/* Total Upfront Costs - moved above state grants and concessions */}
+                  <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-3">
+                    <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
+                      Total Upfront Costs
+                    </span>
+                    <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
+                      {formatCurrency(upfrontCosts.totalUpfrontCosts)}
+                    </span>
+                  </div>
+                  
+                  {/* Show Ineligible Grants/Concessions below Total */}
                   {formData.buyerDetailsComplete && (formData.selectedState === 'NSW' || formData.selectedState === 'VIC' || formData.selectedState === 'QLD' || formData.selectedState === 'SA' || formData.selectedState === 'WA' || formData.selectedState === 'TAS' || formData.selectedState === 'NT' || formData.selectedState === 'ACT') && (() => {
                     // Collect all ineligible items first
                     const ineligibleItems = [];
@@ -435,7 +458,7 @@ export default function UpfrontCosts() {
                     
                     return (
                       <div className="border-t border-gray-200 pt-3 mt-3">
-                        <div className="text-xs text-gray-500 mb-2">State Grants and Concessions:</div>
+                        <div className="text-xs text-gray-500 mb-2 mt-4">State Grants and Concessions:</div>
                         
                         <div className="space-y-3">
                           {/* Show ineligible concessions for VIC */}
