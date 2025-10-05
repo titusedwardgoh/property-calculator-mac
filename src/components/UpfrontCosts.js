@@ -178,9 +178,31 @@ export default function UpfrontCosts() {
       const depositAmount = parseInt(formData.loanDeposit) || 0;
       const settlementFee = parseInt(formData.loanSettlementFees) || 0;
       const establishmentFee = parseInt(formData.loanEstablishmentFee) || 0;
+      
+      // Add seller question costs if seller questions are complete
+      let additionalCosts = 0;
+      if (formData.sellerQuestionsComplete) {
+        additionalCosts += parseInt(formData.landTransferFee) || 0;
+        additionalCosts += parseInt(formData.legalFees) || 0;
+        additionalCosts += parseInt(formData.buildingAndPestInspection) || 0;
+      }
+      
       return {
         ...upfrontCostsResult,
-        totalUpfrontCosts: upfrontCostsResult.totalUpfrontCosts + depositAmount + settlementFee + establishmentFee
+        totalUpfrontCosts: upfrontCostsResult.totalUpfrontCosts + depositAmount + settlementFee + establishmentFee + additionalCosts
+      };
+    }
+    
+    // Add seller question costs if seller questions are complete but no loan
+    if (formData.sellerQuestionsComplete) {
+      const landTransferFee = parseInt(formData.landTransferFee) || 0;
+      const legalFees = parseInt(formData.legalFees) || 0;
+      const buildingAndPest = parseInt(formData.buildingAndPestInspection) || 0;
+      const additionalCosts = landTransferFee + legalFees + buildingAndPest;
+      
+      return {
+        ...upfrontCostsResult,
+        totalUpfrontCosts: upfrontCostsResult.totalUpfrontCosts + additionalCosts
       };
     }
     
@@ -210,16 +232,17 @@ export default function UpfrontCosts() {
       
             {/* Dropdown overlay - appears above the component without pushing content down */}
       {displayState.isDropdownOpen && displayState.canShowDropdown && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 px-4 py-3 z-10">
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 px-4 py-1 z-10">
           <div className="space-y-3">
             {(() => {
               const upfrontCosts = calculateAllUpfrontCosts();
               
               return (
                 <>
+                  <div className="text-xs text-gray-500 mb-0 pt-2">Total Estimated Upfront Costs:</div>
                   {/* Show Property Price first if BuyerDetails complete and no loan needed */}
                   {formData.buyerDetailsComplete && formData.needsLoan === 'no' && (
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center pt-2">
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Property Price</span>
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
                         {formatCurrency(parseInt(formData.propertyPrice) || 0)}
@@ -229,7 +252,7 @@ export default function UpfrontCosts() {
                   
                   {/* Show Deposit if loan details are currently complete */}
                   {displayState.showDeposit && (
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center pt-2">
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Deposit</span>
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
                         {formatCurrency(parseInt(formData.loanDeposit) || 0)}
@@ -239,7 +262,7 @@ export default function UpfrontCosts() {
                   
                   {/* Show Bank Settlement Fee if loan details are currently complete */}
                   {displayState.showBankFees && (
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center -mt-3">
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Bank Settlement Fee</span>
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
                         {formatCurrency(parseInt(formData.loanSettlementFees) || 0)}
@@ -249,7 +272,7 @@ export default function UpfrontCosts() {
                   
                   {/* Show Loan Establishment Fee if loan details are currently complete */}
                   {displayState.showBankFees && (
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center -mt-3">
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Loan Establishment Fee</span>
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
                         {formatCurrency(parseInt(formData.loanEstablishmentFee) || 0)}
@@ -257,8 +280,43 @@ export default function UpfrontCosts() {
                     </div>
                   )}
                   
+                  {/* Land Transfer Fee, Legal and Conveyancing, Building and Pest - show when seller questions are complete */}
+                  {formData.sellerQuestionsComplete && (
+                    <>
+                      {/* Land Transfer Fee */}
+                      {parseInt(formData.landTransferFee) > 0 && (
+                        <div className="flex justify-between items-center -mt-0">
+                          <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Land Transfer Fee</span>
+                          <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                            {formatCurrency(parseInt(formData.landTransferFee) || 0)}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Legal and Conveyancing */}
+                      {parseInt(formData.legalFees) > 0 && (
+                        <div className="flex justify-between items-center -mt-3">
+                          <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Legal and Conveyancing</span>
+                          <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                            {formatCurrency(parseInt(formData.legalFees) || 0)}
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Building and Pest Inspection */}
+                      {parseInt(formData.buildingAndPestInspection) > 0 && (
+                        <div className="flex justify-between items-center -mt-3">
+                          <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Building and Pest Inspection</span>
+                          <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                            {formatCurrency(parseInt(formData.buildingAndPestInspection) || 0)}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  
                   {/* Stamp Duty */}
-                  <div className="flex justify-between items-center">
+                  <div className={`flex justify-between items-center ${(upfrontCosts.concessions.length > 0 || upfrontCosts.foreignDuty.applicable) ? 'mt-2' : '-mt-3'}`}>
                     <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Stamp Duty</span>
                     <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
                       {formatCurrency(upfrontCosts.stampDuty.amount)}
@@ -285,7 +343,7 @@ export default function UpfrontCosts() {
                     
                     return concessionsToShow;
                   })().map((concession, index) => (
-                    <div key={index}>
+                    <div key={index} className="-mt-3">
                       {/* Main concession */}
                       <div className="flex justify-between items-center">
                         <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
@@ -365,7 +423,7 @@ export default function UpfrontCosts() {
                   
                   {/* Foreign Purchaser Duty */}
                   {upfrontCosts.foreignDuty.applicable && (
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center -mt-3">
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Foreign Purchaser Duty</span>
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium text-red-600">
                         {formatCurrency(upfrontCosts.foreignDuty.amount)}
@@ -375,9 +433,9 @@ export default function UpfrontCosts() {
                   
                   {/* Net State Duty - show if there are concessions or foreign duty */}
                   {(upfrontCosts.concessions.length > 0 || upfrontCosts.foreignDuty.applicable) && (
-                    <div className="flex justify-between items-center border-t border-gray-200 pt-2">
-                      <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">Net State Duty</span>
-                      <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
+                    <div className="flex justify-between items-center border-t border-gray-200 pt-2 -mt-2 pb-2">
+                      <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Net State Duty</span>
+                      <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
                         {formatCurrency(upfrontCosts.netStateDuty)}
                       </span>
                     </div>
@@ -400,7 +458,7 @@ export default function UpfrontCosts() {
                     }
                     
                     return (
-                      <div key={index} className="flex justify-between items-center">
+                      <div key={index} className="flex justify-between items-center -mt-2">
                         <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
                           {grantLabel}
                         </span>
@@ -457,48 +515,64 @@ export default function UpfrontCosts() {
                     if (!hasActualItems) return null;
                     
                     return (
-                      <div className="border-t border-gray-200 pt-3 mt-3">
-                        <div className="text-xs text-gray-500 mb-2 mt-4">State Grants and Concessions:</div>
+                      <div className="border-t border-gray-200 pt-1 -mt-1">
+                        <div className="text-xs text-gray-500 mb-3 mt-4">Other State Grants and Concessions:</div>
                         
                         <div className="space-y-3">
                           {/* Show ineligible concessions for VIC */}
-                          <VICStateComponent upfrontCosts={upfrontCosts} formData={formData} />
+                          <div className="-mt-2">
+                            <VICStateComponent upfrontCosts={upfrontCosts} formData={formData} />
+                          </div>
                           
                           {/* Show ineligible concessions for QLD */}
-                          <QLDStateComponent upfrontCosts={upfrontCosts} formData={formData} />
+                          <div className="-mt-2">
+                            <QLDStateComponent upfrontCosts={upfrontCosts} formData={formData} />
+                          </div>
                           
                           {/* Show ineligible grants and concessions for SA */}
-                          <SAStateComponent upfrontCosts={upfrontCosts} formData={formData} />
+                          <div className="-mt-2">
+                            <SAStateComponent upfrontCosts={upfrontCosts} formData={formData} />
+                          </div>
                           
                           {/* Show ineligible grants and concessions for WA */}
-                          <WAStateComponent upfrontCosts={upfrontCosts} formData={formData} />
+                          <div className="-mt-2">
+                            <WAStateComponent upfrontCosts={upfrontCosts} formData={formData} />
+                          </div>
                           
                           {/* Show ineligible concessions and grants for TAS */}
-                          <TASStateComponent 
-                            upfrontCosts={upfrontCosts} 
-                            formData={formData} 
-                            stateFunctions={stateFunctions}
-                            calculateStampDuty={calculateStampDuty}
-                          />
+                          <div className="-mt-2">
+                            <TASStateComponent 
+                              upfrontCosts={upfrontCosts} 
+                              formData={formData} 
+                              stateFunctions={stateFunctions}
+                              calculateStampDuty={calculateStampDuty}
+                            />
+                          </div>
                           
                           {/* Show ineligible grants and concessions for NT */}
-                          <NTStateComponent 
-                            upfrontCosts={upfrontCosts} 
-                            formData={formData} 
-                            stateFunctions={stateFunctions}
-                            calculateStampDuty={calculateStampDuty}
-                          />
+                          <div className="-mt-2">
+                            <NTStateComponent 
+                              upfrontCosts={upfrontCosts} 
+                              formData={formData} 
+                              stateFunctions={stateFunctions}
+                              calculateStampDuty={calculateStampDuty}
+                            />
+                          </div>
                           
                           {/* Show ineligible Stamp Duty Concession for NSW */}
-                          <NSWStateComponent 
-                            upfrontCosts={upfrontCosts} 
-                            formData={formData} 
-                            stateFunctions={stateFunctions}
-                            calculateStampDuty={calculateStampDuty}
-                          />
+                          <div className="-mt-2">
+                            <NSWStateComponent 
+                              upfrontCosts={upfrontCosts} 
+                              formData={formData} 
+                              stateFunctions={stateFunctions}
+                              calculateStampDuty={calculateStampDuty}
+                            />
+                          </div>
                           
                           {/* Show ineligible concessions for ACT */}
-                          <ACTStateComponent upfrontCosts={upfrontCosts} formData={formData} />
+                          <div className="-mt-2">
+                            <ACTStateComponent upfrontCosts={upfrontCosts} formData={formData} />
+                          </div>
                           
                           {/* Show ineligible First Home Owners Grant */}
                           {upfrontCosts.grants.length === 0 && formData.selectedState !== 'SA' && formData.selectedState !== 'WA' && formData.selectedState !== 'TAS' && formData.selectedState !== 'NT' && formData.selectedState !== 'ACT' && (() => {
@@ -524,7 +598,7 @@ export default function UpfrontCosts() {
                               { reason: 'Grant not available' };
                             
                             return (
-                              <div className="flex justify-between items-center">
+                              <div className="flex justify-between items-center -mt-3 mb-1">
                                 <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">First Home Owners Grant</span>
                                 <span className="text-gray-600 text-sm md:text-xs lg:text-sm xl:text-lg text-red-600 relative group cursor-help" title={grantResult.reason}>
                                   Not Eligible

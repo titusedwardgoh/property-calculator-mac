@@ -372,8 +372,8 @@ export default function SellerQuestions() {
     // Show completion message if form is complete
     if (localCompletionState) {
       return (
-        <div className="flex flex-col mt-12 pr-2">
-          <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+        <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
             Seller Questions Complete
           </h2>
           <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -385,8 +385,8 @@ export default function SellerQuestions() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               Ask the seller: What are the annual council rates?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -415,8 +415,8 @@ export default function SellerQuestions() {
 
       case 2:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
             Ask the seller: What are the annual water rates?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -447,8 +447,8 @@ export default function SellerQuestions() {
         // Only show construction question if property type is off-the-plan or house-and-land
         if (formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land') {
           return (
-            <div className="flex flex-col mt-12 pr-2">
-              <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 Has construction already started on the property?
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -497,8 +497,8 @@ export default function SellerQuestions() {
           
           // Show dutiable value question for VIC off-the-plan or house-and-land
           return (
-            <div className="flex flex-col mt-12 pr-2">
-              <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 What is the dutiable value of the property?
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -531,8 +531,8 @@ export default function SellerQuestions() {
 
       case 5:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               Ask the seller: Is there body corporate or strata fees?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -561,8 +561,8 @@ export default function SellerQuestions() {
 
       case 6:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               What is the Land Transfer Fee?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -591,8 +591,8 @@ export default function SellerQuestions() {
 
       case 7:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               What is the cost for Legal & Conveyancing Services?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -621,8 +621,8 @@ export default function SellerQuestions() {
 
       case 8:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               What is the cost for Building and Pest Inspection?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -658,7 +658,7 @@ export default function SellerQuestions() {
   return (
     <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
       <div className="flex">
-        <span className={`flex items-center text-xs -mt-85 md:-mt-70 lg:-mt-68 lg:text-sm xl:text-xl lg:pt-15 xl:-mt-64 font-extrabold mr-2 pt-14 whitespace-nowrap ${
+        <span className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${
           formData.sellerQuestionsComplete ? 'text-base-100' : 'text-primary'
         }`}>
           <span className="text-xs text-base-100">{formData.needsLoan === 'yes' ? '3' : '2'}</span>

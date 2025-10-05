@@ -2,11 +2,16 @@ import { useState, useEffect } from 'react';
 import { useStateSelector } from '../states/useStateSelector.js';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { useFormStore } from '../stores/formStore';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react'
 
 export default function OngoingCosts() {
     const formData = useFormStore();
     const [isExpanded, setIsExpanded] = useState(false);
+    
+    // Update ongoing costs when relevant fields change
+    useEffect(() => {
+        formData.updateOngoingCosts();
+    }, [formData.councilRates, formData.waterRates, formData.bodyCorp, formData.updateOngoingCosts]);
     
     // Check if PropertyDetails form is actually complete (after pressing Complete button)
     const isPropertyComplete = formData.propertyDetailsFormComplete;
@@ -120,7 +125,12 @@ export default function OngoingCosts() {
                     <div className="space-y-3">
                         {loanDetailsComplete && needsLoan === 'yes' && formData.MONTHLY_LOAN_REPAYMENT > 0 ? (
                             <>
-                                <div className="text-xs text-gray-500 mb-3">Ongoing Costs:</div>
+                                <div className="text-xs text-gray-500 mb-2">
+                                    {formData.loanType === 'interest-only' && formData.loanInterestOnlyPeriod ? 
+                                        `Ongoing Costs During Interest Only Period (${formData.loanInterestOnlyPeriod} ${parseInt(formData.loanInterestOnlyPeriod) === 1 ? 'year' : 'years'}):` : 
+                                        'Ongoing Costs:'
+                                    }
+                                </div>
                                 
                                 {/* Monthly Section */}
                                 <div className="mb-6">
@@ -134,13 +144,54 @@ export default function OngoingCosts() {
                                         </span>
                                     </div>
                                     
+                                    {/* Council Rates - only show if seller questions complete */}
+                                    {formData.sellerQuestionsComplete && formData.COUNCIL_RATES_MONTHLY > 0 && (
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                Council Rates (Monthly)
+                                            </span>
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                {formatCurrency(formData.COUNCIL_RATES_MONTHLY)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Water Rates - only show if seller questions complete */}
+                                    {formData.sellerQuestionsComplete && formData.WATER_RATES_MONTHLY > 0 && (
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                Water Rates (Monthly)
+                                            </span>
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                {formatCurrency(formData.WATER_RATES_MONTHLY)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Body Corporate - only show if seller questions complete */}
+                                    {formData.sellerQuestionsComplete && formData.BODY_CORP_MONTHLY > 0 && (
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                Body Corporate (Monthly)
+                                            </span>
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                {formatCurrency(formData.BODY_CORP_MONTHLY)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    
                                     {/* Monthly Total */}
                                     <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-2 pb-2 border-b border-gray-200">
                                         <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
                                             Total Monthly Ongoing Costs
                                         </span>
                                         <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
-                                            {formatCurrency(formData.MONTHLY_LOAN_REPAYMENT)}
+                                            {formatCurrency(
+                                                formData.MONTHLY_LOAN_REPAYMENT + 
+                                                (formData.sellerQuestionsComplete ? formData.COUNCIL_RATES_MONTHLY : 0) + 
+                                                (formData.sellerQuestionsComplete ? formData.WATER_RATES_MONTHLY : 0) + 
+                                                (formData.sellerQuestionsComplete ? formData.BODY_CORP_MONTHLY : 0)
+                                            )}
                                         </span>
                                     </div>
                                 </div>
@@ -157,13 +208,54 @@ export default function OngoingCosts() {
                                         </span>
                                     </div>
                                     
+                                    {/* Council Rates Annual - only show if seller questions complete */}
+                                    {formData.sellerQuestionsComplete && formData.councilRates > 0 && (
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                Council Rates (Annual)
+                                            </span>
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                {formatCurrency(parseInt(formData.councilRates) || 0)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Water Rates Annual - only show if seller questions complete */}
+                                    {formData.sellerQuestionsComplete && formData.waterRates > 0 && (
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                Water Rates (Annual)
+                                            </span>
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                {formatCurrency(parseInt(formData.waterRates) || 0)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    
+                                    {/* Body Corporate Annual - only show if seller questions complete */}
+                                    {formData.sellerQuestionsComplete && formData.bodyCorp > 0 && (
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                Body Corporate (Annual)
+                                            </span>
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                {formatCurrency(parseInt(formData.bodyCorp) || 0)}
+                                            </span>
+                                        </div>
+                                    )}
+                                    
                                     {/* Annual Total */}
                                     <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-2 pb-2 border-b border-gray-200">
                                         <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
                                             Total Annual Ongoing Costs
                                         </span>
                                         <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
-                                            {formatCurrency(formData.ANNUAL_LOAN_REPAYMENT)}
+                                            {formatCurrency(
+                                                formData.ANNUAL_LOAN_REPAYMENT + 
+                                                (formData.sellerQuestionsComplete ? (parseInt(formData.councilRates) || 0) : 0) + 
+                                                (formData.sellerQuestionsComplete ? (parseInt(formData.waterRates) || 0) : 0) + 
+                                                (formData.sellerQuestionsComplete ? (parseInt(formData.bodyCorp) || 0) : 0)
+                                            )}
                                         </span>
                                     </div>
                                 </div>

@@ -332,8 +332,8 @@ export default function PropertyDetails() {
     // Show completion message if form is complete
     if (isComplete) {
       return (
-        <div className="flex flex-col mt-12 pr-2">
-          <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+        <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
             Basic Property Details Complete
           </h2>
           <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -346,8 +346,8 @@ export default function PropertyDetails() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               What&apos;s the property address?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -367,8 +367,8 @@ export default function PropertyDetails() {
 
       case 2:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">  
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">  
               Which state is the property in?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -405,8 +405,8 @@ export default function PropertyDetails() {
       case 3:
         if (formData.selectedState === 'WA') {
           return (
-            <div className="flex flex-col mt-12 pr-2">
-              <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 Where is the Property
               </h2>
               <p className="lg:text-lg xl:text-xl text-gray-500 lg:mb-20 leading-relaxed mb-8">
@@ -481,8 +481,8 @@ export default function PropertyDetails() {
 
         case 4:
           return (
-            <div className="flex flex-col mt-12 pr-2">
-              <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 What type of property is it?
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -513,8 +513,8 @@ export default function PropertyDetails() {
 
         case 5:
           return (
-            <div className="flex flex-col mt-12 pr-2">
-              <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 {formData.propertyCategory === 'land' 
                   ? 'Is this a house and land package?' 
                   : 'Is this property new or existing?'
@@ -566,8 +566,8 @@ export default function PropertyDetails() {
 
         case 6:
           return (
-            <div className="flex flex-col mt-12 pr-2">
-              <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 What is the property&apos;s price?
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -602,7 +602,7 @@ export default function PropertyDetails() {
   return (
     <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
         <div className="flex">
-         <span className={`flex items-center text-xs -mt-85 md:-mt-70 lg:-mt-68 lg:text-sm xl:text-xl lg:pt-15 xl:-mt-64 font-extrabold mr-2 pt-14 whitespace-nowrap ${isComplete ? 'text-base-100' : "text-primary"}`}><span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span>{isComplete ? getDisplayTotalSteps() : getDisplayStep()}<span className={`text-xs ${isComplete ? 'text-primary' : ""}`}>→</span></span>
+         <span className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${isComplete ? 'text-base-100' : "text-primary"}`}><span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span>{isComplete ? getDisplayTotalSteps() : getDisplayStep()}<span className={`text-xs ${isComplete ? 'text-primary' : ""}`}>→</span></span>
         <div className="pb-6 pb-24 md:pb-8 flex">
           {/* Step Content */}
           <div className="h-80">

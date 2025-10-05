@@ -34,11 +34,11 @@ export default function Page() {
     return (
         <div className="min-h-screen bg-base-200">
             <main className="container mx-auto px-4 py-4 lg:py-10 max-w-7xl">
-                <div className="flex flex-col md:flex-row">
-                    {/* Progress Bar - above UpfrontCosts on medium+ screens */}
-                    <div className="order-1 md:order-2 md:w-2/5 md:flex-shrink-0 md:p-6 md:rounded-r-lg md:mt-22">
-                                                {/* Progress Bar */}
-                        <div className="hidden md:block mb-4">
+                {/* Progress Bars - above questions on larger screens */}
+                <div className="hidden md:block mb-6 md:max-w-[710px]">
+                    <div className="space-y-4 ml-10">
+                        {/* Overall Progress */}
+                        <div>
                             <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2">Overall Progress</h4>
                             <div className="w-full bg-gray-100 h-1">
                                 <div 
@@ -58,7 +58,7 @@ export default function Page() {
                         </div>
                         
                         {/* Current Form Progress */}
-                        <div className="hidden md:block mb-4">
+                        <div>
                             <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2">Current Form Progress</h4>
                             <div className="w-full bg-gray-100 h-1">
                                 <div 
@@ -96,17 +96,15 @@ export default function Page() {
                                             } else {
                                                 progress = ((currentStep - 1) / totalSteps) * 100;
                                             }
-                                        } else if (needsLoan === 'yes' && !loanDetailsComplete) {
+                                        } else if (needsLoan === 'yes' && showLoanDetails && !loanDetailsComplete) {
                                             // LoanDetails progress - calculate based on current step and total steps
                                             const currentStep = loanDetailsActiveStep || 1;
                                             const totalSteps = 7;
                                             
-                                            // Check if form is complete (on completion page)
-                                            if (formData.loanDetailsComplete) {
-                                                progress = 100;
-                                            } else {
-                                                progress = ((currentStep - 1) / totalSteps) * 100;
-                                            }
+                                            progress = ((currentStep - 1) / totalSteps) * 100;
+                                        } else if (needsLoan === 'yes' && loanDetailsComplete && !showSellerQuestions) {
+                                            // LoanDetails complete - show 100%
+                                            progress = 100;
                                         } else if (showSellerQuestions && !sellerQuestionsComplete) {
                                             // SellerQuestions progress - calculate based on current step and total steps
                                             const currentStep = sellerQuestionsActiveStep || 1;
@@ -125,6 +123,12 @@ export default function Page() {
                                 ></div>
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div className="flex flex-col md:flex-row">
+                    {/* Sidebar with costs - only on larger screens */}
+                    <div className="order-1 md:order-2 md:w-2/5 md:flex-shrink-0 md:p-6 md:rounded-r-lg md:mt-10">
                         <UpfrontCosts />
                         <div className="mt-3 -mb-5">   
                         <OngoingCosts />

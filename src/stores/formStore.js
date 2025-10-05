@@ -74,8 +74,14 @@ export const useFormStore = create((set, get) => ({
   // Calculated values
   LVR: 0, // Loan-to-Value Ratio: 1 - (deposit amount / property price)
   LMI_COST: 0, // Lenders Mortgage Insurance cost
+  LMI_STAMP_DUTY: 0, // Stamp duty on LMI premium
   MONTHLY_LOAN_REPAYMENT: 0, // Monthly loan repayment amount
   ANNUAL_LOAN_REPAYMENT: 0, // Annual loan repayment amount
+  
+  // Monthly ongoing costs
+  COUNCIL_RATES_MONTHLY: 0, // Monthly council rates
+  WATER_RATES_MONTHLY: 0, // Monthly water rates
+  BODY_CORP_MONTHLY: 0, // Monthly body corporate fees
   
   // LMI Rates
   LMI_RATES: {
@@ -129,6 +135,16 @@ export const useFormStore = create((set, get) => ({
       '750K-1M': 0.04603
     }
   },
+
+  // LMI Stamp Duty Rates (percentage of LMI premium)
+  LMI_STAMP_DUTY_RATES: {
+    'VIC': 10,  // Victoria: 10%
+    'QLD': 9,   // Queensland: 9%
+    'SA': 11,   // South Australia: 11%
+    'WA': 10,   // Western Australia: 10%
+    'ACT': 10   // Australian Capital Territory: 10%
+    // NSW, TAS, NT: No stamp duty on LMI
+  },
   
   // Actions to update state
   updateFormData: (field, value) => set((state) => ({ 
@@ -179,8 +195,12 @@ export const useFormStore = create((set, get) => ({
     loanDetailsActiveStep: 1,
     LVR: 0,
     LMI_COST: 0,
+    LMI_STAMP_DUTY: 0,
     MONTHLY_LOAN_REPAYMENT: 0,
     ANNUAL_LOAN_REPAYMENT: 0,
+    COUNCIL_RATES_MONTHLY: 0,
+    WATER_RATES_MONTHLY: 0,
+    BODY_CORP_MONTHLY: 0,
     councilRates: '',
     waterRates: '',
     constructionStarted: '',
@@ -302,16 +322,57 @@ export const useFormStore = create((set, get) => ({
     return Math.round(lmiCost)
   },
 
+  // Calculate LMI stamp duty
+  calculateLMIStampDuty: () => {
+    const state = get()
+    const lmiCost = state.LMI_COST || 0
+    const selectedState = state.selectedState
+    
+    // Only calculate if LMI exists and state applies stamp duty
+    if (lmiCost === 0 || !state.LMI_STAMP_DUTY_RATES[selectedState]) {
+      return 0
+    }
+    
+    const rate = state.LMI_STAMP_DUTY_RATES[selectedState]
+    return Math.round(lmiCost * (rate / 100))
+  },
+
+  // Calculate monthly ongoing costs from annual amounts
+  calculateOngoingCosts: () => {
+    const state = get()
+    const councilRates = parseInt(state.councilRates) || 0
+    const waterRates = parseInt(state.waterRates) || 0
+    const bodyCorp = parseInt(state.bodyCorp) || 0
+    
+    return {
+      councilRatesMonthly: Math.round(councilRates / 12),
+      waterRatesMonthly: Math.round(waterRates / 12),
+      bodyCorpMonthly: Math.round(bodyCorp / 12)
+    }
+  },
+
+  // Update ongoing costs when relevant fields change
+  updateOngoingCosts: () => {
+    const ongoingCosts = get().calculateOngoingCosts()
+    set({
+      COUNCIL_RATES_MONTHLY: ongoingCosts.councilRatesMonthly,
+      WATER_RATES_MONTHLY: ongoingCosts.waterRatesMonthly,
+      BODY_CORP_MONTHLY: ongoingCosts.bodyCorpMonthly
+    })
+  },
+
   // Update LMI cost when relevant fields change
   updateLMI: () => {
     const state = get()
     const lmiCost = state.calculateLMI()
+    const lmiStampDuty = state.calculateLMIStampDuty()
     
-    // Calculate loan repayments with the new LMI cost
+    // Calculate loan repayments with the new LMI cost and stamp duty
     const propertyPrice = parseInt(state.propertyPrice) || 0
     const depositAmount = parseInt(state.loanDeposit) || 0
     const newLmiCost = state.loanLMI === 'yes' ? lmiCost : 0
-    const loanAmount = propertyPrice + newLmiCost - depositAmount
+    const newLmiStampDuty = state.loanLMI === 'yes' ? lmiStampDuty : 0
+    const loanAmount = propertyPrice + newLmiCost + newLmiStampDuty - depositAmount
     const interestRate = parseFloat(state.loanRate) || 0
     const loanTerm = parseInt(state.loanTerm) || 0
     const loanType = state.loanType
@@ -339,6 +400,7 @@ export const useFormStore = create((set, get) => ({
     
     set({ 
       LMI_COST: lmiCost,
+      LMI_STAMP_DUTY: lmiStampDuty,
       MONTHLY_LOAN_REPAYMENT: monthlyRepayment,
       ANNUAL_LOAN_REPAYMENT: annualRepayment
     })
@@ -350,8 +412,9 @@ export const useFormStore = create((set, get) => ({
     const propertyPrice = parseInt(state.propertyPrice) || 0
     const depositAmount = parseInt(state.loanDeposit) || 0
     const lmiCost = state.loanLMI === 'yes' ? (state.LMI_COST || 0) : 0
-    // Loan amount includes LMI: Property Price + LMI - Deposit
-    const loanAmount = propertyPrice + lmiCost - depositAmount
+    const lmiStampDuty = state.loanLMI === 'yes' ? (state.LMI_STAMP_DUTY || 0) : 0
+    // Loan amount includes LMI and LMI stamp duty: Property Price + LMI + LMI_Stamp_Duty - Deposit
+    const loanAmount = propertyPrice + lmiCost + lmiStampDuty - depositAmount
     const interestRate = parseFloat(state.loanRate) || 0
     const loanTerm = parseInt(state.loanTerm) || 0
     const loanType = state.loanType

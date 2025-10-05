@@ -236,19 +236,19 @@ export default function LoanDetails() {
   // Update LMI cost when relevant fields change
   useEffect(() => {
     formData.updateLMI();
-  }, [formData.loanLMI, formData.LVR, formData.propertyPrice, formData.updateLMI]);
+  }, [formData.loanLMI, formData.LVR, formData.propertyPrice, formData.selectedState, formData.updateLMI]);
 
   // Update loan repayments when relevant fields change
   useEffect(() => {
     formData.updateLoanRepayments();
-  }, [formData.loanDeposit, formData.propertyPrice, formData.loanRate, formData.loanTerm, formData.loanType, formData.loanInterestOnlyPeriod, formData.loanLMI, formData.LMI_COST, formData.updateLoanRepayments]);
+  }, [formData.loanDeposit, formData.propertyPrice, formData.loanRate, formData.loanTerm, formData.loanType, formData.loanInterestOnlyPeriod, formData.loanLMI, formData.LMI_COST, formData.LMI_STAMP_DUTY, formData.updateLoanRepayments]);
 
   const renderStep = () => {
     // Show completion message if form is complete
     if (formData.loanDetailsComplete) {
       return (
-        <div className="flex flex-col mt-12 pr-2">
-          <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+        <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
             Loan Details Complete
           </h2>
           <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -261,8 +261,8 @@ export default function LoanDetails() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               What is your deposit amount?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -321,8 +321,8 @@ export default function LoanDetails() {
 
       case 2:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               What type of loan do you need?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -356,8 +356,8 @@ export default function LoanDetails() {
 
       case 3:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               How long do you want your mortgage for?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-10 text-gray-500 leading-relaxed mb-8">
@@ -435,8 +435,8 @@ export default function LoanDetails() {
 
       case 4:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               What is your interest rate are you paying?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -473,8 +473,8 @@ export default function LoanDetails() {
 
       case 5:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               Do you need Lenders Mortgage Insurance?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -517,8 +517,8 @@ export default function LoanDetails() {
 
       case 6:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               Banks usually charge a Settlement Fee
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -531,18 +531,13 @@ export default function LoanDetails() {
                 $
               </div>
               <input
-                type="number"
-                min="0"
-                step="0.01"
+                type="tel"
                 placeholder="200"
-                value={formData.loanSettlementFees || ''}
+                value={formData.loanSettlementFees ? formatCurrency(parseInt(formData.loanSettlementFees)).replace('$', '') : ''}
                 onChange={(e) => {
-                  const value = parseFloat(e.target.value);
-                  if (value >= 0) {
-                    updateFormData('loanSettlementFees', value.toString());
-                  } else if (e.target.value === '') {
-                    updateFormData('loanSettlementFees', '');
-                  }
+                  // Remove all non-digit characters and update form data
+                  const numericValue = e.target.value.replace(/[^\d]/g, '');
+                  updateFormData('loanSettlementFees', numericValue);
                 }}
                 className="w-30 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
               />
@@ -552,8 +547,8 @@ export default function LoanDetails() {
 
       case 7:
         return (
-          <div className="flex flex-col mt-12 pr-2">
-            <h2 className="text-3xl lg:text-4xl xl:text-5xl font-base text-gray-800 mb-4 leading-tight">
+          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               Banks usually charge an Establishment Fee
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -566,18 +561,13 @@ export default function LoanDetails() {
                 $
               </div>
               <input
-                type="number"
-                min="0"
-                step="0.01"
+                type="tel"
                 placeholder="600"
-                value={formData.loanEstablishmentFee || ''}
+                value={formData.loanEstablishmentFee ? formatCurrency(parseInt(formData.loanEstablishmentFee)).replace('$', '') : ''}
                 onChange={(e) => {
-                  const value = parseFloat(e.target.value);
-                  if (value >= 0) {
-                    updateFormData('loanEstablishmentFee', value.toString());
-                  } else if (e.target.value === '') {
-                    updateFormData('loanEstablishmentFee', '');
-                  }
+                  // Remove all non-digit characters and update form data
+                  const numericValue = e.target.value.replace(/[^\d]/g, '');
+                  updateFormData('loanEstablishmentFee', numericValue);
                 }}
                 className="w-30 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
               />
@@ -593,7 +583,7 @@ export default function LoanDetails() {
   return (
     <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
       <div className="flex">
-        <span className={`flex items-center text-xs -mt-85 md:-mt-70 lg:-mt-68 lg:text-sm xl:text-xl lg:pt-15 xl:-mt-64 font-extrabold mr-2 pt-14 whitespace-nowrap ${formData.loanDetailsComplete ? 'text-base-100' : 'text-primary'}`}>
+        <span className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${formData.loanDetailsComplete ? 'text-base-100' : 'text-primary'}`}>
           <span className="text-xs text-base-100">{formData.needsLoan === 'yes' ? '3' : '2'}</span>{formData.loanDetailsComplete ? (getStartingStepNumber() + totalSteps - 1) : (currentStep + getStartingStepNumber() - 1)} 
           <span className={`text-xs ${formData.loanDetailsComplete ? 'text-primary' : ''}`}>→</span>
         </span>
