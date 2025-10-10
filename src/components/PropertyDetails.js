@@ -499,7 +499,7 @@ export default function PropertyDetails() {
                 />
               ) : (
                 <div className="w-full pl-4 pr-8 py-2 border-b-2 border-gray-200 rounded-none">
-                  <div className="text-2xl text-gray-800 leading-tight">
+                  <div className="text-2xl text-gray-800 leading-tight ">
                     {formData.propertyStreetAddress}
                   </div>
                   <div className="text-lg text-gray-600 mt-1">
