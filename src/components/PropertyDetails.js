@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { useStateSelector } from '../states/useStateSelector.js';
 import useFormNavigation from './shared/FormNavigation.js';
@@ -13,6 +14,8 @@ export default function PropertyDetails() {
   const [isComplete, setIsComplete] = useState(false);
   const totalSteps = 6; // Always 6 internal steps, but step 3 is skipped for non-WA
   const prevPropertyCategoryRef = useRef(formData.propertyCategory);
+  const autocompleteRef = useRef(null);
+  const autocompleteInputRef = useRef(null);
   
   // Calculate the display step number (what the user sees)
   const getDisplayStep = () => {
@@ -34,6 +37,93 @@ export default function PropertyDetails() {
    
   // Get state-specific functions when state is selected
   const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW');
+
+  // Initialize Google Places Autocomplete
+  const initializeAutocomplete = () => {
+    if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places && autocompleteInputRef.current) {
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(autocompleteInputRef.current, {
+        types: ['address'],
+        componentRestrictions: { country: 'au' }, // Restrict to Australia
+        fields: ['formatted_address', 'address_components', 'geometry'] // Request geometry data
+      });
+
+      autocompleteRef.current.addListener('place_changed', () => {
+        const place = autocompleteRef.current.getPlace();
+        if (place.formatted_address) {
+          // Remove ", Australia" from the end of the address
+          const cleanedAddress = place.formatted_address.replace(/, Australia$/, '');
+          updateFormData('propertyAddress', cleanedAddress);
+          
+          // Parse address components for display
+          const addressComponents = place.address_components;
+          if (addressComponents) {
+            // Extract street number and street name
+            const streetNumber = addressComponents.find(c => c.types.includes('street_number'))?.long_name || '';
+            const streetName = addressComponents.find(c => c.types.includes('route'))?.long_name || '';
+            const suburb = addressComponents.find(c => c.types.includes('locality'))?.long_name || '';
+            const state = addressComponents.find(c => c.types.includes('administrative_area_level_1'))?.short_name || '';
+            const postcode = addressComponents.find(c => c.types.includes('postal_code'))?.long_name || '';
+            
+            // Store parsed components
+            const streetAddress = [streetNumber, streetName].filter(Boolean).join(' ');
+            const suburbPostcode = [suburb, state, postcode].filter(Boolean).join(' ');
+            
+            updateFormData('propertyStreetAddress', streetAddress);
+            updateFormData('propertySuburbPostcode', suburbPostcode);
+            
+            // Auto-detect state
+            const stateComponent = addressComponents.find(component => 
+              component.types.includes('administrative_area_level_1')
+            );
+            if (stateComponent) {
+              const stateCode = stateComponent.short_name;
+              const stateMapping = {
+                'NSW': 'NSW',
+                'VIC': 'VIC', 
+                'QLD': 'QLD',
+                'SA': 'SA',
+                'WA': 'WA',
+                'TAS': 'TAS',
+                'NT': 'NT',
+                'ACT': 'ACT'
+              };
+              if (stateMapping[stateCode]) {
+                updateFormData('selectedState', stateMapping[stateCode]);
+                updateFormData('detectedState', stateMapping[stateCode]); // Store detected state
+                if (stateCode === 'ACT') {
+                  updateFormData('isACT', true);
+                } else {
+                  updateFormData('isACT', false);
+                }
+                
+                // Auto-detect WA north/south if property is in WA
+                if (stateCode === 'WA' && place.geometry && place.geometry.location) {
+                  const latitude = place.geometry.location.lat();
+                  const longitude = place.geometry.location.lng();
+                  const isNorth = latitude > -26.0;
+                  updateFormData('isWA', isNorth ? 'north' : 'south');
+                  updateFormData('detectedWALocation', isNorth ? 'north' : 'south'); // Store detected location
+                  
+                  // Auto-detect metro/peel region (only for south of 26th parallel)
+                  // Metro/Peel region is roughly: Perth metro area and Peel region (Mandurah area)
+                  // Approximate boundaries: lat -33.5 to -31.5, long 115.5 to 116.5
+                  if (!isNorth) {
+                    const isMetro = latitude >= -33.5 && latitude <= -31.5 && longitude >= 115.5 && longitude <= 116.5;
+                    updateFormData('isWAMetro', isMetro ? 'metro' : 'non-metro');
+                    updateFormData('detectedWAMetro', isMetro ? 'metro' : 'non-metro'); // Store detected metro status
+                  } else {
+                    // North of 26th parallel is always non-metro
+                    updateFormData('isWAMetro', 'non-metro');
+                    updateFormData('detectedWAMetro', 'non-metro');
+                  }
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+  };
 
   // Initialize step from store when component mounts or when coming back from other forms
   useEffect(() => {
@@ -109,6 +199,50 @@ export default function PropertyDetails() {
       updateFormData('isACT', false);
     }
   }, [formData.selectedState, formData.isACT, updateFormData]);
+
+  // Load Google Maps script dynamically from API route
+  useEffect(() => {
+    const loadGoogleMapsScript = async () => {
+      try {
+        // Check if script already loaded
+        if (window.google && window.google.maps && window.google.maps.places) {
+          return;
+        }
+
+        // Fetch script URL from backend API
+        const response = await fetch('/api/google-maps-config');
+        const data = await response.json();
+        
+        if (data.scriptUrl) {
+          // Create and load script
+          const script = document.createElement('script');
+          script.src = data.scriptUrl;
+          script.async = true;
+          script.defer = true;
+          document.head.appendChild(script);
+        }
+      } catch (error) {
+        console.error('Failed to load Google Maps script:', error);
+      }
+    };
+
+    loadGoogleMapsScript();
+  }, []);
+
+  // Initialize Google Places Autocomplete when component mounts and when on step 1
+  useEffect(() => {
+    if (currentStep === 1 && !formData.propertyStreetAddress) {
+      // Wait for Google Maps API to load
+      const checkGoogleMaps = () => {
+        if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
+          initializeAutocomplete();
+        } else {
+          setTimeout(checkGoogleMaps, 100);
+        }
+      };
+      checkGoogleMaps();
+    }
+  }, [currentStep, formData.propertyStreetAddress]);
 
   // Watch for property category changes and reset property type if needed
   useEffect(() => {
@@ -353,14 +487,39 @@ export default function PropertyDetails() {
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
               This helps us determine the state and provide accurate calculations
             </p>
-            <div className="  relative pr-8">
-              <input
-                type="text"
-                placeholder="Enter street address"
-                value={formData.propertyAddress || ''}
-                onChange={(e) => updateFormData('propertyAddress', e.target.value)}
-                className="w-full pl-4 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
-              />
+            <div className="relative pr-8">
+              {!formData.propertyStreetAddress ? (
+                <input
+                  ref={autocompleteInputRef}
+                  type="text"
+                  placeholder="Enter street address"
+                  value={formData.propertyAddress || ''}
+                  onChange={(e) => updateFormData('propertyAddress', e.target.value)}
+                  className="w-full pl-4 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
+                />
+              ) : (
+                <div className="w-full pl-4 pr-8 py-2 border-b-2 border-gray-200 rounded-none">
+                  <div className="text-2xl text-gray-800 leading-tight">
+                    {formData.propertyStreetAddress}
+                  </div>
+                  <div className="text-lg text-gray-600 mt-1">
+                    {formData.propertySuburbPostcode}
+                  </div>
+                  <button
+                    onClick={() => {
+                      updateFormData('propertyAddress', '');
+                      updateFormData('propertyStreetAddress', '');
+                      updateFormData('propertySuburbPostcode', '');
+                      updateFormData('detectedState', '');
+                      updateFormData('detectedWALocation', '');
+                      updateFormData('detectedWAMetro', '');
+                    }}
+                    className="text-sm text-gray-500 hover:text-gray-700 mt-2 underline"
+                  >
+                    Change address
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -371,8 +530,14 @@ export default function PropertyDetails() {
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">  
               Which state is the property in?
             </h2>
-            <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
-              Different states have different stamp duty rates and concessions
+            <p className={`lg:text-lg xl:text-xl lg:mb-20 leading-relaxed mb-8 ${
+              formData.detectedState && formData.selectedState && formData.detectedState !== formData.selectedState
+                ? ''
+                : 'text-gray-500'
+            }`} style={formData.detectedState && formData.selectedState && formData.detectedState !== formData.selectedState ? { color: '#f582ae' } : {}}>
+              {formData.detectedState && formData.selectedState && formData.detectedState !== formData.selectedState
+                ? `We think the property is in ${formData.detectedState} based on the address you entered`
+                : 'Different states have different stamp duty rates and concessions'}
             </p>
             <div className=" relative pr-8">
               <div className="grid grid-cols-4 gap-3">
@@ -409,8 +574,18 @@ export default function PropertyDetails() {
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 Where is the Property
               </h2>
-              <p className="lg:text-lg xl:text-xl text-gray-500 lg:mb-20 leading-relaxed mb-8">
-                This affects stamp duty calculations for Western Australia
+              <p className={`lg:text-lg xl:text-xl lg:mb-20 leading-relaxed mb-8 ${
+                (formData.detectedWALocation && formData.isWA && formData.detectedWALocation !== formData.isWA) ||
+                (formData.detectedWAMetro && formData.isWAMetro && formData.detectedWAMetro !== formData.isWAMetro)
+                  ? ''
+                  : 'text-gray-500'
+              }`} style={(formData.detectedWALocation && formData.isWA && formData.detectedWALocation !== formData.isWA) ||
+                (formData.detectedWAMetro && formData.isWAMetro && formData.detectedWAMetro !== formData.isWAMetro) ? { color: '#f582ae' } : {}}>
+                {formData.detectedWALocation && formData.isWA && formData.detectedWALocation !== formData.isWA
+                  ? `We think the property is ${formData.detectedWALocation} of the 26th parallel based on the address`
+                  : formData.detectedWAMetro && formData.isWAMetro && formData.detectedWAMetro !== formData.isWAMetro
+                  ? `We think the property is in the ${formData.detectedWAMetro === 'metro' ? 'Metro/Peel Region' : 'Non-Metro/Peel Region'} based on the address`
+                  : 'Please select the region as this affects stamp duty calculations for WA'}
               </p>
               <div className="grid grid-cols-2 gap-2 mb-8 lg:grid-cols-2">
                 {[
@@ -426,14 +601,14 @@ export default function PropertyDetails() {
                         updateFormData('isWAMetro', '');
                       }
                     }}
-                    className={`py-2 px-3 rounded-lg border-2 flex flex-col items-start transition-all duration-200 hover:scale-105 w-full ${
+                    className={`py-2 px-3 rounded-lg border-2 flex flex-col items-center lg:items-start transition-all duration-200 hover:scale-105 w-full ${
                       formData.isWA === option.value
                         ? 'border-gray-800 bg-secondary text-white shadow-lg'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
-                    <div className={`text-xs leading-none text-left ${
+                    <div className={`text-xs leading-none text-center lg:text-left ${
                       formData.isWA === option.value
                         ? 'text-gray-400'
                         : 'text-gray-500'
@@ -452,7 +627,7 @@ export default function PropertyDetails() {
                       key={option.value}
                       onClick={() => !isDisabled && updateFormData('isWAMetro', option.value)}
                       disabled={isDisabled}
-                      className={`py-2 px-3 rounded-lg border-2 flex flex-col items-start transition-all duration-200 w-full ${
+                      className={`py-2 px-3 rounded-lg border-2 flex flex-col items-center lg:items-start transition-all duration-200 w-full ${
                         isDisabled 
                           ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                           : formData.isWAMetro === option.value
@@ -462,7 +637,7 @@ export default function PropertyDetails() {
                       title={isDisabled ? "There are no metropolitan regions in the north" : ""}
                     >
                       <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
-                      <div className={`text-xs leading-none text-left ${
+                      <div className={`text-xs leading-none text-center lg:text-left ${
                         isDisabled
                           ? 'text-gray-300'
                           : formData.isWAMetro === option.value
@@ -602,11 +777,57 @@ export default function PropertyDetails() {
   return (
     <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
         <div className="flex">
-         <span className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${isComplete ? 'text-base-100' : "text-primary"}`}><span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span>{isComplete ? getDisplayTotalSteps() : getDisplayStep()}<span className={`text-xs ${isComplete ? 'text-primary' : ""}`}>→</span></span>
+         <div className="flex items-center text-xs -mt-105 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap relative overflow-hidden min-w-[3ch]">
+           <span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span>
+           <AnimatePresence mode="wait">
+             <motion.span
+               key={isComplete ? 'complete' : currentStep}
+               initial={{ 
+                 x: -30,
+                 opacity: 0 
+               }}
+               animate={{ 
+                 x: 0,
+                 opacity: 1 
+               }}
+               exit={{ 
+                 x: direction === 'forward' ? 30 : -30,
+                 opacity: 0 
+               }}
+               transition={{ duration: 0.4 }}
+               className={`flex items-center absolute ${isComplete ? 'text-base-100' : "text-primary"}`}
+             >
+               {isComplete ? getDisplayTotalSteps() : getDisplayStep()}
+               <span className={`text-xs ${isComplete ? 'text-primary' : ""}`}>→</span>
+             </motion.span>
+           </AnimatePresence>
+         </div>
         <div className="pb-6 pb-24 md:pb-8 flex">
           {/* Step Content */}
-          <div className="h-80">
-            {renderStep()}
+          <div className="h-100 relative overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={isComplete ? 'complete' : currentStep}
+                initial={{ 
+                  y: isComplete ? 0 : (direction === 'forward' ? -50 : 50),
+                  opacity: 0 
+                }}
+                animate={{ 
+                  y: 0,
+                  opacity: 1 
+                }}
+                exit={{ 
+                  y: isComplete ? 0 : (direction === 'forward' ? 50 : -50),
+                  opacity: 0 
+                }}
+                transition={{ 
+                  duration: isComplete ? 0.5 : 0.3,
+                  ease: "easeInOut"
+                }}
+              >
+                {renderStep()}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
       </div>

@@ -32,3 +32,66 @@
   --depth: 0;
   --noise: 0;
 }
+
+/* Google Places Autocomplete Styling */
+.pac-container {
+  background-color: #fef6e4 !important;
+  border: 2px solid #e5e7eb !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+  margin-top: 0.5rem !important;
+  font-family: inherit !important;
+}
+
+.pac-item {
+  padding: 0.75rem 1rem !important;
+  border-top: 1px solid #e5e7eb !important;
+  font-size: 0.875rem !important; /* 14px - smaller for mobile */
+  color: #001858 !important;
+  cursor: pointer !important;
+  transition: all 0.2s !important;
+  line-height: 1.4 !important;
+  word-wrap: break-word !important;
+  white-space: normal !important;
+}
+
+/* Even smaller on mobile screens */
+@media (max-width: 640px) {
+  .pac-item {
+    font-size: 0.75rem !important; /* 12px on mobile */
+    padding: 0.5rem 0.75rem !important;
+  }
+}
+
+.pac-item:first-child {
+  border-top: none !important;
+}
+
+.pac-item:hover {
+  background-color: #172c66 !important;
+  color: #fef6e4 !important;
+}
+
+.pac-item-selected {
+  background-color: #172c66 !important;
+  color: #fef6e4 !important;
+}
+
+.pac-item-query {
+  font-size: inherit !important;
+  color: inherit !important;
+}
+
+.pac-matched {
+  font-weight: 600 !important;
+  color: inherit !important;
+}
+
+.pac-icon {
+  display: none !important;
+}
+
+.pac-item:hover .pac-item-query,
+.pac-item-selected .pac-item-query {
+  color: #fef6e4 !important;
+}

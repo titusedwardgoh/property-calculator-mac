@@ -4,6 +4,11 @@ export const useFormStore = create((set, get) => ({
   // Property Details
   propertyPrice: '',
   propertyAddress: '',
+  propertyStreetAddress: '',
+  propertySuburbPostcode: '',
+  detectedState: '',
+  detectedWALocation: '', // Detected north/south for WA based on 26th parallel
+  detectedWAMetro: '', // Detected metro/non-metro for WA
   selectedState: '',
   propertyType: '',
   propertyCategory: '',
