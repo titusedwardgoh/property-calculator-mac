@@ -785,7 +785,7 @@ export default function PropertyDetails() {
   return (
     <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
         <div className="flex">
-         <div className="ml-2 md:ml-3 lg:ml-5 flex items-center text-xs -mt-105 md:-mt-113 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap relative overflow-hidden min-w-[3ch]">
+         <div className="ml-2 md:ml-3 lg:ml-2 flex items-center text-xs -mt-105 md:-mt-113 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap relative overflow-hidden min-w-[3ch]">
            <span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span>
            <AnimatePresence mode="wait">
              <motion.span
@@ -854,28 +854,34 @@ export default function PropertyDetails() {
           {isComplete ? (
             // Completion state: Back and Next buttons
             <>
-              <button
+              <motion.button
                 onClick={() => {
                   setIsComplete(false);
                   updateFormData('propertyDetailsFormComplete', false);
                 }}
+                whileHover={{ scale: 1.02, x: -2 }}
+                whileTap={{ scale: 0.98 }}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button
                 onClick={goToBuyerDetails}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
                 className="flex-1 ml-4 px-6 py-3 rounded-full border border-primary bg-primary hover:bg-primary hover:border-gray-700 hover:shadow-sm font-medium cursor-pointer"
               >
                 Next
-              </button>
+              </motion.button>
             </>
           ) : currentStep === 1 ? (
             // Step 1: Full width OK button
-            <button
+            <motion.button
               onClick={nextStep}
               disabled={!isCurrentStepValid()}
+              whileHover={isCurrentStepValid() ? { scale: 1.01 } : {}}
+              whileTap={isCurrentStepValid() ? { scale: 0.99 } : {}}
               className={`w-full px-6 py-3 rounded-full border border-primary font-medium ${
                 !isCurrentStepValid()
                   ? 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
@@ -883,20 +889,24 @@ export default function PropertyDetails() {
               }`}
             >
               Next
-            </button>
+            </motion.button>
           ) : (
             // Step 2 onwards: Back and Next buttons with smooth transition
             <>
-              <button
+              <motion.button
                 onClick={prevStep}
+                whileHover={{ scale: 1.02, x: -2 }}
+                whileTap={{ scale: 0.98 }}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
+                whileHover={isCurrentStepValid() ? { scale: 1.01 } : {}}
+                whileTap={isCurrentStepValid() ? { scale: 0.99 } : {}}
                 className={`flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-gray-50 text-base-100'
@@ -904,7 +914,7 @@ export default function PropertyDetails() {
                 }`}
               >
                                  {getDisplayStep() === getDisplayTotalSteps() ? 'Calculate stamp duty' : 'Next'}
-              </button>
+              </motion.button>
             </>
           )}
         </div>

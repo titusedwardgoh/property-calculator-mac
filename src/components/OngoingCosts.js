@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useStateSelector } from '../states/useStateSelector.js';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { useFormStore } from '../stores/formStore';
@@ -7,6 +8,7 @@ import { ChevronDown } from 'lucide-react'
 export default function OngoingCosts() {
     const formData = useFormStore();
     const [isExpanded, setIsExpanded] = useState(false);
+    const [hasJiggled, setHasJiggled] = useState(false);
     
     // Update ongoing costs when relevant fields change
     useEffect(() => {
@@ -43,6 +45,13 @@ export default function OngoingCosts() {
     };
 
     const canShowDropdown = shouldShowOngoingCosts();
+
+    // Trigger jiggle when dropdown becomes available
+    useEffect(() => {
+        if (canShowDropdown && !hasJiggled) {
+            setHasJiggled(true);
+        }
+    }, [canShowDropdown]);
 
     // Close dropdown when navigating between form sections
     useEffect(() => {
@@ -100,8 +109,14 @@ export default function OngoingCosts() {
 
     return (
         <div className="relative">
-            <div 
+            <motion.div 
                 onClick={toggleExpanded}
+                animate={hasJiggled ? {
+                    x: [0, -4, 4, -4, 4, 0],
+                    rotate: [0, -0.1, 0.1, -0.1, 0.1, 0]
+                } : {}}
+                transition={{ duration: 0.5 }}
+                onAnimationComplete={() => setHasJiggled(false)}
                 className={`bg-secondary rounded-lg shadow-lg px-4 py-3 ${canShowDropdown ? 'cursor-pointer hover:shadow-xl transition-shadow duration-200' : ''}`}
             >
                 <div className="flex items-center justify-between">
@@ -109,20 +124,39 @@ export default function OngoingCosts() {
                         <h3 className="text-md lg:text-lg xl:text-xl font-medium text-base-100">Ongoing Costs</h3>
                     </div>
                     <div className="text-right">
-                        {canShowDropdown && (
-                            <ChevronDown 
-                                size={20} 
-                                className={`text-base-100 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                            />
-                        )}
+                        <AnimatePresence>
+                            {canShowDropdown && (
+                                <motion.div
+                                    initial={{ opacity: 0, scale: 0.8 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    exit={{ opacity: 0, scale: 0.8 }}
+                                    transition={{ duration: 0.3 }}
+                                >
+                                    <ChevronDown 
+                                        size={20} 
+                                        className={`text-base-100 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                                    />
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
                 </div>
-            </div>
+            </motion.div>
             
             {/* Dropdown overlay - appears above the component without pushing content down */}
-            {isExpanded && canShowDropdown && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 px-4 py-3 z-10">
-                    <div className="space-y-3">
+            <AnimatePresence>
+                {isExpanded && canShowDropdown && (
+                    <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ 
+                            duration: 0.3,
+                            ease: "easeInOut"
+                        }}
+                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 px-4 overflow-hidden z-10"
+                    >
+                        <div className="space-y-3 py-3">
                         {loanDetailsComplete && needsLoan === 'yes' && formData.MONTHLY_LOAN_REPAYMENT > 0 ? (
                             <>
                                 <div className="text-xs text-gray-500 mb-2">
@@ -264,8 +298,9 @@ export default function OngoingCosts() {
                             <div className="text-xs text-gray-500 mb-3">No ongoing costs calculated yet.</div>
                         )}
                     </div>
-                </div>
-            )}
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }
