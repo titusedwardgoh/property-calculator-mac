@@ -495,7 +495,7 @@ export default function PropertyDetails() {
                   placeholder="Enter street address"
                   value={formData.propertyAddress || ''}
                   onChange={(e) => updateFormData('propertyAddress', e.target.value)}
-                  className="w-full pl-4 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
+                  className="w-full ml-1 pl-4 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
                 />
               ) : (
                 <div className="w-full pl-4 pr-8 py-2 border-b-2 border-gray-200 rounded-none">
@@ -540,7 +540,7 @@ export default function PropertyDetails() {
                 : 'Different states have different stamp duty rates and concessions'}
             </p>
             <div className=" relative pr-8">
-              <div className="grid grid-cols-4 gap-3">
+              <div className="grid grid-cols-4 gap-3 ml-1 md:ml-2">
                 {['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'].map((state) => (
                   <button
                     key={state}
@@ -587,7 +587,7 @@ export default function PropertyDetails() {
                   ? `We think the property is in the ${formData.detectedWAMetro === 'metro' ? 'Metro/Peel Region' : 'Non-Metro/Peel Region'} based on the address`
                   : 'Please select the region as this affects stamp duty calculations for WA'}
               </p>
-              <div className="grid grid-cols-2 gap-2 mb-8 lg:grid-cols-2">
+              <div className="grid grid-cols-2 gap-2 mb-8 lg:grid-cols-2 ml-1 md:ml-2">
                 {[
                   { value: 'north', label: 'North' },
                   { value: 'south', label: 'South' }
@@ -663,7 +663,7 @@ export default function PropertyDetails() {
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
                 This affects your stamp duty concessions and ongoing costs
               </p>
-              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-2 lg:grid-cols-4 ml-1 md:ml-2">
                 {[
                   { value: 'house', label: 'House' },
                   { value: 'apartment', label: 'Apartment' },
@@ -701,7 +701,7 @@ export default function PropertyDetails() {
                   : 'New properties may have different concessions and costs'
                 }
               </p>
-              <div className={`grid gap-2 mb-8 ${
+              <div className={`grid gap-2 mb-8 ml-1 md:ml-2 ${
                 formData.propertyCategory === 'land' ? 'grid-cols-1' : 'grid-cols-2'
               }`}>
                 {(
@@ -748,7 +748,7 @@ export default function PropertyDetails() {
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
                 This will help us calculate your stamp duty and other costs
               </p>
-              <div className="relative pr-8">
+              <div className="relative pr-8 ml-1">
                 <div className={`absolute left-0 top-1/2 transform -translate-y-1/2 text-2xl pointer-events-none ${
                   formData.propertyPrice ? 'text-gray-800' : 'text-gray-400'
                 }`}>
@@ -777,7 +777,7 @@ export default function PropertyDetails() {
   return (
     <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
         <div className="flex">
-         <div className="flex items-center text-xs -mt-105 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap relative overflow-hidden min-w-[3ch]">
+         <div className="ml-2 md:ml-3 lg:ml-5 flex items-center text-xs -mt-105 md:-mt-113 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap relative overflow-hidden min-w-[3ch]">
            <span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span>
            <AnimatePresence mode="wait">
              <motion.span
