@@ -495,6 +495,14 @@ export default function PropertyDetails() {
                   placeholder="Enter street address"
                   value={formData.propertyAddress || ''}
                   onChange={(e) => updateFormData('propertyAddress', e.target.value)}
+                  onFocus={(e) => {
+                    setTimeout(() => {
+                      e.target.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                      });
+                    }, 300);
+                  }}
                   className="w-full ml-1 pl-4 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
                 />
               ) : (
