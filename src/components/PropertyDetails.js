@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { useStateSelector } from '../states/useStateSelector.js';
@@ -12,10 +13,18 @@ export default function PropertyDetails() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [direction, setDirection] = useState('forward'); // 'forward' or 'backward'
   const [isComplete, setIsComplete] = useState(false);
+  const isExecutingRef = useRef(false);
   const totalSteps = 6; // Always 6 internal steps, but step 3 is skipped for non-WA
   const prevPropertyCategoryRef = useRef(formData.propertyCategory);
   const autocompleteRef = useRef(null);
   const autocompleteInputRef = useRef(null);
+  
+  // Clear propertyDetailsCurrentStep on mount to prevent interference with normal navigation
+  useEffect(() => {
+    if (formData.propertyDetailsCurrentStep) {
+      updateFormData('propertyDetailsCurrentStep', null);
+    }
+  }, []); // Only run once on mount
   
   // Calculate the display step number (what the user sees)
   const getDisplayStep = () => {
@@ -125,9 +134,14 @@ export default function PropertyDetails() {
     }
   };
 
-  // Initialize step from store when component mounts or when coming back from other forms
+  // This useEffect is ONLY for when navigating back from other components (BuyerDetails, etc.)
+  // It should NOT interfere with normal forward/backward navigation within PropertyDetails
+  // We check if propertyDetailsCurrentStep is explicitly set AND different from current step
+  // AND make sure we're not in the middle of a transition (isTransitioning)
   useEffect(() => {
-    if (formData.propertyDetailsCurrentStep && formData.propertyDetailsCurrentStep !== currentStep) {
+    if (formData.propertyDetailsCurrentStep && 
+        formData.propertyDetailsCurrentStep !== currentStep && 
+        !isTransitioning) {
       // Validate the step based on current state selection
       let validStep = formData.propertyDetailsCurrentStep;
       
@@ -145,7 +159,7 @@ export default function PropertyDetails() {
         updateFormData('propertyDetailsCurrentStep', validStep);
       }
     }
-  }, [formData.propertyDetailsCurrentStep, currentStep, isComplete, formData.propertyDetailsComplete, formData.selectedState, updateFormData]);
+  }, [formData.propertyDetailsCurrentStep, currentStep, isComplete, formData.propertyDetailsComplete, formData.selectedState, updateFormData, isTransitioning]);
 
   // Watch for propertyDetailsCurrentStep flag from BuyerDetails
   useEffect(() => {
@@ -242,7 +256,7 @@ export default function PropertyDetails() {
       };
       checkGoogleMaps();
     }
-  }, [currentStep, formData.propertyStreetAddress]);
+  }, [currentStep]);
 
   // Watch for property category changes and reset property type if needed
   useEffect(() => {
@@ -257,6 +271,11 @@ export default function PropertyDetails() {
   }, [formData.propertyCategory, formData.propertyType, updateFormData]);
 
   const nextStep = () => {
+    // Prevent double-execution
+    if (isExecutingRef.current) {
+      return;
+    }
+    isExecutingRef.current = true;
     
     // Log current form entries before proceeding
   
@@ -302,11 +321,6 @@ export default function PropertyDetails() {
       sellerQuestion9: formData.sellerQuestion9
     });
     
-    // Initialize the store with current step if this is the first call
-    if (currentStep === 1) {
-      updateFormData('propertyDetailsActiveStep', currentStep);
-    }
-    
     // Check if we're at the last step for the current state
     const isLastStep = currentStep === 6; // Both WA and non-WA end at internal step 6
     
@@ -321,10 +335,15 @@ export default function PropertyDetails() {
           nextStepNumber = 4; // Skip to property category step
         }
         
-        setCurrentStep(nextStepNumber);
+        // Use flushSync to force immediate state update
+        flushSync(() => {
+          setCurrentStep(nextStepNumber);
+          setIsTransitioning(false);
+          isExecutingRef.current = false;
+        });
+        
         // Update the store with current step for progress tracking
         updateFormData('propertyDetailsActiveStep', nextStepNumber);
-        setIsTransitioning(false);
       }, 150);
     } else {
       // Form is complete - calculate stamp duty
@@ -381,6 +400,7 @@ export default function PropertyDetails() {
 
   const goToBuyerDetails = () => {
     // Move to buyer details when user presses next
+    setDirection('forward');
     updateFormData('propertyDetailsComplete', true);
   };
 
@@ -841,7 +861,7 @@ export default function PropertyDetails() {
       </div>
 
       {/* Navigation - Fixed bottom on mobile, normal position on desktop */}
-      <div className="md:pl-8 xl:text-lg fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-base-100 md:bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:mt-8 md:px-6 md:pb-8 lg:mt-15 xl:mt-30">
+      <div className="md:pl-8 xl:text-lg fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-base-100 md:bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:-mt-16 md:px-6 md:pb-8 lg:-mt-9 xl:mt-10">
         {/* Progress Bar - Now rendered on main page for medium+ screens */}
         <div className="block md:hidden w-full bg-gray-100 h-1 mb-4 ">
           <div 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import useFormNavigation from './shared/FormNavigation.js';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
 
@@ -8,6 +9,7 @@ export default function BuyerDetails() {
     const formData = useFormStore();
     const updateFormData = useFormStore(state => state.updateFormData);
   const [currentStep, setCurrentStep] = useState(1);
+  const [direction, setDirection] = useState('forward'); // 'forward' or 'backward'
   const totalSteps = formData.isACT ? 10 : 7; // Add extra steps for ACT income, property ownership, and dependants questions
   
   // Calculate the starting step number based on whether WA or ACT is selected
@@ -59,11 +61,6 @@ export default function BuyerDetails() {
   }, [formData.buyerType, formData.isPPR, updateFormData]);
 
   const nextStep = () => {
-    // Initialize the store with current step if this is the first call
-    if (currentStep === 1) {
-      updateFormData('buyerDetailsActiveStep', currentStep);
-    }
-    
     // Log current form entries before proceeding
     console.log('📋 Current Form Entries:', {
         // Property Details
@@ -118,9 +115,12 @@ export default function BuyerDetails() {
         updateFormData('showSellerQuestions', false);
         return;
       }
-      setCurrentStep(currentStep + 1);
-      // Update the store with current step for progress tracking
-      updateFormData('buyerDetailsActiveStep', currentStep + 1);
+      setDirection('forward');
+      setTimeout(() => {
+        setCurrentStep(currentStep + 1);
+        // Update the store with current step for progress tracking
+        updateFormData('buyerDetailsActiveStep', currentStep + 1);
+      }, 150);
     } else if (currentStep === totalSteps) {
       // Form is complete
       updateFormData('buyerDetailsComplete', true);
@@ -132,13 +132,17 @@ export default function BuyerDetails() {
 
   const prevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-      // Update the store with current step for progress tracking
-      updateFormData('buyerDetailsActiveStep', currentStep - 1);
+      setDirection('backward');
+      setTimeout(() => {
+        setCurrentStep(currentStep - 1);
+        // Update the store with current step for progress tracking
+        updateFormData('buyerDetailsActiveStep', currentStep - 1);
+      }, 150);
     }
   };
 
   const handleBack = () => {
+    setDirection('backward');
     // Go back to PropertyDetails
     updateFormData('propertyDetailsComplete', false);
     // Set PropertyDetails to show the last step (property price step)
@@ -747,18 +751,57 @@ export default function BuyerDetails() {
   return (
     <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
       <div className="flex">
-        <span className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${
-          formData.buyerDetailsComplete ? 'text-base-100' : 'text-primary'
-        }`}>
-          {(formData.buyerDetailsComplete ? getStartingStepNumber() : currentStep + getStartingStepNumber() - 1) < 10 ? <span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span> : null}
-          {formData.buyerDetailsComplete ? getStartingStepNumber() : currentStep + getStartingStepNumber() - 1} 
-          <span className={`text-xs ${formData.buyerDetailsComplete ? 'text-primary' : ''}`}>→</span>
-        </span>
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={`step-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
+            initial={{ 
+              x: -30,
+              opacity: 0 
+            }}
+            animate={{ 
+              x: 0,
+              opacity: 1 
+            }}
+            exit={{ 
+              x: direction === 'forward' ? 30 : -30,
+              opacity: 0 
+            }}
+            transition={{ duration: 0.4 }}
+            className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${
+              formData.buyerDetailsComplete ? 'text-base-100' : 'text-primary'
+            }`}
+          >
+            {(formData.buyerDetailsComplete ? getStartingStepNumber() : currentStep + getStartingStepNumber() - 1) < 10 ? <span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span> : null}
+            {formData.buyerDetailsComplete ? getStartingStepNumber() : currentStep + getStartingStepNumber() - 1} 
+            <span className={`text-xs ${formData.buyerDetailsComplete ? 'text-primary' : ''}`}>→</span>
+          </motion.span>
+        </AnimatePresence>
         <div className="pb-6 pb-24 md:pb-8 flex">
           {/* Step Content */}
-          <div className="h-80">
-            {renderStep()}
-          </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`content-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
+              initial={{ 
+                y: (formData.buyerDetailsComplete || currentStep === 1) ? 0 : (direction === 'forward' ? -50 : 50),
+                opacity: 0 
+              }}
+              animate={{ 
+                y: 0,
+                opacity: 1 
+              }}
+              exit={{ 
+                y: (formData.buyerDetailsComplete || currentStep === 1) ? 0 : (direction === 'forward' ? 50 : -50),
+                opacity: 0 
+              }}
+              transition={{ 
+                duration: (formData.buyerDetailsComplete || currentStep === 1) ? 1 : 0.3,
+                ease: "easeInOut"
+              }}
+              className="h-80"
+            >
+              {renderStep()}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
 
@@ -776,8 +819,9 @@ export default function BuyerDetails() {
           {formData.buyerDetailsComplete ? (
             // Completion state: Back and Next buttons
             <>
-              <button
+              <motion.button
                 onClick={() => {
+                  setDirection('backward');
                   updateFormData('buyerDetailsComplete', false);
                   // Go back to the last question and reset completion state
                   if (formData.needsLoan === 'yes') {
@@ -786,12 +830,14 @@ export default function BuyerDetails() {
                     setCurrentStep(formData.isACT ? 9 : 6); // Go back to loan question
                   }
                 }}
+                whileHover={{ scale: 1.02, x: -2 }}
+                whileTap={{ scale: 0.98 }}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button
                 onClick={() => {
                   // Move to next section based on loan need
                   if (formData.needsLoan === 'yes') {
@@ -802,24 +848,30 @@ export default function BuyerDetails() {
                     updateFormData('showSellerQuestions', true);
                   }
                 }}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
                 className="flex-1 ml-4 px-6 py-3 rounded-full border border-primary bg-primary hover:bg-primary hover:border-gray-700 hover:shadow-sm font-medium cursor-pointer"
               >
                 Next
-              </button>
+              </motion.button>
             </>
           ) : currentStep === 1 ? (
             // Step 1: Back to PropertyDetails and Next buttons
             <>
-              <button
+              <motion.button
                 onClick={handleBack}
+                whileHover={{ scale: 1.02, x: -2 }}
+                whileTap={{ scale: 0.98 }}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
+                whileHover={isCurrentStepValid() ? { scale: 1.01 } : {}}
+                whileTap={isCurrentStepValid() ? { scale: 0.99 } : {}}
                 className={`flex-1 ml-4 px-6 py-3 rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
@@ -827,21 +879,25 @@ export default function BuyerDetails() {
                 }`}
               >
                 Next
-              </button>
+              </motion.button>
             </>
           ) : (
             // Step 2 onwards: Back and Next buttons
             <>
-              <button
+              <motion.button
                 onClick={prevStep}
+                whileHover={{ scale: 1.02, x: -2 }}
+                whileTap={{ scale: 0.98 }}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
+                whileHover={isCurrentStepValid() ? { scale: 1.01 } : {}}
+                whileTap={isCurrentStepValid() ? { scale: 0.99 } : {}}
                 className={`flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-gray-50 text-base-100'
@@ -849,7 +905,7 @@ export default function BuyerDetails() {
                 }`}
               >
                 {currentStep === totalSteps ? 'Let\'s see if you have concessions' : 'Next'}
-              </button>
+              </motion.button>
             </>
           )}
         </div>
