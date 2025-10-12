@@ -5,10 +5,9 @@ import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { useStateSelector } from '../states/useStateSelector.js';
 import useFormNavigation from './shared/FormNavigation.js';
 import { useFormStore } from '../stores/formStore';
-import { useQuestionSlide } from './shared/animations/useQuestionSlide';
-import { useQuestionNumber } from './shared/animations/useQuestionNumber';
-import { useBackButton, useNextButton } from './shared/animations/useButtonAnimation';
-import { useInputButtonAnimation } from './shared/animations/useInputButtonAnimation';
+import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
+import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
+import { getInputButtonAnimation } from './shared/animations/inputButtonAnimations';
 
 export default function PropertyDetails() {
   const formData = useFormStore();
@@ -593,7 +592,7 @@ export default function PropertyDetails() {
                         updateFormData('isACT', false);
                       }
                     }}
-                    {...useInputButtonAnimation()}
+                    {...getInputButtonAnimation()}
                     className={`px-3 py-2 text-base font-medium rounded-lg border-2 text-center ${
                       formData.selectedState === state
                         ? 'border-gray-800 bg-secondary text-white shadow-lg'
@@ -642,7 +641,7 @@ export default function PropertyDetails() {
                         updateFormData('isWAMetro', '');
                       }
                     }}
-                    {...useInputButtonAnimation()}
+                    {...getInputButtonAnimation()}
                     className={`py-2 px-3 rounded-lg border-2 flex flex-col items-center lg:items-start w-full ${
                       formData.isWA === option.value
                         ? 'border-gray-800 bg-secondary text-white shadow-lg'
@@ -716,7 +715,7 @@ export default function PropertyDetails() {
                   <motion.button
                     key={option.value}
                     onClick={() => updateFormData('propertyCategory', option.value)}
-                    {...useInputButtonAnimation()}
+                    {...getInputButtonAnimation()}
                     className={`py-3 px-3 rounded-lg border-2 flex justify-center w-32 ${
                       formData.propertyCategory === option.value
                         ? 'border-gray-800 bg-secondary text-white shadow-lg'
@@ -763,7 +762,7 @@ export default function PropertyDetails() {
                   <motion.button
                     key={option.value}
                     onClick={() => updateFormData('propertyType', option.value)}
-                    {...useInputButtonAnimation()}
+                    {...getInputButtonAnimation()}
                     className={`py-2 px-3 rounded-lg border-2 flex flex-col max-w-[300px] ${
                       formData.propertyCategory === 'land' ? 'items-start' : 'items-center'
                     } ${
@@ -827,7 +826,7 @@ export default function PropertyDetails() {
            <AnimatePresence mode="wait">
              <motion.span
                key={isComplete ? 'complete' : currentStep}
-               {...useQuestionNumber(direction, 0.4)}
+               {...getQuestionNumberAnimation(direction, 0.4)}
                className={`flex items-center absolute ${isComplete ? 'text-base-100' : "text-primary"}`}
              >
                {isComplete ? getDisplayTotalSteps() : getDisplayStep()}
@@ -841,7 +840,7 @@ export default function PropertyDetails() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={isComplete ? 'complete' : currentStep}
-                {...useQuestionSlide(direction, isComplete, 0.5, 0.3)}
+                {...getQuestionSlideAnimation(direction, isComplete, 0.5, 0.3)}
               >
                 {renderStep()}
               </motion.div>
@@ -872,7 +871,7 @@ export default function PropertyDetails() {
                   // Go back to the last question (step 6)
                   setCurrentStep(6);
                 }}
-                {...useBackButton()}
+                {...getBackButtonAnimation()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
@@ -880,7 +879,7 @@ export default function PropertyDetails() {
               
               <motion.button
                 onClick={goToBuyerDetails}
-                {...useNextButton()}
+                {...getNextButtonAnimation()}
                 className="flex-1 ml-4 px-6 py-3 rounded-full border border-primary bg-primary hover:bg-primary hover:border-gray-700 hover:shadow-sm font-medium cursor-pointer"
               >
                 Next
@@ -891,7 +890,7 @@ export default function PropertyDetails() {
             <motion.button
               onClick={nextStep}
               disabled={!isCurrentStepValid()}
-              {...useNextButton(isCurrentStepValid())}
+              {...getNextButtonAnimation(isCurrentStepValid())}
               className={`w-full px-6 py-3 rounded-full border border-primary font-medium ${
                 !isCurrentStepValid()
                   ? 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
@@ -905,7 +904,7 @@ export default function PropertyDetails() {
             <>
               <motion.button
                 onClick={prevStep}
-                {...useBackButton()}
+                {...getBackButtonAnimation()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
@@ -914,7 +913,7 @@ export default function PropertyDetails() {
               <motion.button
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
-                {...useNextButton(isCurrentStepValid())}
+                {...getNextButtonAnimation(isCurrentStepValid())}
                 className={`flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-gray-50 text-base-100'

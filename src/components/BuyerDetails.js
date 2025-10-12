@@ -4,9 +4,8 @@ import useFormNavigation from './shared/FormNavigation.js';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
 
 import { useFormStore } from '../stores/formStore';
-import { useQuestionSlide } from './shared/animations/useQuestionSlide';
-import { useQuestionNumber } from './shared/animations/useQuestionNumber';
-import { useBackButton, useNextButton } from './shared/animations/useButtonAnimation';
+import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
+import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 
 export default function BuyerDetails() {
     const formData = useFormStore();
@@ -763,7 +762,7 @@ export default function BuyerDetails() {
         <AnimatePresence mode="wait">
           <motion.span
             key={`step-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
-            {...useQuestionNumber(direction, 0.4)}
+            {...getQuestionNumberAnimation(direction, 0.4)}
             className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${
               formData.buyerDetailsComplete ? 'text-base-100' : 'text-primary'
             }`}
@@ -778,7 +777,7 @@ export default function BuyerDetails() {
           <AnimatePresence mode="wait">
             <motion.div
               key={`content-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
-              {...useQuestionSlide(direction, formData.buyerDetailsComplete || (currentStep === 1 && isInitialEntry), 1, 0.3)}
+              {...getQuestionSlideAnimation(direction, formData.buyerDetailsComplete || (currentStep === 1 && isInitialEntry), 1, 0.3)}
               className="h-80"
             >
               {renderStep()}
@@ -812,7 +811,7 @@ export default function BuyerDetails() {
                     setCurrentStep(formData.isACT ? 9 : 6); // Go back to loan question
                   }
                 }}
-                {...useBackButton()}
+                {...getBackButtonAnimation()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
@@ -829,7 +828,7 @@ export default function BuyerDetails() {
                     updateFormData('showSellerQuestions', true);
                   }
                 }}
-                {...useNextButton()}
+                {...getNextButtonAnimation()}
                 className="flex-1 ml-4 px-6 py-3 rounded-full border border-primary bg-primary hover:bg-primary hover:border-gray-700 hover:shadow-sm font-medium cursor-pointer"
               >
                 Next
@@ -840,7 +839,7 @@ export default function BuyerDetails() {
             <>
               <motion.button
                 onClick={handleBack}
-                {...useBackButton()}
+                {...getBackButtonAnimation()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
@@ -849,7 +848,7 @@ export default function BuyerDetails() {
               <motion.button
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
-                {...useNextButton(isCurrentStepValid())}
+                {...getNextButtonAnimation(isCurrentStepValid())}
                 className={`flex-1 ml-4 px-6 py-3 rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
@@ -864,7 +863,7 @@ export default function BuyerDetails() {
             <>
               <motion.button
                 onClick={prevStep}
-                {...useBackButton()}
+                {...getBackButtonAnimation()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
@@ -873,7 +872,7 @@ export default function BuyerDetails() {
               <motion.button
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
-                {...useNextButton(isCurrentStepValid())}
+                {...getNextButtonAnimation(isCurrentStepValid())}
                 className={`flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-gray-50 text-base-100'

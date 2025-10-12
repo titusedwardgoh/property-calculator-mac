@@ -1,5 +1,5 @@
 /**
- * Custom hooks for navigation button animations
+ * Animation utilities for navigation buttons
  * Provides consistent hover and tap animations for form navigation buttons
  */
 
@@ -9,7 +9,7 @@
  * 
  * @returns {object} Animation properties for framer-motion
  */
-export function useBackButton() {
+export function getBackButtonAnimation() {
   return {
     whileHover: { scale: 1.02, x: -2 },
     whileTap: { scale: 0.98 }
@@ -23,7 +23,7 @@ export function useBackButton() {
  * @param {boolean} isEnabled - Whether the button is enabled (default: true)
  * @returns {object} Animation properties for framer-motion
  */
-export function useNextButton(isEnabled = true) {
+export function getNextButtonAnimation(isEnabled = true) {
   return {
     whileHover: isEnabled ? { scale: 1.01 } : {},
     whileTap: isEnabled ? { scale: 0.99 } : {}
