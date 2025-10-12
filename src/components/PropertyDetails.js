@@ -668,7 +668,7 @@ export default function PropertyDetails() {
                       key={option.value}
                       onClick={() => !isDisabled && updateFormData('isWAMetro', option.value)}
                       disabled={isDisabled}
-                      {...(!isDisabled ? useInputButtonAnimation() : {})}
+                      {...(!isDisabled ? getInputButtonAnimation() : {})}
                       className={`py-2 px-3 rounded-lg border-2 flex flex-col items-center lg:items-start w-full ${
                         isDisabled 
                           ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
