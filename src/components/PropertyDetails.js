@@ -5,6 +5,10 @@ import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { useStateSelector } from '../states/useStateSelector.js';
 import useFormNavigation from './shared/FormNavigation.js';
 import { useFormStore } from '../stores/formStore';
+import { useQuestionSlide } from './shared/animations/useQuestionSlide';
+import { useQuestionNumber } from './shared/animations/useQuestionNumber';
+import { useBackButton, useNextButton } from './shared/animations/useButtonAnimation';
+import { useInputButtonAnimation } from './shared/animations/useInputButtonAnimation';
 
 export default function PropertyDetails() {
   const formData = useFormStore();
@@ -50,6 +54,12 @@ export default function PropertyDetails() {
   // Initialize Google Places Autocomplete
   const initializeAutocomplete = () => {
     if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places && autocompleteInputRef.current) {
+      // Clear existing autocomplete instance if it exists
+      if (autocompleteRef.current) {
+        window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
+        autocompleteRef.current = null;
+      }
+      
       autocompleteRef.current = new window.google.maps.places.Autocomplete(autocompleteInputRef.current, {
         types: ['address'],
         componentRestrictions: { country: 'au' }, // Restrict to Australia
@@ -246,9 +256,9 @@ export default function PropertyDetails() {
   // Initialize Google Places Autocomplete when component mounts and when on step 1
   useEffect(() => {
     if (currentStep === 1 && !formData.propertyStreetAddress) {
-      // Wait for Google Maps API to load
+      // Wait for Google Maps API to load AND for the input to be rendered
       const checkGoogleMaps = () => {
-        if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
+        if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places && autocompleteInputRef.current) {
           initializeAutocomplete();
         } else {
           setTimeout(checkGoogleMaps, 100);
@@ -256,7 +266,7 @@ export default function PropertyDetails() {
       };
       checkGoogleMaps();
     }
-  }, [currentStep]);
+  }, [currentStep, formData.propertyStreetAddress]);
 
   // Watch for property category changes and reset property type if needed
   useEffect(() => {
@@ -351,6 +361,8 @@ export default function PropertyDetails() {
       setIsComplete(true);
       // Set a separate flag for UpfrontCosts (not the main navigation flag)
       updateFormData('propertyDetailsFormComplete', true);
+      // Reset the executing ref
+      isExecutingRef.current = false;
       
       // Log final form completion
       
@@ -570,7 +582,7 @@ export default function PropertyDetails() {
             <div className=" relative pr-8">
               <div className="grid grid-cols-4 gap-3 ml-1 md:ml-2">
                 {['NSW', 'VIC', 'QLD', 'SA', 'WA', 'TAS', 'NT', 'ACT'].map((state) => (
-                  <button
+                  <motion.button
                     key={state}
                     onClick={() => {
                       updateFormData('selectedState', state);
@@ -581,14 +593,15 @@ export default function PropertyDetails() {
                         updateFormData('isACT', false);
                       }
                     }}
-                    className={`px-3 py-2 text-base font-medium rounded-lg border-2 transition-all duration-200 text-center hover:scale-105 ${
+                    {...useInputButtonAnimation()}
+                    className={`px-3 py-2 text-base font-medium rounded-lg border-2 text-center ${
                       formData.selectedState === state
                         ? 'border-gray-800 bg-secondary text-white shadow-lg'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     {state}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -620,7 +633,7 @@ export default function PropertyDetails() {
                   { value: 'north', label: 'North' },
                   { value: 'south', label: 'South' }
                 ].map((option) => (
-                  <button
+                  <motion.button
                     key={option.value}
                     onClick={() => {
                       updateFormData('isWA', option.value);
@@ -629,7 +642,8 @@ export default function PropertyDetails() {
                         updateFormData('isWAMetro', '');
                       }
                     }}
-                    className={`py-2 px-3 rounded-lg border-2 flex flex-col items-center lg:items-start transition-all duration-200 hover:scale-105 w-full ${
+                    {...useInputButtonAnimation()}
+                    className={`py-2 px-3 rounded-lg border-2 flex flex-col items-center lg:items-start w-full ${
                       formData.isWA === option.value
                         ? 'border-gray-800 bg-secondary text-white shadow-lg'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -641,7 +655,7 @@ export default function PropertyDetails() {
                         ? 'text-gray-400'
                         : 'text-gray-500'
                     }`}>of 26th parallel of South lat.</div>
-                  </button>
+                  </motion.button>
                 ))}
                 
                 {/* WA Metro/Non-Metro Selection */}
@@ -651,16 +665,17 @@ export default function PropertyDetails() {
                 ].map((option) => {
                   const isDisabled = option.value === 'metro' && formData.isWA === 'north';
                   return (
-                    <button
+                    <motion.button
                       key={option.value}
                       onClick={() => !isDisabled && updateFormData('isWAMetro', option.value)}
                       disabled={isDisabled}
-                      className={`py-2 px-3 rounded-lg border-2 flex flex-col items-center lg:items-start transition-all duration-200 w-full ${
+                      {...(!isDisabled ? useInputButtonAnimation() : {})}
+                      className={`py-2 px-3 rounded-lg border-2 flex flex-col items-center lg:items-start w-full ${
                         isDisabled 
                           ? 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed'
                           : formData.isWAMetro === option.value
-                            ? 'border-gray-800 bg-secondary text-white shadow-lg hover:scale-105'
-                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:scale-105'
+                            ? 'border-gray-800 bg-secondary text-white shadow-lg'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                       title={isDisabled ? "There are no metropolitan regions in the north" : ""}
                     >
@@ -672,7 +687,7 @@ export default function PropertyDetails() {
                             ? 'text-gray-400'
                             : 'text-gray-500'
                       }`}>Check your local gov authority</div>
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
@@ -698,17 +713,18 @@ export default function PropertyDetails() {
                   { value: 'townhouse', label: 'Townhouse' },
                   { value: 'land', label: 'Vacant Land' }
                 ].map((option) => (
-                  <button
+                  <motion.button
                     key={option.value}
                     onClick={() => updateFormData('propertyCategory', option.value)}
-                    className={`py-3 px-3 rounded-lg border-2 transition-all duration-200 flex justify-center w-32 hover:scale-105 ${
+                    {...useInputButtonAnimation()}
+                    className={`py-3 px-3 rounded-lg border-2 flex justify-center w-32 ${
                       formData.propertyCategory === option.value
                         ? 'border-gray-800 bg-secondary text-white shadow-lg'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     <div className="text-base font-medium text-center">{option.label}</div>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -744,10 +760,11 @@ export default function PropertyDetails() {
                         { value: 'off-the-plan', label: 'Off-the-Plan', description: 'Buying before construction' }
                       ]
                 ).map((option) => (
-                  <button
+                  <motion.button
                     key={option.value}
                     onClick={() => updateFormData('propertyType', option.value)}
-                    className={`py-2 px-3 rounded-lg border-2 flex flex-col transition-all duration-200 hover:scale-105 max-w-[300px] ${
+                    {...useInputButtonAnimation()}
+                    className={`py-2 px-3 rounded-lg border-2 flex flex-col max-w-[300px] ${
                       formData.propertyCategory === 'land' ? 'items-start' : 'items-center'
                     } ${
                       formData.propertyType === option.value
@@ -761,7 +778,7 @@ export default function PropertyDetails() {
                         ? 'text-gray-400'
                         : 'text-gray-500'
                     }`}>{option.description}</div>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -810,19 +827,7 @@ export default function PropertyDetails() {
            <AnimatePresence mode="wait">
              <motion.span
                key={isComplete ? 'complete' : currentStep}
-               initial={{ 
-                 x: -30,
-                 opacity: 0 
-               }}
-               animate={{ 
-                 x: 0,
-                 opacity: 1 
-               }}
-               exit={{ 
-                 x: direction === 'forward' ? 30 : -30,
-                 opacity: 0 
-               }}
-               transition={{ duration: 0.4 }}
+               {...useQuestionNumber(direction, 0.4)}
                className={`flex items-center absolute ${isComplete ? 'text-base-100' : "text-primary"}`}
              >
                {isComplete ? getDisplayTotalSteps() : getDisplayStep()}
@@ -836,22 +841,7 @@ export default function PropertyDetails() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={isComplete ? 'complete' : currentStep}
-                initial={{ 
-                  y: isComplete ? 0 : (direction === 'forward' ? -50 : 50),
-                  opacity: 0 
-                }}
-                animate={{ 
-                  y: 0,
-                  opacity: 1 
-                }}
-                exit={{ 
-                  y: isComplete ? 0 : (direction === 'forward' ? 50 : -50),
-                  opacity: 0 
-                }}
-                transition={{ 
-                  duration: isComplete ? 0.5 : 0.3,
-                  ease: "easeInOut"
-                }}
+                {...useQuestionSlide(direction, isComplete, 0.5, 0.3)}
               >
                 {renderStep()}
               </motion.div>
@@ -876,11 +866,13 @@ export default function PropertyDetails() {
             <>
               <motion.button
                 onClick={() => {
+                  setDirection('backward');
                   setIsComplete(false);
                   updateFormData('propertyDetailsFormComplete', false);
+                  // Go back to the last question (step 6)
+                  setCurrentStep(6);
                 }}
-                whileHover={{ scale: 1.02, x: -2 }}
-                whileTap={{ scale: 0.98 }}
+                {...useBackButton()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
@@ -888,8 +880,7 @@ export default function PropertyDetails() {
               
               <motion.button
                 onClick={goToBuyerDetails}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
+                {...useNextButton()}
                 className="flex-1 ml-4 px-6 py-3 rounded-full border border-primary bg-primary hover:bg-primary hover:border-gray-700 hover:shadow-sm font-medium cursor-pointer"
               >
                 Next
@@ -900,8 +891,7 @@ export default function PropertyDetails() {
             <motion.button
               onClick={nextStep}
               disabled={!isCurrentStepValid()}
-              whileHover={isCurrentStepValid() ? { scale: 1.01 } : {}}
-              whileTap={isCurrentStepValid() ? { scale: 0.99 } : {}}
+              {...useNextButton(isCurrentStepValid())}
               className={`w-full px-6 py-3 rounded-full border border-primary font-medium ${
                 !isCurrentStepValid()
                   ? 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
@@ -915,8 +905,7 @@ export default function PropertyDetails() {
             <>
               <motion.button
                 onClick={prevStep}
-                whileHover={{ scale: 1.02, x: -2 }}
-                whileTap={{ scale: 0.98 }}
+                {...useBackButton()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
@@ -925,8 +914,7 @@ export default function PropertyDetails() {
               <motion.button
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
-                whileHover={isCurrentStepValid() ? { scale: 1.01 } : {}}
-                whileTap={isCurrentStepValid() ? { scale: 0.99 } : {}}
+                {...useNextButton(isCurrentStepValid())}
                 className={`flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-gray-50 text-base-100'

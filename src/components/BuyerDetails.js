@@ -4,12 +4,16 @@ import useFormNavigation from './shared/FormNavigation.js';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
 
 import { useFormStore } from '../stores/formStore';
+import { useQuestionSlide } from './shared/animations/useQuestionSlide';
+import { useQuestionNumber } from './shared/animations/useQuestionNumber';
+import { useBackButton, useNextButton } from './shared/animations/useButtonAnimation';
 
 export default function BuyerDetails() {
     const formData = useFormStore();
     const updateFormData = useFormStore(state => state.updateFormData);
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState('forward'); // 'forward' or 'backward'
+  const [isInitialEntry, setIsInitialEntry] = useState(true); // Track if we're on initial entry from PropertyDetails
   const totalSteps = formData.isACT ? 10 : 7; // Add extra steps for ACT income, property ownership, and dependants questions
   
   // Calculate the starting step number based on whether WA or ACT is selected
@@ -61,6 +65,11 @@ export default function BuyerDetails() {
   }, [formData.buyerType, formData.isPPR, updateFormData]);
 
   const nextStep = () => {
+    // Mark that we've moved past the initial entry once we leave Q1
+    if (currentStep === 1 && isInitialEntry) {
+      setIsInitialEntry(false);
+    }
+    
     // Log current form entries before proceeding
     console.log('📋 Current Form Entries:', {
         // Property Details
@@ -754,19 +763,7 @@ export default function BuyerDetails() {
         <AnimatePresence mode="wait">
           <motion.span
             key={`step-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
-            initial={{ 
-              x: -30,
-              opacity: 0 
-            }}
-            animate={{ 
-              x: 0,
-              opacity: 1 
-            }}
-            exit={{ 
-              x: direction === 'forward' ? 30 : -30,
-              opacity: 0 
-            }}
-            transition={{ duration: 0.4 }}
+            {...useQuestionNumber(direction, 0.4)}
             className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${
               formData.buyerDetailsComplete ? 'text-base-100' : 'text-primary'
             }`}
@@ -781,22 +778,7 @@ export default function BuyerDetails() {
           <AnimatePresence mode="wait">
             <motion.div
               key={`content-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
-              initial={{ 
-                y: (formData.buyerDetailsComplete || currentStep === 1) ? 0 : (direction === 'forward' ? -50 : 50),
-                opacity: 0 
-              }}
-              animate={{ 
-                y: 0,
-                opacity: 1 
-              }}
-              exit={{ 
-                y: (formData.buyerDetailsComplete || currentStep === 1) ? 0 : (direction === 'forward' ? 50 : -50),
-                opacity: 0 
-              }}
-              transition={{ 
-                duration: (formData.buyerDetailsComplete || currentStep === 1) ? 1 : 0.3,
-                ease: "easeInOut"
-              }}
+              {...useQuestionSlide(direction, formData.buyerDetailsComplete || (currentStep === 1 && isInitialEntry), 1, 0.3)}
               className="h-80"
             >
               {renderStep()}
@@ -830,8 +812,7 @@ export default function BuyerDetails() {
                     setCurrentStep(formData.isACT ? 9 : 6); // Go back to loan question
                   }
                 }}
-                whileHover={{ scale: 1.02, x: -2 }}
-                whileTap={{ scale: 0.98 }}
+                {...useBackButton()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
@@ -848,8 +829,7 @@ export default function BuyerDetails() {
                     updateFormData('showSellerQuestions', true);
                   }
                 }}
-                whileHover={{ scale: 1.01 }}
-                whileTap={{ scale: 0.99 }}
+                {...useNextButton()}
                 className="flex-1 ml-4 px-6 py-3 rounded-full border border-primary bg-primary hover:bg-primary hover:border-gray-700 hover:shadow-sm font-medium cursor-pointer"
               >
                 Next
@@ -860,8 +840,7 @@ export default function BuyerDetails() {
             <>
               <motion.button
                 onClick={handleBack}
-                whileHover={{ scale: 1.02, x: -2 }}
-                whileTap={{ scale: 0.98 }}
+                {...useBackButton()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
@@ -870,8 +849,7 @@ export default function BuyerDetails() {
               <motion.button
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
-                whileHover={isCurrentStepValid() ? { scale: 1.01 } : {}}
-                whileTap={isCurrentStepValid() ? { scale: 0.99 } : {}}
+                {...useNextButton(isCurrentStepValid())}
                 className={`flex-1 ml-4 px-6 py-3 rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
@@ -886,8 +864,7 @@ export default function BuyerDetails() {
             <>
               <motion.button
                 onClick={prevStep}
-                whileHover={{ scale: 1.02, x: -2 }}
-                whileTap={{ scale: 0.98 }}
+                {...useBackButton()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
@@ -896,8 +873,7 @@ export default function BuyerDetails() {
               <motion.button
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
-                whileHover={isCurrentStepValid() ? { scale: 1.01 } : {}}
-                whileTap={isCurrentStepValid() ? { scale: 0.99 } : {}}
+                {...useNextButton(isCurrentStepValid())}
                 className={`flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-gray-50 text-base-100'
