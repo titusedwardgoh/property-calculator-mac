@@ -7,7 +7,7 @@ import useFormNavigation from './shared/FormNavigation.js';
 import { useFormStore } from '../stores/formStore';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
-import { getInputButtonAnimation } from './shared/animations/inputButtonAnimations';
+import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 
 export default function PropertyDetails() {
   const formData = useFormStore();
@@ -520,7 +520,7 @@ export default function PropertyDetails() {
             </p>
             <div className="relative pr-8">
               {!formData.propertyStreetAddress ? (
-                <input
+                <motion.input
                   ref={autocompleteInputRef}
                   type="text"
                   placeholder="Enter street address"
@@ -534,7 +534,8 @@ export default function PropertyDetails() {
                       });
                     }, 300);
                   }}
-                  className="w-full ml-1 pl-4 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
+                  {...getInputFieldAnimation()}
+                  className="w-full ml-1 pl-4 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
                 />
               ) : (
                 <div className="w-full pl-4 pr-8 py-2 border-b-2 border-gray-200 rounded-none">
@@ -798,7 +799,7 @@ export default function PropertyDetails() {
                 }`}>
                   $
                 </div>
-                <input
+                <motion.input
                   type="tel"
                   placeholder="0"
                   value={formData.propertyPrice ? formatCurrency(parseInt(formData.propertyPrice)).replace('$', '') : ''}
@@ -807,7 +808,8 @@ export default function PropertyDetails() {
                     const numericValue = e.target.value.replace(/[^\d]/g, '');
                     updateFormData('propertyPrice', numericValue);
                   }}
-                  className="w-64 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:outline-none transition-all duration-200 hover:border-gray-300"
+                  {...getInputFieldAnimation()}
+                  className="w-64 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
                 />
               </div>
             </div>

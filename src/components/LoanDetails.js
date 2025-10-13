@@ -1,12 +1,18 @@
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import useFormNavigation from './shared/FormNavigation.js';
 import { useFormStore } from '../stores/formStore';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
+import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
+import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
+import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 
 export default function LoanDetails() {
   const formData = useFormStore();
   const updateFormData = useFormStore(state => state.updateFormData);
   const [currentStep, setCurrentStep] = useState(1);
+  const [direction, setDirection] = useState('forward');
+  const [isInitialEntry, setIsInitialEntry] = useState(true); // Track if we're on initial entry from BuyerDetails
   const totalSteps = 7;
 
   // Calculate the starting step number based on WA and ACT selection
@@ -27,6 +33,11 @@ export default function LoanDetails() {
   };
 
   const nextStep = () => {
+    // Mark that we've moved past the initial entry once we leave Q1
+    if (currentStep === 1 && isInitialEntry) {
+      setIsInitialEntry(false);
+    }
+    
     // Log current form entries before proceeding
     console.log('📋 Current Form Entries:', {
       // Property Details
@@ -74,9 +85,12 @@ export default function LoanDetails() {
     }
     
     if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
-      // Update the store with current step for progress tracking
-      updateFormData('loanDetailsActiveStep', currentStep + 1);
+      setDirection('forward');
+      setTimeout(() => {
+        setCurrentStep(currentStep + 1);
+        // Update the store with current step for progress tracking
+        updateFormData('loanDetailsActiveStep', currentStep + 1);
+      }, 150);
     } else if (currentStep === totalSteps) {
       // Form is complete
       updateFormData('loanDetailsComplete', true);
@@ -130,13 +144,17 @@ export default function LoanDetails() {
 
   const prevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-      // Update the store with current step for progress tracking
-      updateFormData('loanDetailsActiveStep', currentStep - 1);
+      setDirection('backward');
+      setTimeout(() => {
+        setCurrentStep(currentStep - 1);
+        // Update the store with current step for progress tracking
+        updateFormData('loanDetailsActiveStep', currentStep - 1);
+      }, 150);
     }
   };
 
   const handleBack = () => {
+    setDirection('backward');
     // Go back to BuyerDetails last question
     updateFormData('buyerDetailsComplete', false);
     // Reset the navigation flags to ensure proper flow
@@ -280,7 +298,7 @@ export default function LoanDetails() {
               }`}>
                 $
               </div>
-              <input
+              <motion.input
                 type="tel"
                 placeholder="0"
                 value={formData.loanDeposit ? formatCurrency(parseInt(formData.loanDeposit)).replace('$', '') : ''}
@@ -289,7 +307,8 @@ export default function LoanDetails() {
                   const numericValue = e.target.value.replace(/[^\d]/g, '');
                   updateFormData('loanDeposit', numericValue);
                 }}
-                className={`w-64 pl-8 pr-8 py-2 text-2xl border-b-2 rounded-none focus:outline-none transition-all duration-200 hover:border-gray-300 ${
+                {...getInputFieldAnimation()}
+                className={`w-64 pl-8 pr-8 py-2 text-2xl border-b-2 rounded-none focus:outline-none hover:border-gray-300 ${
                   (() => {
                     const depositAmount = parseInt(formData.loanDeposit) || 0;
                     const propertyPrice = parseInt(formData.propertyPrice) || 0;
@@ -333,10 +352,11 @@ export default function LoanDetails() {
                 { value: 'principal-and-interest', label: 'Principal and Interest', description: 'Pay both principal and interest each month' },
                 { value: 'interest-only', label: 'Interest Only', description: 'Pay only interest for a set period' }
               ].map((option) => (
-                <button
+                <motion.button
                   key={option.value}
                   onClick={() => updateFormData('loanType', option.value)}
-                  className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start transition-all duration-200 hover:scale-105 ${
+                  {...getInputButtonAnimation()}
+                  className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start ${
                     formData.loanType === option.value
                       ? 'border-gray-800 bg-secondary text-white shadow-lg'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -348,7 +368,7 @@ export default function LoanDetails() {
                       ? 'text-gray-300'
                       : 'text-gray-500'
                   }`}>{option.description}</div>
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -365,7 +385,7 @@ export default function LoanDetails() {
             </p>
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-2">
-                <input
+                <motion.input
                   type="number"
                   min="1"
                   max="30"
@@ -380,7 +400,8 @@ export default function LoanDetails() {
                       updateFormData('loanTerm', '');
                     }
                   }}
-                  className="w-15 pl-4 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300 text-left [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  {...getInputFieldAnimation()}
+                  className="w-15 pl-4 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300 text-left [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <span className="pl-4 text-xl text-gray-500">
                   years
@@ -443,7 +464,7 @@ export default function LoanDetails() {
               Enter the annual interest rate percentage for your loan
             </p>
             <div className="flex items-center gap-2">
-              <input
+              <motion.input
                 type="number"
                 min="0.01"
                 max="20"
@@ -457,7 +478,8 @@ export default function LoanDetails() {
                     updateFormData('loanRate', value);
                   }
                 }}
-                className="w-20 pl-2 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300 text-left [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                {...getInputFieldAnimation()}
+                className="w-20 pl-2 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300 text-left [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               <span className="text-xl text-gray-500">
                 %
@@ -494,10 +516,11 @@ export default function LoanDetails() {
                 { value: 'yes', label: 'Yes', description: 'I need LMI coverage' },
                 { value: 'no', label: 'No', description: 'I don\'t need LMI coverage' }
               ].map((option) => (
-                <button
+                <motion.button
                   key={option.value}
                   onClick={() => updateFormData('loanLMI', option.value)}
-                  className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start transition-all duration-200 hover:scale-105 ${
+                  {...getInputButtonAnimation()}
+                  className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start ${
                     formData.loanLMI === option.value
                       ? 'border-gray-800 bg-secondary text-white shadow-lg'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -509,7 +532,7 @@ export default function LoanDetails() {
                       ? 'text-gray-300'
                       : 'text-gray-500'
                   }`}>{option.description}</div>
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -530,7 +553,7 @@ export default function LoanDetails() {
               }`}>
                 $
               </div>
-              <input
+              <motion.input
                 type="tel"
                 placeholder="200"
                 value={formData.loanSettlementFees ? formatCurrency(parseInt(formData.loanSettlementFees)).replace('$', '') : ''}
@@ -539,7 +562,8 @@ export default function LoanDetails() {
                   const numericValue = e.target.value.replace(/[^\d]/g, '');
                   updateFormData('loanSettlementFees', numericValue);
                 }}
-                className="w-30 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
+                {...getInputFieldAnimation()}
+                className="w-30 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
@@ -560,7 +584,7 @@ export default function LoanDetails() {
               }`}>
                 $
               </div>
-              <input
+              <motion.input
                 type="tel"
                 placeholder="600"
                 value={formData.loanEstablishmentFee ? formatCurrency(parseInt(formData.loanEstablishmentFee)).replace('$', '') : ''}
@@ -569,7 +593,8 @@ export default function LoanDetails() {
                   const numericValue = e.target.value.replace(/[^\d]/g, '');
                   updateFormData('loanEstablishmentFee', numericValue);
                 }}
-                className="w-30 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
+                {...getInputFieldAnimation()}
+                className="w-30 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
@@ -583,15 +608,27 @@ export default function LoanDetails() {
   return (
     <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
       <div className="flex">
-        <span className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${formData.loanDetailsComplete ? 'text-base-100' : 'text-primary'}`}>
-          <span className="text-xs text-base-100">{formData.needsLoan === 'yes' ? '3' : '2'}</span>{formData.loanDetailsComplete ? (getStartingStepNumber() + totalSteps - 1) : (currentStep + getStartingStepNumber() - 1)} 
-          <span className={`text-xs ${formData.loanDetailsComplete ? 'text-primary' : ''}`}>→</span>
-        </span>
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={`step-${formData.loanDetailsComplete ? 'complete' : currentStep}`}
+            {...getQuestionNumberAnimation(direction, 0.4)}
+            className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${formData.loanDetailsComplete ? 'text-base-100' : 'text-primary'}`}
+          >
+            <span className="text-xs text-base-100">{formData.needsLoan === 'yes' ? '3' : '2'}</span>{formData.loanDetailsComplete ? (getStartingStepNumber() + totalSteps - 1) : (currentStep + getStartingStepNumber() - 1)} 
+            <span className={`text-xs ${formData.loanDetailsComplete ? 'text-primary' : ''}`}>→</span>
+          </motion.span>
+        </AnimatePresence>
         <div className="pb-6 pb-24 md:pb-8 flex">
           {/* Step Content */}
-          <div className="h-80">
-            {renderStep()}
-          </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`content-${formData.loanDetailsComplete ? 'complete' : currentStep}`}
+              {...getQuestionSlideAnimation(direction, formData.loanDetailsComplete || (currentStep === 1 && isInitialEntry), 1, 0.3)}
+              className="h-80"
+            >
+              {renderStep()}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
 
@@ -609,36 +646,41 @@ export default function LoanDetails() {
           {formData.loanDetailsComplete ? (
             // Completion state: Back to Q7 and Next to SellerQuestions
             <>
-              <button
+              <motion.button
                 onClick={() => {
+                  setDirection('backward');
                   updateFormData('loanDetailsComplete', false);
                   setCurrentStep(7);
                 }}
+                {...getBackButtonAnimation()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button
                 onClick={() => updateFormData('showSellerQuestions', true)}
+                {...getNextButtonAnimation()}
                 className="flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer"
               >
                 Next
-              </button>
+              </motion.button>
             </>
           ) : currentStep === 1 ? (
             // Step 1: Back to BuyerDetails and Next buttons
             <>
-              <button
+              <motion.button
                 onClick={handleBack}
+                {...getBackButtonAnimation()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
+                {...getNextButtonAnimation(isCurrentStepValid())}
                 className={`flex-1 ml-4 px-6 py-3 rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
@@ -646,21 +688,23 @@ export default function LoanDetails() {
                 }`}
               >
                 Next
-              </button>
+              </motion.button>
             </>
           ) : (
             // Step 2 onwards: Back and Next buttons
             <>
-              <button
+              <motion.button
                 onClick={prevStep}
+                {...getBackButtonAnimation()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
+                {...getNextButtonAnimation(isCurrentStepValid())}
                 className={`flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-gray-50 text-base-100'
@@ -668,7 +712,7 @@ export default function LoanDetails() {
                 }`}
               >
                 {currentStep === totalSteps ? 'Add in loan costs' : 'Next'}
-              </button>
+              </motion.button>
             </>
           )}
         </div>

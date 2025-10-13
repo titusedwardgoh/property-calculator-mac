@@ -6,6 +6,7 @@ import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { useFormStore } from '../stores/formStore';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
+import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 
 export default function BuyerDetails() {
     const formData = useFormStore();
@@ -246,10 +247,11 @@ export default function BuyerDetails() {
                 { value: 'owner-occupier', label: 'Owner-Occupier', description: 'I will live in this property' },
                 { value: 'investor', label: 'Investor', description: 'I will rent this property out' }
               ].map((option) => (
-                <button
+                <motion.button
                   key={option.value}
                   onClick={() => updateFormData('buyerType', option.value)}
-                  className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start transition-all duration-200 hover:scale-105 ${
+                  {...getInputButtonAnimation()}
+                  className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
                     formData.buyerType === option.value
                       ? 'border-gray-800 bg-secondary text-white shadow-lg'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -265,7 +267,7 @@ export default function BuyerDetails() {
                       ? 'text-gray-300'
                       : 'text-gray-500'
                   }`}>{option.description}</div>
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -290,16 +292,17 @@ export default function BuyerDetails() {
               ].map((option) => {
                 const isDisabled = formData.buyerType === 'investor' && option.value === 'yes';
                 return (
-                  <button
+                  <motion.button
                     key={option.value}
                     onClick={() => !isDisabled && updateFormData('isPPR', option.value)}
                     disabled={isDisabled}
-                    className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start transition-all duration-200 ${
+                    {...(!isDisabled ? getInputButtonAnimation() : {})}
+                    className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
                       isDisabled 
                         ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
                         : formData.isPPR === option.value
-                          ? 'border-gray-800 bg-secondary text-white shadow-lg hover:scale-105'
-                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:scale-105'
+                          ? 'border-gray-800 bg-secondary text-white shadow-lg'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
@@ -312,7 +315,7 @@ export default function BuyerDetails() {
                         ? 'text-gray-400'
                         : 'text-gray-500'
                     }`}>{option.description}</div>
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>
@@ -333,10 +336,11 @@ export default function BuyerDetails() {
                 { value: 'yes', label: 'Yes', description: 'Australian citizen or permanent resident' },
                 { value: 'no', label: 'No, I reside overseas', description: 'Foreign buyer' }
               ].map((option) => (
-                <button
+                <motion.button
                   key={option.value}
                   onClick={() => updateFormData('isAustralianResident', option.value)}
-                  className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start transition-all duration-200 hover:scale-105 ${
+                  {...getInputButtonAnimation()}
+                  className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
                     formData.isAustralianResident === option.value
                       ? 'border-gray-800 bg-secondary text-white shadow-lg'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -352,7 +356,7 @@ export default function BuyerDetails() {
                       ? 'text-gray-400'
                       : 'text-gray-500'
                   }`}>{option.description}</div>
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -372,10 +376,11 @@ export default function BuyerDetails() {
                 { value: 'yes', label: 'Yes', description: 'This is my first home purchase' },
                 { value: 'no', label: 'No', description: 'I have owned property before' }
               ].map((option) => (
-                <button
+                <motion.button
                   key={option.value}
                   onClick={() => updateFormData('isFirstHomeBuyer', option.value)}
-                  className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start transition-all duration-200 hover:scale-105 ${
+                  {...getInputButtonAnimation()}
+                  className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
                     formData.isFirstHomeBuyer === option.value
                       ? 'border-gray-800 bg-secondary text-white shadow-lg'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -391,7 +396,7 @@ export default function BuyerDetails() {
                       ? 'text-gray-400'
                       : 'text-gray-500'
                   }`}>{option.description}</div>
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -417,16 +422,17 @@ export default function BuyerDetails() {
                 ].map((option) => {
                   const isDisabled = formData.isFirstHomeBuyer === 'yes' && option.value === 'yes';
                   return (
-                    <button
+                    <motion.button
                       key={option.value}
                       onClick={() => !isDisabled && updateFormData('ownedPropertyLast5Years', option.value)}
                       disabled={isDisabled}
-                      className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start transition-all duration-200 ${
+                      {...(!isDisabled ? getInputButtonAnimation() : {})}
+                      className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start ${
                         isDisabled 
                           ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
                           : formData.ownedPropertyLast5Years === option.value
-                            ? 'border-gray-800 bg-secondary text-white shadow-lg hover:scale-105'
-                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:scale-105'
+                            ? 'border-gray-800 bg-secondary text-white shadow-lg'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                     >
                     <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
@@ -441,7 +447,7 @@ export default function BuyerDetails() {
                             ? 'text-gray-400'
                             : 'text-gray-500'
                     }`}>{option.description}</div>
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
@@ -466,31 +472,32 @@ export default function BuyerDetails() {
                 ].map((option) => {
                   const isDisabled = formData.isAustralianResident !== 'yes' && option.value === 'yes';
                   return (
-                    <button
+                    <motion.button
                       key={option.value}
                       onClick={() => !isDisabled && updateFormData('hasPensionCard', option.value)}
                       disabled={isDisabled}
-                      className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start transition-all duration-200 ${
+                      {...(!isDisabled ? getInputButtonAnimation() : {})}
+                      className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start ${
                         isDisabled 
                           ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
                           : formData.hasPensionCard === option.value
-                            ? 'border-gray-800 bg-secondary text-white shadow-lg hover:scale-105'
-                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:scale-105'
+                            ? 'border-gray-800 bg-secondary text-white shadow-lg'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                       }`}
-                  >
-                    <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
-                    <div className={`text-xs leading-none text-left ${
-                      isDisabled
-                        ? 'text-gray-400'
-                        : formData.buyerType === option.value || 
-                          formData.isPPR === option.value || 
-                          formData.isAustralianResident === option.value || 
-                          formData.isFirstHomeBuyer === option.value || 
-                          formData.hasPensionCard === option.value
-                            ? 'text-gray-400'
-                            : 'text-gray-500'
-                    }`}>{option.description}</div>
-                  </button>
+                    >
+                      <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
+                      <div className={`text-xs leading-none text-left ${
+                        isDisabled
+                          ? 'text-gray-400'
+                          : formData.buyerType === option.value || 
+                            formData.isPPR === option.value || 
+                            formData.isAustralianResident === option.value || 
+                            formData.isFirstHomeBuyer === option.value || 
+                            formData.hasPensionCard === option.value
+                              ? 'text-gray-400'
+                              : 'text-gray-500'
+                      }`}>{option.description}</div>
+                    </motion.button>
                   );
                 })}
               </div>
@@ -518,31 +525,32 @@ export default function BuyerDetails() {
                 ].map((option) => {
                   const isDisabled = formData.isAustralianResident !== 'yes' && option.value === 'yes';
                   return (
-                    <button
+                    <motion.button
                       key={option.value}
                       onClick={() => !isDisabled && updateFormData('hasPensionCard', option.value)}
                       disabled={isDisabled}
-                      className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start transition-all duration-200 ${
+                      {...(!isDisabled ? getInputButtonAnimation() : {})}
+                      className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start ${
                         isDisabled 
                           ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
                           : formData.hasPensionCard === option.value
-                            ? 'border-gray-800 bg-secondary text-white shadow-lg hover:scale-105'
-                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:scale-105'
+                            ? 'border-gray-800 bg-secondary text-white shadow-lg'
+                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                       }`}
-                  >
-                    <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
-                    <div className={`text-xs leading-none text-left ${
-                      isDisabled
-                        ? 'text-gray-400'
-                        : formData.buyerType === option.value || 
-                          formData.isPPR === option.value || 
-                          formData.isAustralianResident === option.value || 
-                          formData.isFirstHomeBuyer === option.value || 
-                          formData.hasPensionCard === option.value
-                            ? 'text-gray-400'
-                            : 'text-gray-500'
-                    }`}>{option.description}</div>
-                  </button>
+                    >
+                      <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
+                      <div className={`text-xs leading-none text-left ${
+                        isDisabled
+                          ? 'text-gray-400'
+                          : formData.buyerType === option.value || 
+                            formData.isPPR === option.value || 
+                            formData.isAustralianResident === option.value || 
+                            formData.isFirstHomeBuyer === option.value || 
+                            formData.hasPensionCard === option.value
+                              ? 'text-gray-400'
+                              : 'text-gray-500'
+                      }`}>{option.description}</div>
+                    </motion.button>
                   );
                 })}
               </div>
@@ -562,10 +570,11 @@ export default function BuyerDetails() {
                   { value: 'yes', label: 'Yes', description: 'I need a loan to purchase' },
                   { value: 'no', label: 'No', description: 'I will pay cash' }
                 ].map((option) => (
-                  <button
+                  <motion.button
                     key={option.value}
                     onClick={() => updateFormData('needsLoan', option.value)}
-                    className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start transition-all duration-200 hover:scale-105 ${
+                    {...getInputButtonAnimation()}
+                    className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
                       formData.needsLoan === option.value
                         ? 'border-gray-800 bg-secondary text-white shadow-lg'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -581,7 +590,7 @@ export default function BuyerDetails() {
                         ? 'text-gray-500'
                         : 'text-gray-500'
                     }`}>{option.description}</div>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -604,7 +613,7 @@ export default function BuyerDetails() {
                 }`}>
                   $
                 </div>
-                <input
+                <motion.input
                   type="tel"
                   placeholder="0"
                   value={formData.income ? formatCurrency(parseInt(formData.income)).replace('$', '') : ''}
@@ -613,7 +622,8 @@ export default function BuyerDetails() {
                     const numericValue = e.target.value.replace(/[^\d]/g, '');
                     updateFormData('income', numericValue);
                   }}
-                  className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
+                  {...getInputFieldAnimation()}
+                  className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
                 />
               </div>
             </div>
@@ -633,7 +643,7 @@ export default function BuyerDetails() {
                 }`}>
                   $
                 </div>
-                <input
+                <motion.input
                   type="tel"
                   placeholder="0"
                   value={formData.savingsAmount ? formatCurrency(parseInt(formData.savingsAmount)).replace('$', '') : ''}
@@ -642,7 +652,8 @@ export default function BuyerDetails() {
                     const numericValue = e.target.value.replace(/[^\d]/g, '');
                     updateFormData('savingsAmount', numericValue);
                   }}
-                  className="w-64 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:outline-none transition-all duration-200 hover:border-gray-300"
+                  {...getInputFieldAnimation()}
+                  className="w-64 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
                 />
               </div>
             </div>
@@ -660,7 +671,7 @@ export default function BuyerDetails() {
                 This affects your eligibility for the Home Buyer Concession Scheme (HBCS) in ACT.
               </p>
               <div className=" relative pr-8">
-                <input
+                <motion.input
                   type="tel"
                   placeholder="0"
                   value={formData.dependants || ''}
@@ -669,7 +680,8 @@ export default function BuyerDetails() {
                     const numericValue = e.target.value.replace(/[^\d]/g, '');
                     updateFormData('dependants', numericValue);
                   }}
-                  className="w-32 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
+                  {...getInputFieldAnimation()}
+                  className="w-32 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
                 />
               </div>
             </div>
@@ -693,10 +705,11 @@ export default function BuyerDetails() {
                   { value: 'yes', label: 'Yes', description: 'I need a loan to purchase' },
                   { value: 'no', label: 'No', description: 'I will pay cash' }
                 ].map((option) => (
-                  <button
+                  <motion.button
                     key={option.value}
                     onClick={() => updateFormData('needsLoan', option.value)}
-                    className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start transition-all duration-200 hover:scale-105 ${
+                    {...getInputButtonAnimation()}
+                    className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
                       formData.needsLoan === option.value
                         ? 'border-gray-800 bg-secondary text-white shadow-lg'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -708,7 +721,7 @@ export default function BuyerDetails() {
                         ? 'text-gray-300'
                         : 'text-gray-500'
                     }`}>{option.description}</div>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -733,7 +746,7 @@ export default function BuyerDetails() {
                 }`}>
                   $
                 </div>
-                <input
+                <motion.input
                   type="tel"
                   placeholder="0"
                   value={formData.savingsAmount ? formatCurrency(parseInt(formData.savingsAmount)).replace('$', '') : ''}
@@ -742,7 +755,8 @@ export default function BuyerDetails() {
                     const numericValue = e.target.value.replace(/[^\d]/g, '');
                     updateFormData('savingsAmount', numericValue);
                   }}
-                  className="w-64 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
+                  {...getInputFieldAnimation()}
+                  className="w-64 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
                 />
               </div>
             </div>
