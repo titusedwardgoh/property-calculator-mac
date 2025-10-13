@@ -791,7 +791,7 @@ export default function BuyerDetails() {
           <AnimatePresence mode="wait">
             <motion.div
               key={`content-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
-              {...getQuestionSlideAnimation(direction, formData.buyerDetailsComplete || (currentStep === 1 && isInitialEntry), 1, 0.3)}
+              {...getQuestionSlideAnimation(direction, formData.buyerDetailsComplete || (currentStep === 1 && isInitialEntry), 0.5, 0.3)}
               className="h-80"
             >
               {renderStep()}

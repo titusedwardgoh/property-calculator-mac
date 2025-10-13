@@ -1,12 +1,18 @@
 import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import useFormNavigation from './shared/FormNavigation.js';
 import { useFormStore } from '../stores/formStore';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
+import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
+import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
+import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 
 export default function SellerQuestions() {
   const formData = useFormStore();
   const updateFormData = useFormStore(state => state.updateFormData);
   const [currentStep, setCurrentStep] = useState(1);
+  const [direction, setDirection] = useState('forward');
+  const [isInitialEntry, setIsInitialEntry] = useState(true);
   const [localCompletionState, setLocalCompletionState] = useState(false);
   const totalSteps = 8;
 
@@ -110,6 +116,11 @@ export default function SellerQuestions() {
   };
 
   const nextStep = useCallback(() => {
+    // Mark that we've moved past the initial entry once we leave Q1
+    if (currentStep === 1 && isInitialEntry) {
+      setIsInitialEntry(false);
+    }
+    
     // Log current form entries before proceeding
     console.log('📋 Current Form Entries:', {
       // Property Details
@@ -180,9 +191,12 @@ export default function SellerQuestions() {
     }
     
     if (currentStep < totalSteps) {
-      setCurrentStep(nextStepNumber);
-      // Update the store with current step for progress tracking
-      updateFormData('sellerQuestionsActiveStep', nextStepNumber);
+      setDirection('forward');
+      setTimeout(() => {
+        setCurrentStep(nextStepNumber);
+        // Update the store with current step for progress tracking
+        updateFormData('sellerQuestionsActiveStep', nextStepNumber);
+      }, 150);
     } else if (currentStep === totalSteps) {
       // Form is complete
       updateFormData('sellerQuestionsComplete', true);
@@ -254,13 +268,17 @@ export default function SellerQuestions() {
         }
       }
       
-      setCurrentStep(prevStepNumber);
-      // Update the store with current step for progress tracking
-      updateFormData('sellerQuestionsActiveStep', prevStepNumber);
+      setDirection('backward');
+      setTimeout(() => {
+        setCurrentStep(prevStepNumber);
+        // Update the store with current step for progress tracking
+        updateFormData('sellerQuestionsActiveStep', prevStepNumber);
+      }, 150);
     }
   }, [currentStep, updateFormData, formData.propertyType, formData.selectedState]);
 
   const handleBack = useCallback(() => {
+    setDirection('backward');
     // Reset the current section completion and visibility
     updateFormData('sellerQuestionsComplete', false);
     updateFormData('showSellerQuestions', false);
@@ -398,7 +416,7 @@ export default function SellerQuestions() {
               }`}>
                 $
               </div>
-              <input
+              <motion.input
                 type="tel"
                 placeholder="0"
                 value={formData.councilRates ? formatCurrency(parseInt(formData.councilRates)).replace('$', '') : ''}
@@ -407,7 +425,8 @@ export default function SellerQuestions() {
                   const numericValue = e.target.value.replace(/[^\d]/g, '');
                   updateFormData('councilRates', numericValue);
                 }}
-                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
+                {...getInputFieldAnimation()}
+                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
@@ -428,7 +447,7 @@ export default function SellerQuestions() {
               }`}>
                 $
               </div>
-              <input
+              <motion.input
                 type="tel"
                 placeholder="0"
                 value={formData.waterRates ? formatCurrency(parseInt(formData.waterRates)).replace('$', '') : ''}
@@ -437,7 +456,8 @@ export default function SellerQuestions() {
                   const numericValue = e.target.value.replace(/[^\d]/g, '');
                   updateFormData('waterRates', numericValue);
                 }}
-                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none transition-all duration-200 hover:border-gray-300"
+                {...getInputFieldAnimation()}
+                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
@@ -459,10 +479,11 @@ export default function SellerQuestions() {
                   { value: 'yes', label: 'Yes', description: 'Construction has started' },
                   { value: 'no', label: 'No', description: 'Construction has not started' }
                 ].map((option) => (
-                  <button
+                  <motion.button
                     key={option.value}
                     onClick={() => updateFormData('constructionStarted', option.value)}
-                    className={`py-2 px-3 rounded-lg border-2 flex flex-col items-start transition-all duration-200 hover:scale-105 ${
+                    {...getInputButtonAnimation()}
+                    className={`py-2 px-3 rounded-lg border-2 flex flex-col items-start ${
                       formData.constructionStarted === option.value
                         ? 'border-gray-800 bg-secondary text-white shadow-lg'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -474,7 +495,7 @@ export default function SellerQuestions() {
                         ? 'text-gray-300'
                         : 'text-gray-500'
                     }`}>{option.description}</div>
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
@@ -510,7 +531,7 @@ export default function SellerQuestions() {
                 }`}>
                   $
                 </div>
-                <input
+                <motion.input
                   type="tel"
                   placeholder="0"
                   value={formData.dutiableValue ? formatCurrency(parseInt(formData.dutiableValue)).replace('$', '') : ''}
@@ -519,7 +540,8 @@ export default function SellerQuestions() {
                     const numericValue = e.target.value.replace(/[^\d]/g, '');
                     updateFormData('dutiableValue', numericValue);
                   }}
-                  className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:outline-none transition-all duration-200 hover:border-gray-300"
+                  {...getInputFieldAnimation()}
+                  className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
                 />
               </div>
             </div>
@@ -544,7 +566,7 @@ export default function SellerQuestions() {
               }`}>
                 $
               </div>
-              <input
+              <motion.input
                 type="tel"
                 placeholder="0"
                 value={formData.bodyCorp ? formatCurrency(parseInt(formData.bodyCorp)).replace('$', '') : ''}
@@ -553,7 +575,8 @@ export default function SellerQuestions() {
                   const numericValue = e.target.value.replace(/[^\d]/g, '');
                   updateFormData('bodyCorp', numericValue);
                 }}
-                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:outline-none transition-all duration-200 hover:border-gray-300"
+                {...getInputFieldAnimation()}
+                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
@@ -574,7 +597,7 @@ export default function SellerQuestions() {
               }`}>
                 $
               </div>
-              <input
+              <motion.input
                 type="tel"
                 placeholder="0"
                 value={formData.landTransferFee ? formatCurrency(parseInt(formData.landTransferFee)).replace('$', '') : ''}
@@ -583,7 +606,8 @@ export default function SellerQuestions() {
                   const numericValue = e.target.value.replace(/[^\d]/g, '');
                   updateFormData('landTransferFee', numericValue);
                 }}
-                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:outline-none transition-all duration-200 hover:border-gray-300"
+                {...getInputFieldAnimation()}
+                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
@@ -604,7 +628,7 @@ export default function SellerQuestions() {
               }`}>
                 $
               </div>
-              <input
+              <motion.input
                 type="tel"
                 placeholder="0"
                 value={formData.legalFees ? formatCurrency(parseInt(formData.legalFees)).replace('$', '') : ''}
@@ -613,7 +637,8 @@ export default function SellerQuestions() {
                   const numericValue = e.target.value.replace(/[^\d]/g, '');
                   updateFormData('legalFees', numericValue);
                 }}
-                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:outline-none transition-all duration-200 hover:border-gray-300"
+                {...getInputFieldAnimation()}
+                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
@@ -634,7 +659,7 @@ export default function SellerQuestions() {
               }`}>
                 $
               </div>
-              <input
+              <motion.input
                 type="tel"
                 placeholder="0"
                 value={formData.buildingAndPestInspection ? formatCurrency(parseInt(formData.buildingAndPestInspection)).replace('$', '') : ''}
@@ -643,7 +668,8 @@ export default function SellerQuestions() {
                   const numericValue = e.target.value.replace(/[^\d]/g, '');
                   updateFormData('buildingAndPestInspection', numericValue);
                 }}
-                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:outline-none transition-all duration-200 hover:border-gray-300"
+                {...getInputFieldAnimation()}
+                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
@@ -658,18 +684,30 @@ export default function SellerQuestions() {
   return (
     <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
       <div className="flex">
-        <span className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${
-          formData.sellerQuestionsComplete ? 'text-base-100' : 'text-primary'
-        }`}>
-          <span className="text-xs text-base-100">{formData.needsLoan === 'yes' ? '3' : '2'}</span>
-          {formData.sellerQuestionsComplete ? (getStartingStepNumber() + getActualStepsShown() - 1) : getCurrentStepNumber()} 
-          <span className={`text-xs ${formData.sellerQuestionsComplete ? 'text-primary' : ''}`}>→</span>
-        </span>
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={`step-${formData.sellerQuestionsComplete ? 'complete' : currentStep}`}
+            {...getQuestionNumberAnimation(direction, 0.4)}
+            className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${
+              formData.sellerQuestionsComplete ? 'text-base-100' : 'text-primary'
+            }`}
+          >
+            <span className="text-xs text-base-100">{formData.needsLoan === 'yes' ? '3' : '2'}</span>
+            {formData.sellerQuestionsComplete ? (getStartingStepNumber() + getActualStepsShown() - 1) : getCurrentStepNumber()} 
+            <span className={`text-xs ${formData.sellerQuestionsComplete ? 'text-primary' : ''}`}>→</span>
+          </motion.span>
+        </AnimatePresence>
         <div className="pb-6 pb-24 md:pb-8 flex">
           {/* Step Content */}
-          <div className="h-80">
-            {renderStep()}
-          </div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`content-${formData.sellerQuestionsComplete ? 'complete' : currentStep}`}
+              {...getQuestionSlideAnimation(direction, formData.sellerQuestionsComplete || (currentStep === 1 && isInitialEntry), 0.5, 0.3)}
+              className="h-80"
+            >
+              {renderStep()}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
 
@@ -687,39 +725,44 @@ export default function SellerQuestions() {
            {localCompletionState ? (
              // Completion state: Back to last question and Next to final completion
              <>
-               <button
+               <motion.button
                  onClick={() => {
+                   setDirection('backward');
                    setLocalCompletionState(false);
                    setCurrentStep(8);
                    updateFormData('sellerQuestionsComplete', false);
                  }}
+                 {...getBackButtonAnimation()}
                  className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
                >
                  &lt;
-               </button>
+               </motion.button>
                
-               <button
+               <motion.button
                  onClick={() => {
                    updateFormData('allFormsComplete', true);
                  }}
+                 {...getNextButtonAnimation()}
                  className="flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer"
                >
                  Complete
-               </button>
+               </motion.button>
              </>
            ) : currentStep === 1 ? (
             // Step 1: Back to BuyerDetails and Next buttons
             <>
-              <button
+              <motion.button
                 onClick={handleBack}
+                {...getBackButtonAnimation()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
+                {...getNextButtonAnimation(isCurrentStepValid())}
                 className={`flex-1 ml-4 px-6 py-3 rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
@@ -727,21 +770,23 @@ export default function SellerQuestions() {
                 }`}
               >
                 Next
-              </button>
+              </motion.button>
             </>
           ) : (
             // Step 2 onwards: Back and Next buttons
             <>
-              <button
+              <motion.button
                 onClick={prevStep}
+                {...getBackButtonAnimation()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
               >
                 &lt;
-              </button>
+              </motion.button>
               
-              <button
+              <motion.button
                 onClick={nextStep}
                 disabled={!isCurrentStepValid()}
+                {...getNextButtonAnimation(isCurrentStepValid())}
                 className={`flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-gray-50 text-base-100'
@@ -749,7 +794,7 @@ export default function SellerQuestions() {
                 }`}
               >
                 {currentStep === totalSteps ? 'Add in other costs' : 'Next'}
-              </button>
+              </motion.button>
             </>
           )}
         </div>

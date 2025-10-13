@@ -623,7 +623,7 @@ export default function LoanDetails() {
           <AnimatePresence mode="wait">
             <motion.div
               key={`content-${formData.loanDetailsComplete ? 'complete' : currentStep}`}
-              {...getQuestionSlideAnimation(direction, formData.loanDetailsComplete || (currentStep === 1 && isInitialEntry), 1, 0.3)}
+              {...getQuestionSlideAnimation(direction, formData.loanDetailsComplete || (currentStep === 1 && isInitialEntry), 0.5, 0.3)}
               className="h-80"
             >
               {renderStep()}
