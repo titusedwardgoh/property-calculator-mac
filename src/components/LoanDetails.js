@@ -240,16 +240,26 @@ export default function LoanDetails() {
 
   // Update LVR when deposit amount or property price changes
   useEffect(() => {
+    console.log('📊 Calculating LVR with:', {
+      propertyPrice: formData.propertyPrice,
+      loanDeposit: formData.loanDeposit,
+      propertyPriceParsed: parseInt(formData.propertyPrice) || 0,
+      loanDepositParsed: parseInt(formData.loanDeposit) || 0
+    });
     formData.updateLVR();
+    console.log('📊 LVR after update:', formData.LVR);
   }, [formData.loanDeposit, formData.propertyPrice, formData.updateLVR]);
 
-  // Set default LMI selection based on LVR
+  // Set default LMI selection based on LVR - updates automatically when LVR changes
   useEffect(() => {
-    if (formData.LVR > 0 && !formData.loanLMI) {
+    if (formData.LVR >= 0) {  // Changed from > 0 to >= 0 to handle LVR = 0 case
       const defaultLMI = formData.LVR >= 0.8 ? 'yes' : 'no';
-      updateFormData('loanLMI', defaultLMI);
+      // Only update if it's different from current value
+      if (formData.loanLMI !== defaultLMI) {
+        updateFormData('loanLMI', defaultLMI);
+      }
     }
-  }, [formData.LVR, formData.loanLMI, updateFormData]);
+  }, [formData.LVR, updateFormData]);
 
   // Update LMI cost when relevant fields change
   useEffect(() => {
