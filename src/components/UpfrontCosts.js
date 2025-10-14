@@ -296,7 +296,7 @@ export default function UpfrontCosts() {
                   <div className="text-xs text-gray-500 mb-0 pt-2">Total Estimated Upfront Costs:</div>
                   {/* Show Property Price first if BuyerDetails complete and no loan needed */}
                   {formData.buyerDetailsComplete && formData.needsLoan === 'no' && (
-                    <div className="flex justify-between items-center pt-2">
+                    <div className={`flex justify-between items-center pt-2 ${formData.sellerQuestionsComplete ? 'pb-0' : ''}`}>
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Property Price</span>
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
                         {formatCurrency(parseInt(formData.propertyPrice) || 0)}
@@ -335,42 +335,48 @@ export default function UpfrontCosts() {
                   )}
                   
                   {/* Land Transfer Fee, Legal and Conveyancing, Building and Pest - show when seller questions are complete */}
-                  {formData.sellerQuestionsComplete && (
-                    <>
-                      {/* Land Transfer Fee */}
-                      {parseInt(formData.landTransferFee) > 0 && (
-                        <div className="flex justify-between items-center -mt-0">
-                          <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Land Transfer Fee</span>
-                          <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
-                            {formatCurrency(parseInt(formData.landTransferFee) || 0)}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {/* Legal and Conveyancing */}
-                      {parseInt(formData.legalFees) > 0 && (
-                        <div className="flex justify-between items-center -mt-3">
-                          <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Legal and Conveyancing</span>
-                          <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
-                            {formatCurrency(parseInt(formData.legalFees) || 0)}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {/* Building and Pest Inspection */}
-                      {parseInt(formData.buildingAndPestInspection) > 0 && (
-                        <div className="flex justify-between items-center -mt-3">
-                          <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Building and Pest Inspection</span>
-                          <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
-                            {formatCurrency(parseInt(formData.buildingAndPestInspection) || 0)}
-                          </span>
-                        </div>
-                      )}
-                    </>
-                  )}
+                  {formData.sellerQuestionsComplete && (() => {
+                    const hasLandTransfer = parseInt(formData.landTransferFee) > 0;
+                    const hasLegalFees = parseInt(formData.legalFees) > 0;
+                    const hasBuildingPest = parseInt(formData.buildingAndPestInspection) > 0;
+                    
+                    return (
+                      <>
+                        {/* Land Transfer Fee */}
+                        {hasLandTransfer && (
+                          <div className="flex justify-between items-center -mt-0">
+                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Land Transfer Fee</span>
+                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                              {formatCurrency(parseInt(formData.landTransferFee) || 0)}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Legal and Conveyancing */}
+                        {hasLegalFees && (
+                          <div className={`flex justify-between items-center ${hasLandTransfer ? '-mt-3' : '-mt-0'}`}>
+                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Legal and Conveyancing</span>
+                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                              {formatCurrency(parseInt(formData.legalFees) || 0)}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Building and Pest Inspection */}
+                        {hasBuildingPest && (
+                          <div className={`flex justify-between items-center ${hasLandTransfer || hasLegalFees ? '-mt-3' : '-mt-0'}`}>
+                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Building and Pest Inspection</span>
+                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                              {formatCurrency(parseInt(formData.buildingAndPestInspection) || 0)}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                   
                   {/* Stamp Duty */}
-                  <div className={`flex justify-between items-center ${(upfrontCosts.concessions.length > 0 || upfrontCosts.foreignDuty.applicable) ? 'mt-2' : '-mt-3'}`}>
+                  <div className={`flex justify-between items-center ${(upfrontCosts.concessions.length > 0 || upfrontCosts.foreignDuty.applicable) ? 'mt-2' : 'mt-2'}`}>
                     <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Stamp Duty</span>
                     <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
                       {formatCurrency(upfrontCosts.stampDuty.amount)}
