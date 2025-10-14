@@ -18,6 +18,8 @@ import { useFormStore } from '../stores/formStore';
 export default function UpfrontCosts() {
     const formData = useFormStore();
     const [hasJiggled, setHasJiggled] = useState(false);
+    const [hasJiggledOnBuyerComplete, setHasJiggledOnBuyerComplete] = useState(false);
+    const [hasJiggledOnSellerComplete, setHasJiggledOnSellerComplete] = useState(false);
   
   // Get state-specific functions when state is selected
   const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW');
@@ -31,6 +33,20 @@ export default function UpfrontCosts() {
       setHasJiggled(true);
     }
   }, [formData.propertyDetailsFormComplete]);
+
+  // Trigger jiggle when BuyerDetails complete (only once)
+  useEffect(() => {
+    if (formData.buyerDetailsComplete && !hasJiggledOnBuyerComplete) {
+      setHasJiggledOnBuyerComplete(true);
+    }
+  }, [formData.buyerDetailsComplete]);
+
+  // Trigger jiggle when SellerQuestions complete (only once)
+  useEffect(() => {
+    if (formData.sellerQuestionsComplete && !hasJiggledOnSellerComplete) {
+      setHasJiggledOnSellerComplete(true);
+    }
+  }, [formData.sellerQuestionsComplete]);
 
   // Close dropdown when navigating between form sections
   useEffect(() => {
@@ -222,12 +238,16 @@ export default function UpfrontCosts() {
     <div className="relative">
       <motion.div 
         onClick={toggleExpanded}
-        animate={hasJiggled ? {
+        animate={(hasJiggled || hasJiggledOnBuyerComplete || hasJiggledOnSellerComplete) ? {
           x: [0, -4, 4, -4, 4, 0],
           rotate: [0, -0.1, 0.1, -0.1, 0.1, 0]
         } : {}}
         transition={{ duration: 0.5 }}
-        onAnimationComplete={() => setHasJiggled(false)}
+        onAnimationComplete={() => {
+          setHasJiggled(false);
+          setHasJiggledOnBuyerComplete(false);
+          setHasJiggledOnSellerComplete(false);
+        }}
         className={`bg-secondary rounded-lg shadow-lg px-4 py-3 ${displayState.canShowDropdown ? 'cursor-pointer hover:shadow-xl transition-shadow duration-200' : ''}`}
       >
         <div className="flex items-center justify-between">
@@ -273,7 +293,7 @@ export default function UpfrontCosts() {
               
               return (
                 <>
-                  <div className="text-xs text-gray-500 mb-6 pt-2">Total Estimated Upfront Costs:</div>
+                  <div className="text-xs text-gray-500 mb-0 pt-2">Total Estimated Upfront Costs:</div>
                   {/* Show Property Price first if BuyerDetails complete and no loan needed */}
                   {formData.buyerDetailsComplete && formData.needsLoan === 'no' && (
                     <div className="flex justify-between items-center pt-2">

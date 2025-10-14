@@ -429,7 +429,7 @@ export default function LoanDetails() {
                         const interestOnlyPeriod = parseInt(formData.loanInterestOnlyPeriod) || 0;
                         const loanTerm = parseInt(formData.loanTerm) || 0;
                         return interestOnlyPeriod > 0 && interestOnlyPeriod > loanTerm 
-                          ? 'border-red-500 focus:border-red-500' 
+                          ? 'border-primary focus:border-primary' 
                           : 'border-gray-200 focus:border-secondary';
                       })()
                     }`}
@@ -454,7 +454,7 @@ export default function LoanDetails() {
               
               if (interestOnlyPeriod > 0 && interestOnlyPeriod > loanTerm) {
                 return (
-                  <p className="text-red-500 text-sm mt-2">
+                  <p className="text-primary text-sm mt-2">
                     Interest-only period cannot exceed loan term ({loanTerm} years)
                   </p>
                 );

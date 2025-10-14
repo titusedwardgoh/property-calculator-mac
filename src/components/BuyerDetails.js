@@ -869,7 +869,31 @@ export default function BuyerDetails() {
                     : 'bg-primary hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer'
                 }`}
               >
-                Next
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={(() => {
+                      const isLoanQuestion = (currentStep === 6 && !formData.isACT) || (currentStep === 9 && formData.isACT);
+                      const isSavingsQuestion = (currentStep === 7 && !formData.isACT) || (currentStep === 10 && formData.isACT);
+                      if ((isLoanQuestion && formData.needsLoan === 'no') || isSavingsQuestion) {
+                        return 'concessions';
+                      }
+                      return 'next';
+                    })()}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {(() => {
+                      const isLoanQuestion = (currentStep === 6 && !formData.isACT) || (currentStep === 9 && formData.isACT);
+                      const isSavingsQuestion = (currentStep === 7 && !formData.isACT) || (currentStep === 10 && formData.isACT);
+                      if ((isLoanQuestion && formData.needsLoan === 'no') || isSavingsQuestion) {
+                        return "Let's see if you have concessions";
+                      }
+                      return 'Next';
+                    })()}
+                  </motion.span>
+                </AnimatePresence>
               </motion.button>
             </>
           ) : (
@@ -893,7 +917,31 @@ export default function BuyerDetails() {
                     : 'text-secondary hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer'
                 }`}
               >
-                {currentStep === totalSteps ? 'Let\'s see if you have concessions' : 'Next'}
+                <AnimatePresence mode="wait">
+                  <motion.span
+                    key={(() => {
+                      const isLoanQuestion = (currentStep === 6 && !formData.isACT) || (currentStep === 9 && formData.isACT);
+                      const isSavingsQuestion = (currentStep === 7 && !formData.isACT) || (currentStep === 10 && formData.isACT);
+                      if ((isLoanQuestion && formData.needsLoan === 'no') || isSavingsQuestion) {
+                        return 'concessions';
+                      }
+                      return 'next';
+                    })()}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {(() => {
+                      const isLoanQuestion = (currentStep === 6 && !formData.isACT) || (currentStep === 9 && formData.isACT);
+                      const isSavingsQuestion = (currentStep === 7 && !formData.isACT) || (currentStep === 10 && formData.isACT);
+                      if ((isLoanQuestion && formData.needsLoan === 'no') || isSavingsQuestion) {
+                        return "Let's see if you have concessions";
+                      }
+                      return 'Next';
+                    })()}
+                  </motion.span>
+                </AnimatePresence>
               </motion.button>
             </>
           )}
