@@ -198,6 +198,10 @@ export default function UpfrontCosts() {
 
     const upfrontCostsResult = stateFunctions.calculateUpfrontCosts(buyerData, propertyData, formData.selectedState);
     
+    // Add FIRB fee to base total if applicable
+    const firbFee = parseInt(formData.FIRBFee) || 0;
+    upfrontCostsResult.totalUpfrontCosts += firbFee;
+    
     // Add loan-related amounts to total if loan details are currently complete
     if (formData.loanDetailsComplete && formData.needsLoan === 'yes') {
       const depositAmount = parseInt(formData.loanDeposit) || 0;
@@ -285,7 +289,7 @@ export default function UpfrontCosts() {
               duration: 0.3,
               ease: "easeInOut"
             }}
-            className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 px-4 overflow-hidden z-10"
+            className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 px-4 z-10"
           >
             <div className="space-y-3 py-1">
             {(() => {
@@ -497,6 +501,16 @@ export default function UpfrontCosts() {
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">Net State Duty</span>
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
                         {formatCurrency(upfrontCosts.netStateDuty)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  {/* FIRB Application Fee - show if applicable */}
+                  {formData.FIRBFee && parseInt(formData.FIRBFee) > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">FIRB Application Fee</span>
+                      <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                        {formatCurrency(parseInt(formData.FIRBFee))}
                       </span>
                     </div>
                   )}

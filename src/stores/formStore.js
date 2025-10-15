@@ -62,6 +62,7 @@ export const useFormStore = create((set, get) => ({
   landTransferFee: '',
   legalFees: '',
   buildingAndPestInspection: '',
+  FIRBFee: '',
   sellerQuestionsComplete: false,
   sellerQuestionsActiveStep: 1,
   
@@ -150,6 +151,98 @@ export const useFormStore = create((set, get) => ({
     'ACT': 10   // Australian Capital Territory: 10%
     // NSW, TAS, NT: No stamp duty on LMI
   },
+
+  // FIRB Fees for Established Property
+  FIRB_FEES_ESTABLISHED: {
+    '0-75000': 13500,
+    '75001-1000000': 45300,
+    '1000001-2000000': 90900,
+    '2000001-3000000': 181800,
+    '3000001-4000000': 272700,
+    '4000001-5000000': 363600,
+    '5000001-6000000': 454500,
+    '6000001-7000000': 545400,
+    '7000001-8000000': 636300,
+    '8000001-9000000': 727200,
+    '9000001-10000000': 818100,
+    '10000001-11000000': 909000,
+    '11000001-12000000': 999900,
+    '12000001-13000000': 1090800,
+    '13000001-14000000': 1181700,
+    '14000001-15000000': 1272600,
+    '15000001-16000000': 1363500,
+    '16000001-17000000': 1454400,
+    '17000001-18000000': 1545300,
+    '18000001-19000000': 1636200,
+    '19000001-20000000': 1727100,
+    '20000001-21000000': 1818000,
+    '21000001-22000000': 1908900,
+    '22000001-23000000': 1999800,
+    '23000001-24000000': 2090700,
+    '24000001-25000000': 2181600,
+    '25000001-26000000': 2272500,
+    '26000001-27000000': 2363400,
+    '27000001-28000000': 2454300,
+    '28000001-29000000': 2545200,
+    '29000001-30000000': 2636100,
+    '30000001-31000000': 2727000,
+    '31000001-32000000': 2817900,
+    '32000001-33000000': 2908800,
+    '33000001-34000000': 2999700,
+    '34000001-35000000': 3090600,
+    '35000001-36000000': 3181500,
+    '36000001-37000000': 3272400,
+    '37000001-38000000': 3363300,
+    '38000001-39000000': 3454200,
+    '39000001-40000000': 3545100,
+    '40000001+': 3615600
+  },
+
+  // FIRB Fees for New Property, Off-the-Plan, House-and-Land, and Vacant-Land-Only
+  FIRB_FEES_NEW_PROPERTY: {
+    '0-75000': 4500,
+    '75001-1000000': 15100,
+    '1000001-2000000': 30300,
+    '2000001-3000000': 60600,
+    '3000001-4000000': 90900,
+    '4000001-5000000': 121200,
+    '5000001-6000000': 151500,
+    '6000001-7000000': 181800,
+    '7000001-8000000': 212100,
+    '8000001-9000000': 242400,
+    '9000001-10000000': 272700,
+    '10000001-11000000': 303000,
+    '11000001-12000000': 333300,
+    '12000001-13000000': 363600,
+    '13000001-14000000': 393900,
+    '14000001-15000000': 424200,
+    '15000001-16000000': 454500,
+    '16000001-17000000': 484800,
+    '17000001-18000000': 515100,
+    '18000001-19000000': 545400,
+    '19000001-20000000': 575700,
+    '20000001-21000000': 606000,
+    '21000001-22000000': 636300,
+    '22000001-23000000': 666600,
+    '23000001-24000000': 696900,
+    '24000001-25000000': 727200,
+    '25000001-26000000': 757500,
+    '26000001-27000000': 787800,
+    '27000001-28000000': 818100,
+    '28000001-29000000': 848400,
+    '29000001-30000000': 878700,
+    '30000001-31000000': 909000,
+    '31000001-32000000': 939300,
+    '32000001-33000000': 969600,
+    '33000001-34000000': 999900,
+    '34000001-35000000': 1030200,
+    '35000001-36000000': 1060500,
+    '36000001-37000000': 1090800,
+    '37000001-38000000': 1121100,
+    '38000001-39000000': 1151400,
+    '39000001-40000000': 1181700,
+    '40000001+': 1205200
+  },
   
   // Actions to update state
   updateFormData: (field, value) => set((state) => ({ 
@@ -214,6 +307,7 @@ export const useFormStore = create((set, get) => ({
     landTransferFee: '',
     legalFees: '',
     buildingAndPestInspection: '',
+    FIRBFee: '',
     sellerQuestionsComplete: false,
     sellerQuestionsActiveStep: 1,
     allFormsComplete: false,
@@ -463,5 +557,50 @@ export const useFormStore = create((set, get) => ({
       MONTHLY_LOAN_REPAYMENT: monthlyRepayment,
       ANNUAL_LOAN_REPAYMENT: annualRepayment
     })
+  },
+
+  // Calculate FIRB fee based on property type and value
+  calculateFIRBFee: () => {
+    const state = get()
+    const propertyPrice = parseInt(state.propertyPrice) || 0
+    const isAustralianResident = state.isAustralianResident
+    const propertyType = state.propertyType
+    
+    // Only calculate if not Australian resident
+    if (isAustralianResident === 'yes' || propertyPrice === 0) {
+      return 0
+    }
+    
+    // Determine which fee table to use based on property type
+    let feeTable = null
+    if (propertyType === 'existing') {
+      feeTable = state.FIRB_FEES_ESTABLISHED
+    } else if (['new', 'off-the-plan', 'house-and-land', 'vacant-land-only'].includes(propertyType)) {
+      feeTable = state.FIRB_FEES_NEW_PROPERTY
+    }
+    
+    if (!feeTable) {
+      return 0
+    }
+    
+    // Find the appropriate fee range
+    for (const [range, fee] of Object.entries(feeTable)) {
+      if (range === '40000001+') {
+        return fee
+      }
+      
+      const [min, max] = range.split('-').map(Number)
+      if (propertyPrice >= min && propertyPrice <= max) {
+        return fee
+      }
+    }
+    
+    return 0
+  },
+
+  // Update FIRB fee when relevant fields change
+  updateFIRBFee: () => {
+    const firbFee = get().calculateFIRBFee()
+    set({ FIRBFee: firbFee })
   }
 }))

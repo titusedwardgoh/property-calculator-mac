@@ -76,6 +76,7 @@ export default function LoanDetails() {
       landTransferFee: formData.landTransferFee,
       legalFees: formData.legalFees,
       buildingAndPestInspection: formData.buildingAndPestInspection,
+      FIRBFee: formData.FIRBFee,
       sellerQuestion9: formData.sellerQuestion9
     });
     
@@ -137,6 +138,7 @@ export default function LoanDetails() {
         landTransferFee: formData.landTransferFee,
         legalFees: formData.legalFees,
         buildingAndPestInspection: formData.buildingAndPestInspection,
+        FIRBFee: formData.FIRBFee,
         sellerQuestion9: formData.sellerQuestion9
       });
     }

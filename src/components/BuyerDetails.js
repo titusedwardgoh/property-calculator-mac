@@ -111,6 +111,7 @@ export default function BuyerDetails() {
       landTransferFee: formData.landTransferFee,
       legalFees: formData.legalFees,
       buildingAndPestInspection: formData.buildingAndPestInspection,
+      FIRBFee: formData.FIRBFee,
       sellerQuestion9: formData.sellerQuestion9
     });
     
@@ -211,7 +212,10 @@ export default function BuyerDetails() {
     isComplete: formData.buyerDetailsComplete
   });
 
-
+  // Update FIRB fee when relevant fields change
+  useEffect(() => {
+    formData.updateFIRBFee();
+  }, [formData.propertyPrice, formData.propertyType, formData.isAustralianResident, formData.updateFIRBFee]);
 
   const renderStep = () => {
     // Show completion message if form is complete

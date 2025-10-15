@@ -279,6 +279,11 @@ export default function PropertyDetails() {
     prevPropertyCategoryRef.current = formData.propertyCategory;
   }, [formData.propertyCategory, formData.propertyType, updateFormData]);
 
+  // Update FIRB fee when relevant fields change
+  useEffect(() => {
+    formData.updateFIRBFee();
+  }, [formData.propertyPrice, formData.propertyType, formData.isAustralianResident, formData.updateFIRBFee]);
+
   const nextStep = () => {
     // Prevent double-execution
     if (isExecutingRef.current) {
@@ -327,6 +332,7 @@ export default function PropertyDetails() {
       landTransferFee: formData.landTransferFee,
       legalFees: formData.legalFees,
       buildingAndPestInspection: formData.buildingAndPestInspection,
+      FIRBFee: formData.FIRBFee,
       sellerQuestion9: formData.sellerQuestion9
     });
     
@@ -404,6 +410,7 @@ export default function PropertyDetails() {
       landTransferFee: formData.landTransferFee,
       legalFees: formData.legalFees,
       buildingAndPestInspection: formData.buildingAndPestInspection,
+      FIRBFee: formData.FIRBFee,
       sellerQuestion9: formData.sellerQuestion9
       });
     }

@@ -35,7 +35,7 @@ export default function Page() {
         <div className="min-h-screen bg-base-200">
             <main className="container mx-auto px-4 py-4 lg:py-10 max-w-7xl">
                 {/* Progress Bars - above questions on larger screens */}
-                <div className="hidden md:block mb-6 md:max-w-[710px]">
+                <div className="hidden md:block mb-6 md:w-[57%]">
                     <div className="space-y-4 ml-10">
                         {/* Overall Progress */}
                         <div>

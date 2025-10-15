@@ -161,7 +161,8 @@ export default function SellerQuestions() {
       bodyCorp: formData.bodyCorp,
       landTransferFee: formData.landTransferFee,
       legalFees: formData.legalFees,
-      buildingAndPestInspection: formData.buildingAndPestInspection
+      buildingAndPestInspection: formData.buildingAndPestInspection,
+      FIRBFee: formData.FIRBFee
     });
     
     // Initialize the store with current step if this is the first call
