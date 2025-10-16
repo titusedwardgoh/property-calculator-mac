@@ -125,6 +125,15 @@ export default function BuyerDetails() {
         setCurrentStep(currentStep + 1);
         // Update the store with current step for progress tracking
         updateFormData('buyerDetailsActiveStep', currentStep + 1);
+        
+        // Trigger auto-selection when moving from savings to loan question
+        const isMovingToLoanQuestion = 
+          (currentStep === 6 && !formData.isACT) || // Non-ACT: savings (6) -> loan (7)
+          (currentStep === 9 && formData.isACT);    // ACT: savings (9) -> loan (10)
+        
+        if (isMovingToLoanQuestion) {
+          autoSuggestLoanDecision();
+        }
       }, 150);
     } else if (currentStep === totalSteps) {
       // Form is complete
@@ -213,7 +222,7 @@ export default function BuyerDetails() {
   }, [formData.propertyPrice, formData.propertyType, formData.isAustralianResident, formData.updateFIRBFee]);
 
   // Auto-suggest loan decision based on savings vs property price + stamp duty + 10,000
-  useEffect(() => {
+  const autoSuggestLoanDecision = () => {
     const propertyPrice = parseInt(formData.propertyPrice) || 0;
     const savingsAmount = parseInt(formData.savingsAmount) || 0;
     
@@ -224,13 +233,27 @@ export default function BuyerDetails() {
       
       const suggestedLoan = savingsAmount >= totalNeeded ? 'no' : 'yes';
       
-      // Only auto-suggest if the field is empty (first time) or if user hasn't made a manual selection
-      // This allows users to override the suggestion
+      // Only auto-suggest if the field is empty (first time)
       if (!formData.needsLoan || formData.needsLoan === '') {
         updateFormData('needsLoan', suggestedLoan);
       }
     }
-  }, [formData.propertyPrice, formData.savingsAmount, formData.selectedState, stateFunctions, updateFormData]);
+  };
+
+  // Get the suggested loan decision for visual indication
+  const getSuggestedLoanDecision = () => {
+    const propertyPrice = parseInt(formData.propertyPrice) || 0;
+    const savingsAmount = parseInt(formData.savingsAmount) || 0;
+    
+    if (propertyPrice > 0 && savingsAmount > 0 && stateFunctions?.calculateStampDuty) {
+      const stampDuty = stateFunctions.calculateStampDuty(propertyPrice, formData.selectedState);
+      const totalNeeded = propertyPrice + stampDuty + 10000;
+      
+      return savingsAmount >= totalNeeded ? 'no' : 'yes';
+    }
+    return null;
+  };
+
 
   // Helper function to generate loan suggestion text
   const getLoanSuggestionText = () => {
@@ -664,7 +687,11 @@ export default function BuyerDetails() {
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 Do you need a loan to purchase?
               </h2>
-              <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
+              <p className={`lg:text-lg xl:text-xl lg:mb-20 leading-relaxed mb-8 ${
+                formData.needsLoan && formData.needsLoan !== '' && formData.needsLoan !== getSuggestedLoanDecision() 
+                  ? 'text-primary' 
+                  : 'text-gray-500'
+              }`}>
                 {getLoanSuggestionText()}
               </p>
               <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex gap-2 mb-8">
@@ -771,7 +798,11 @@ export default function BuyerDetails() {
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 Do you need a loan to purchase?
               </h2>
-              <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
+              <p className={`lg:text-lg xl:text-xl lg:mb-20 leading-relaxed mb-8 ${
+                formData.needsLoan && formData.needsLoan !== '' && formData.needsLoan !== getSuggestedLoanDecision() 
+                  ? 'text-primary' 
+                  : 'text-gray-500'
+              }`}>
                 {getLoanSuggestionText()}
               </p>
               <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex gap-2 mb-8">
