@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useFormNavigation from './shared/FormNavigation.js';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
+import { useStateSelector } from '../states/useStateSelector.js';
 
 import { useFormStore } from '../stores/formStore';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
@@ -15,6 +16,9 @@ export default function BuyerDetails() {
   const [direction, setDirection] = useState('forward'); // 'forward' or 'backward'
   const [isInitialEntry, setIsInitialEntry] = useState(true); // Track if we're on initial entry from PropertyDetails
   const totalSteps = formData.isACT ? 10 : 7; // Add extra steps for ACT income, property ownership, and dependants questions
+  
+  // Get state-specific functions when state is selected
+  const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW');
   
   // Calculate the starting step number based on whether WA or ACT is selected
   const getStartingStepNumber = () => {
@@ -207,6 +211,46 @@ export default function BuyerDetails() {
   useEffect(() => {
     formData.updateFIRBFee();
   }, [formData.propertyPrice, formData.propertyType, formData.isAustralianResident, formData.updateFIRBFee]);
+
+  // Auto-suggest loan decision based on savings vs property price + stamp duty + 10,000
+  useEffect(() => {
+    const propertyPrice = parseInt(formData.propertyPrice) || 0;
+    const savingsAmount = parseInt(formData.savingsAmount) || 0;
+    
+    if (propertyPrice > 0 && savingsAmount > 0 && stateFunctions?.calculateStampDuty) {
+      // Use existing stamp duty calculation
+      const stampDuty = stateFunctions.calculateStampDuty(propertyPrice, formData.selectedState);
+      const totalNeeded = propertyPrice + stampDuty + 10000;
+      
+      const suggestedLoan = savingsAmount >= totalNeeded ? 'no' : 'yes';
+      
+      // Only auto-suggest if the field is empty (first time) or if user hasn't made a manual selection
+      // This allows users to override the suggestion
+      if (!formData.needsLoan || formData.needsLoan === '') {
+        updateFormData('needsLoan', suggestedLoan);
+      }
+    }
+  }, [formData.propertyPrice, formData.savingsAmount, formData.selectedState, stateFunctions, updateFormData]);
+
+  // Helper function to generate loan suggestion text
+  const getLoanSuggestionText = () => {
+    const propertyPrice = parseInt(formData.propertyPrice) || 0;
+    const savingsAmount = parseInt(formData.savingsAmount) || 0;
+    
+    if (propertyPrice > 0 && savingsAmount > 0 && stateFunctions?.calculateStampDuty) {
+      // Use existing stamp duty calculation
+      const stampDuty = stateFunctions.calculateStampDuty(propertyPrice, formData.selectedState);
+      const totalNeeded = propertyPrice + stampDuty + 10000;
+      
+      if (savingsAmount >= totalNeeded) {
+        return `You may not need a loan as you have savings of ${formatCurrency(savingsAmount)}.`;
+      } else {
+        return `You will likely need a loan as you have savings of ${formatCurrency(savingsAmount)}.`;
+      }
+    }
+    
+    return "This affects your loan calculations and costs.";
+  };
 
   const renderStep = () => {
     // Show completion message if form is complete
@@ -558,7 +602,7 @@ export default function BuyerDetails() {
                 How much savings do you have?
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8 ">
-                This helps us calculate your loan amount and upfront costs
+                You will need savings to cover the deposit and other upfront costs.
               </p>
               <div className=" relative pr-8">
                 <div className={`absolute left-0 top-1/2 transform -translate-y-1/2 text-2xl pointer-events-none ${
@@ -621,7 +665,7 @@ export default function BuyerDetails() {
                 Do you need a loan to purchase?
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
-                This affects your loan calculations and costs.
+                {getLoanSuggestionText()}
               </p>
               <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex gap-2 mb-8">
                 {[
@@ -693,7 +737,7 @@ export default function BuyerDetails() {
                 How much savings do you have?
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8 ">
-                This helps us calculate your loan amount and upfront costs
+              You will need savings to cover the deposit and other upfront costs.
               </p>
               <div className=" relative pr-8">
                 <div className={`absolute left-0 top-1/2 transform -translate-y-1/2 text-2xl pointer-events-none ${
@@ -728,7 +772,7 @@ export default function BuyerDetails() {
                 Do you need a loan to purchase?
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
-                This affects your loan calculations and costs.
+                {getLoanSuggestionText()}
               </p>
               <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex gap-2 mb-8">
                 {[
