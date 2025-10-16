@@ -38,13 +38,13 @@ export default function SellerQuestions() {
       // No loan path: PropertyDetails + BuyerDetails
       if (isWA) {
         // WA: PropertyDetails (6) + BuyerDetails starts at (7) + 7 steps = 13
-        return 13;
+        return 14;
       } else if (isACT) {
         // ACT: PropertyDetails (5) + BuyerDetails starts at (6) + 10 steps = 16
         return 16;
       } else {
-        // Non-WA/ACT: PropertyDetails (5) + BuyerDetails starts at (6) + 7 steps = 12
-        return 12;
+        // Non-WA/ACT: PropertyDetails (5) + BuyerDetails starts at (6) + 7 steps = 13
+        return 13;
       }
     }
   };
@@ -72,7 +72,6 @@ export default function SellerQuestions() {
   const getCurrentStepNumber = () => {
     const shouldShowConstructionQuestions = formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land';
     const isOffThePlanNonVIC = formData.propertyType === 'off-the-plan' && formData.selectedState !== 'VIC';
-    const isACTNoLoan = formData.selectedState === 'ACT' && formData.needsLoan !== 'yes';
     
     let stepNumber;
     
@@ -107,10 +106,6 @@ export default function SellerQuestions() {
       }
     }
     
-    // Special case: Reduce step number by 1 for ACT when no loan is needed
-    if (isACTNoLoan) {
-      stepNumber = stepNumber - 1;
-    }
     
     return stepNumber;
   };
@@ -295,8 +290,8 @@ export default function SellerQuestions() {
       // Go back to BuyerDetails (no loan path - "Do you need a loan?" question)
       updateFormData('buyerDetailsComplete', false);
       updateFormData('showLoanDetails', false);
-      // For ACT, the loan question is step 9, for others it's step 6
-      const loanQuestionStep = formData.selectedState === 'ACT' ? 9 : 6;
+      // For ACT, the loan question is step 10, for others it's step 7
+      const loanQuestionStep = formData.selectedState === 'ACT' ? 10 : 7;
       updateFormData('buyerDetailsCurrentStep', loanQuestionStep);
     }
   }, [formData.needsLoan, updateFormData, formData.selectedState]);

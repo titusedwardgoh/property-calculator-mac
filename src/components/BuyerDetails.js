@@ -116,15 +116,6 @@ export default function BuyerDetails() {
     });
     
     if (currentStep < totalSteps) {
-      // If moving from loan need question and no loan is needed, skip to completion
-      const loanQuestionStep = formData.isACT ? 9 : 6;
-      if (currentStep === loanQuestionStep && formData.needsLoan === 'no') {
-        updateFormData('buyerDetailsComplete', true);
-        // Reset the navigation flags to ensure proper flow
-        updateFormData('showLoanDetails', false);
-        updateFormData('showSellerQuestions', false);
-        return;
-      }
       setDirection('forward');
       setTimeout(() => {
         setCurrentStep(currentStep + 1);
@@ -174,15 +165,15 @@ export default function BuyerDetails() {
       case 5:
         return formData.isACT ? (formData.ownedPropertyLast5Years && formData.ownedPropertyLast5Years.trim() !== '') : (formData.hasPensionCard && formData.hasPensionCard.trim() !== '');
       case 6:
-        return formData.isACT ? (formData.hasPensionCard && formData.hasPensionCard.trim() !== '') : (formData.needsLoan && formData.needsLoan.trim() !== '');
+        return formData.isACT ? (formData.hasPensionCard && formData.hasPensionCard.trim() !== '') : (formData.savingsAmount && formData.savingsAmount.trim() !== '');
       case 7:
-        return formData.isACT ? (formData.income && formData.income.trim() !== '') : (formData.needsLoan === 'yes' ? (formData.savingsAmount && formData.savingsAmount.trim() !== '') : true);
+        return formData.isACT ? (formData.income && formData.income.trim() !== '') : (formData.needsLoan && formData.needsLoan.trim() !== '');
       case 8:
         return formData.isACT ? (formData.dependants && formData.dependants.trim() !== '') : (formData.needsLoan && formData.needsLoan.trim() !== '');
       case 9:
-        return formData.isACT ? (formData.needsLoan && formData.needsLoan.trim() !== '') : true;
+        return formData.isACT ? (formData.savingsAmount && formData.savingsAmount.trim() !== '') : true;
       case 10:
-        return formData.isACT && formData.needsLoan === 'yes' ? (formData.savingsAmount && formData.savingsAmount.trim() !== '') : true;
+        return formData.isACT ? (formData.needsLoan && formData.needsLoan.trim() !== '') : true;
       default:
         return false;
     }
@@ -564,38 +555,29 @@ export default function BuyerDetails() {
           return (
             <div className="flex flex-col mt-12 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
-                Do you need a loan to purchase?
+                How much savings do you have?
               </h2>
-              <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
-                This affects your loan calculations and costs.
+              <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8 ">
+                This helps us calculate your loan amount and upfront costs
               </p>
-              <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex gap-2 mb-8">
-                {[
-                  { value: 'yes', label: 'Yes', description: 'I need a loan to purchase' },
-                  { value: 'no', label: 'No', description: 'I will pay cash' }
-                ].map((option) => (
-                  <motion.button
-                    key={option.value}
-                    onClick={() => updateFormData('needsLoan', option.value)}
-                    {...getInputButtonAnimation()}
-                    className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
-                      formData.needsLoan === option.value
-                        ? 'border-gray-800 bg-secondary text-white shadow-lg'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
-                    <div className={`text-xs leading-none ${
-                      formData.buyerType === option.value || 
-                      formData.isPPR === option.value || 
-                      formData.isAustralianResident === option.value || 
-                      formData.isFirstHomeBuyer === option.value || 
-                      formData.needsLoan === option.value
-                        ? 'text-gray-500'
-                        : 'text-gray-500'
-                    }`}>{option.description}</div>
-                  </motion.button>
-                ))}
+              <div className=" relative pr-8">
+                <div className={`absolute left-0 top-1/2 transform -translate-y-1/2 text-2xl pointer-events-none ${
+                  formData.savingsAmount ? 'text-gray-800' : 'text-gray-400'
+                }`}>
+                  $
+                </div>
+                <motion.input
+                  type="tel"
+                  placeholder="0"
+                  value={formData.savingsAmount ? formatCurrency(parseInt(formData.savingsAmount)).replace('$', '') : ''}
+                  onChange={(e) => {
+                    // Remove all non-digit characters and update form data
+                    const numericValue = e.target.value.replace(/[^\d]/g, '');
+                    updateFormData('savingsAmount', numericValue);
+                  }}
+                  {...getInputFieldAnimation()}
+                  className="w-64 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
+                />
               </div>
             </div>
           );
@@ -636,29 +618,38 @@ export default function BuyerDetails() {
           return (
             <div className="flex flex-col mt-12 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
-                How much savings do you have?
+                Do you need a loan to purchase?
               </h2>
-              <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8 ">
-                This helps us calculate your loan amount and upfront costs
+              <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
+                This affects your loan calculations and costs.
               </p>
-              <div className=" relative pr-8">
-                <div className={`absolute left-0 top-1/2 transform -translate-y-1/2 text-2xl pointer-events-none ${
-                  formData.savingsAmount ? 'text-gray-800' : 'text-gray-400'
-                }`}>
-                  $
-                </div>
-                <motion.input
-                  type="tel"
-                  placeholder="0"
-                  value={formData.savingsAmount ? formatCurrency(parseInt(formData.savingsAmount)).replace('$', '') : ''}
-                  onChange={(e) => {
-                    // Remove all non-digit characters and update form data
-                    const numericValue = e.target.value.replace(/[^\d]/g, '');
-                    updateFormData('savingsAmount', numericValue);
-                  }}
-                  {...getInputFieldAnimation()}
-                  className="w-64 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
-                />
+              <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex gap-2 mb-8">
+                {[
+                  { value: 'yes', label: 'Yes', description: 'I need a loan to purchase' },
+                  { value: 'no', label: 'No', description: 'I will pay cash' }
+                ].map((option) => (
+                  <motion.button
+                    key={option.value}
+                    onClick={() => updateFormData('needsLoan', option.value)}
+                    {...getInputButtonAnimation()}
+                    className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
+                      formData.needsLoan === option.value
+                        ? 'border-gray-800 bg-secondary text-white shadow-lg'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
+                    <div className={`text-xs leading-none ${
+                      formData.buyerType === option.value || 
+                      formData.isPPR === option.value || 
+                      formData.isAustralianResident === option.value || 
+                      formData.isFirstHomeBuyer === option.value || 
+                      formData.needsLoan === option.value
+                        ? 'text-gray-500'
+                        : 'text-gray-500'
+                    }`}>{option.description}</div>
+                  </motion.button>
+                ))}
               </div>
             </div>
           );
@@ -699,6 +690,41 @@ export default function BuyerDetails() {
           return (
             <div className="flex flex-col mt-12 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+                How much savings do you have?
+              </h2>
+              <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8 ">
+                This helps us calculate your loan amount and upfront costs
+              </p>
+              <div className=" relative pr-8">
+                <div className={`absolute left-0 top-1/2 transform -translate-y-1/2 text-2xl pointer-events-none ${
+                  formData.savingsAmount ? 'text-gray-800' : 'text-gray-400'
+                }`}>
+                  $
+                </div>
+                <motion.input
+                  type="tel"
+                  placeholder="0"
+                  value={formData.savingsAmount ? formatCurrency(parseInt(formData.savingsAmount)).replace('$', '') : ''}
+                  onChange={(e) => {
+                    // Remove all non-digit characters and update form data
+                    const numericValue = e.target.value.replace(/[^\d]/g, '');
+                    updateFormData('savingsAmount', numericValue);
+                  }}
+                  {...getInputFieldAnimation()}
+                  className="w-64 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
+                />
+              </div>
+            </div>
+          );
+        } else {
+          return null; // This case should not be reached for non-ACT
+        }
+
+      case 10:
+        if (formData.isACT) {
+          return (
+            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 Do you need a loan to purchase?
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
@@ -732,41 +758,6 @@ export default function BuyerDetails() {
           );
         } else {
           return null; // This case should not be reached for non-ACT
-        }
-
-      case 10:
-        if (formData.isACT && formData.needsLoan === 'yes') {
-          return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
-                How much savings do you have?
-              </h2>
-              <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8 ">
-                This helps us calculate your loan amount and upfront costs
-              </p>
-              <div className=" relative pr-8">
-                <div className={`absolute left-0 top-1/2 transform -translate-y-1/2 text-2xl pointer-events-none ${
-                  formData.savingsAmount ? 'text-gray-800' : 'text-gray-400'
-                }`}>
-                  $
-                </div>
-                <motion.input
-                  type="tel"
-                  placeholder="0"
-                  value={formData.savingsAmount ? formatCurrency(parseInt(formData.savingsAmount)).replace('$', '') : ''}
-                  onChange={(e) => {
-                    // Remove all non-digit characters and update form data
-                    const numericValue = e.target.value.replace(/[^\d]/g, '');
-                    updateFormData('savingsAmount', numericValue);
-                  }}
-                  {...getInputFieldAnimation()}
-                  className="w-64 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
-                />
-              </div>
-            </div>
-          );
-        } else {
-          return null; // This case should not be reached for non-ACT or ACT without loan
         }
 
       default:
@@ -873,31 +864,13 @@ export default function BuyerDetails() {
                     : 'bg-primary hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer'
                 }`}
               >
-                <AnimatePresence mode="wait">
-                  <motion.span
-                    key={(() => {
-                      const isLoanQuestion = (currentStep === 6 && !formData.isACT) || (currentStep === 9 && formData.isACT);
-                      const isSavingsQuestion = (currentStep === 7 && !formData.isACT) || (currentStep === 10 && formData.isACT);
-                      if ((isLoanQuestion && formData.needsLoan === 'no') || isSavingsQuestion) {
-                        return 'concessions';
-                      }
-                      return 'next';
-                    })()}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {(() => {
-                      const isLoanQuestion = (currentStep === 6 && !formData.isACT) || (currentStep === 9 && formData.isACT);
-                      const isSavingsQuestion = (currentStep === 7 && !formData.isACT) || (currentStep === 10 && formData.isACT);
-                      if ((isLoanQuestion && formData.needsLoan === 'no') || isSavingsQuestion) {
-                        return "Let's see if you have concessions";
-                      }
-                      return 'Next';
-                    })()}
-                  </motion.span>
-                </AnimatePresence>
+                {(() => {
+                  const isLoanQuestion = (currentStep === 7 && !formData.isACT) || (currentStep === 10 && formData.isACT);
+                  if (isLoanQuestion) {
+                    return "Add in concessions";
+                  }
+                  return 'Next';
+                })()}
               </motion.button>
             </>
           ) : (
@@ -921,31 +894,13 @@ export default function BuyerDetails() {
                     : 'text-secondary hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer'
                 }`}
               >
-                <AnimatePresence mode="wait">
-                  <motion.span
-                    key={(() => {
-                      const isLoanQuestion = (currentStep === 6 && !formData.isACT) || (currentStep === 9 && formData.isACT);
-                      const isSavingsQuestion = (currentStep === 7 && !formData.isACT) || (currentStep === 10 && formData.isACT);
-                      if ((isLoanQuestion && formData.needsLoan === 'no') || isSavingsQuestion) {
-                        return 'concessions';
-                      }
-                      return 'next';
-                    })()}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    {(() => {
-                      const isLoanQuestion = (currentStep === 6 && !formData.isACT) || (currentStep === 9 && formData.isACT);
-                      const isSavingsQuestion = (currentStep === 7 && !formData.isACT) || (currentStep === 10 && formData.isACT);
-                      if ((isLoanQuestion && formData.needsLoan === 'no') || isSavingsQuestion) {
-                        return "Let's see if you have concessions";
-                      }
-                      return 'Next';
-                    })()}
-                  </motion.span>
-                </AnimatePresence>
+                {(() => {
+                  const isLoanQuestion = (currentStep === 7 && !formData.isACT) || (currentStep === 10 && formData.isACT);
+                  if (isLoanQuestion) {
+                    return "Add in concessions";
+                  }
+                  return 'Next';
+                })()}
               </motion.button>
             </>
           )}

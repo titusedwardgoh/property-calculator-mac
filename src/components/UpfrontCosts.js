@@ -506,7 +506,7 @@ export default function UpfrontCosts() {
                   )}
                   
                   {/* FIRB Application Fee - show if applicable */}
-                  {formData.FIRBFee && parseInt(formData.FIRBFee) > 0 && (
+                  {formData.buyerDetailsComplete && formData.isAustralianResident === 'no' && formData.FIRBFee && parseInt(formData.FIRBFee) > 0 && (
                     <div className="flex justify-between items-center">
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">FIRB Application Fee</span>
                       <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
