@@ -68,6 +68,37 @@ export default function SellerQuestions() {
     }
   };
 
+  // Map internal currentStep to actual step position within visible steps
+  const getActualStepPosition = () => {
+    const shouldShowConstructionQuestions = formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land';
+    const isOffThePlanNonVIC = formData.propertyType === 'off-the-plan' && formData.selectedState !== 'VIC';
+    
+    if (shouldShowConstructionQuestions) {
+      if (isOffThePlanNonVIC) {
+        // Off-the-plan (non-VIC): Skip dutiable value question (case 4)
+        if (currentStep <= 3) {
+          return currentStep;
+        } else if (currentStep >= 5) {
+          return currentStep - 1; // Adjust for skipped case 4
+        } else {
+          return currentStep; // Case 4 shouldn't happen, but fallback
+        }
+      } else {
+        // VIC off-the-plan or house-and-land: All questions shown
+        return currentStep;
+      }
+    } else {
+      // Construction questions are skipped (cases 3-4)
+      if (currentStep <= 2) {
+        return currentStep;
+      } else if (currentStep >= 5) {
+        return currentStep - 2; // Adjust for skipped cases 3-4
+      } else {
+        return currentStep; // Cases 3-4 shouldn't happen, but fallback
+      }
+    }
+  };
+
   // Calculate the current step number for display, accounting for skipped questions
   const getCurrentStepNumber = () => {
     const shouldShowConstructionQuestions = formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land';
@@ -157,7 +188,11 @@ export default function SellerQuestions() {
       landTransferFee: formData.landTransferFee,
       legalFees: formData.legalFees,
       buildingAndPestInspection: formData.buildingAndPestInspection,
-      FIRBFee: formData.FIRBFee
+      FIRBFee: formData.FIRBFee,
+      // Monthly ongoing costs
+      COUNCIL_RATES_MONTHLY: formData.COUNCIL_RATES_MONTHLY,
+      WATER_RATES_MONTHLY: formData.WATER_RATES_MONTHLY,
+      BODY_CORP_MONTHLY: formData.BODY_CORP_MONTHLY
     });
     
     // Initialize the store with current step if this is the first call
@@ -196,7 +231,9 @@ export default function SellerQuestions() {
     } else if (currentStep === totalSteps) {
       // Form is complete
       updateFormData('sellerQuestionsComplete', true);
-      setLocalCompletionState(true);
+      // Update ongoing costs when seller questions complete
+      formData.updateOngoingCosts();
+      // Don't set localCompletionState here - it will be set when the completion page is shown
       
       // Log final form completion
       console.log('📊 Final Complete Form Summary:', {
@@ -328,6 +365,20 @@ export default function SellerQuestions() {
     }
   }, [currentStep, formData.councilRates, formData.waterRates, formData.constructionStarted, formData.dutiableValue, formData.bodyCorp, formData.landTransferFee, formData.legalFees, formData.buildingAndPestInspection, formData.propertyType, formData.selectedState]);
 
+  // Initialize currentStep from store when component mounts
+  useEffect(() => {
+    if (formData.sellerQuestionsActiveStep && formData.sellerQuestionsActiveStep > 0) {
+      setCurrentStep(formData.sellerQuestionsActiveStep);
+    }
+  }, [formData.sellerQuestionsActiveStep]);
+
+  // Set localCompletionState when sellerQuestionsComplete becomes true
+  useEffect(() => {
+    if (formData.sellerQuestionsComplete) {
+      setLocalCompletionState(true);
+    }
+  }, [formData.sellerQuestionsComplete]);
+
   // Auto-advance when construction questions are skipped
   useEffect(() => {
     const shouldShowConstructionQuestions = formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land';
@@ -362,6 +413,7 @@ export default function SellerQuestions() {
       if (localCompletionState) {
         // We're on the completion page, move to final completion
         updateFormData('allFormsComplete', true);
+        updateFormData('showSummary', true);
       } else {
         // Handle form completion
         updateFormData('sellerQuestionsComplete', true);
@@ -386,14 +438,33 @@ export default function SellerQuestions() {
     // Show completion message if form is complete
     if (localCompletionState) {
       return (
-        <div className="flex flex-col mt-12 md:mt-0 pr-2">
-          <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
-            Seller Questions Complete
-          </h2>
-          <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
-            All forms are now complete!
-          </p>
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key="seller-complete"
+            initial={{ opacity: 1, y: 0 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="flex flex-col mt-12 md:mt-0 pr-2"
+          >
+            <motion.h2 
+              initial={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight"
+            >
+              Seller Questions Complete
+            </motion.h2>
+            <motion.p 
+              initial={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3, delay: 0.1, ease: "easeInOut" }}
+              className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8"
+            >
+              All forms are now complete!
+            </motion.p>
+          </motion.div>
+        </AnimatePresence>
       );
     }
     switch (currentStep) {
@@ -713,37 +784,46 @@ export default function SellerQuestions() {
         <div className="block md:hidden w-full bg-gray-100 h-1 mb-4">
           <div 
             className="bg-primary h-1 transition-all duration-300"
-            style={{ width: `${localCompletionState ? 100 : ((currentStep - 1) / totalSteps) * 100}%` }}
+            style={{ width: `${localCompletionState ? 100 : ((getActualStepPosition() - 1) / getActualStepsShown()) * 100}%` }}
           ></div>
         </div>
         
                  <div className="flex justify-between mx-auto mt-4">
            {localCompletionState ? (
              // Completion state: Back to last question and Next to final completion
-             <>
-               <motion.button
-                 onClick={() => {
-                   setDirection('backward');
-                   setLocalCompletionState(false);
-                   setCurrentStep(8);
-                   updateFormData('sellerQuestionsComplete', false);
-                 }}
-                 {...getBackButtonAnimation()}
-                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
+             <AnimatePresence mode="wait">
+               <motion.div
+                 key="completion-buttons"
+                 initial={{ opacity: 1, y: 0 }}
+                 exit={{ opacity: 0, y: 20 }}
+                 transition={{ duration: 0.4, ease: "easeInOut" }}
+                 className="flex w-full"
                >
-                 &lt;
-               </motion.button>
-               
-               <motion.button
-                 onClick={() => {
-                   updateFormData('allFormsComplete', true);
-                 }}
-                 {...getNextButtonAnimation()}
-                 className="flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer"
-               >
-                 Complete
-               </motion.button>
-             </>
+                 <motion.button
+                   onClick={() => {
+                     setDirection('backward');
+                     setLocalCompletionState(false);
+                     setCurrentStep(8);
+                     updateFormData('sellerQuestionsComplete', false);
+                   }}
+                   {...getBackButtonAnimation()}
+                   className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
+                 >
+                   &lt;
+                 </motion.button>
+                 
+                 <motion.button
+                   onClick={() => {
+                     updateFormData('allFormsComplete', true);
+                     updateFormData('showSummary', true);
+                   }}
+                   {...getNextButtonAnimation()}
+                   className="flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer"
+                 >
+                   Complete
+                 </motion.button>
+               </motion.div>
+             </AnimatePresence>
            ) : currentStep === 1 ? (
             // Step 1: Back to BuyerDetails and Next buttons
             <>

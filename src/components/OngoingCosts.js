@@ -165,7 +165,7 @@ export default function OngoingCosts() {
                         <div className="space-y-3 py-3">
                         {(() => {
                             const hasLoan = loanDetailsComplete && needsLoan === 'yes' && formData.MONTHLY_LOAN_REPAYMENT > 0;
-                            const showCosts = hasLoan || (sellerQuestionsComplete && needsLoan === 'no');
+                            const showCosts = hasLoan || sellerQuestionsComplete;
                             
                             if (!showCosts) {
                                 return <div className="text-xs text-gray-500 mb-3">No ongoing costs calculated yet.</div>;

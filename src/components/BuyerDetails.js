@@ -888,12 +888,8 @@ export default function BuyerDetails() {
                 onClick={() => {
                   setDirection('backward');
                   updateFormData('buyerDetailsComplete', false);
-                  // Go back to the last question and reset completion state
-                  if (formData.needsLoan === 'yes') {
-                    setCurrentStep(formData.isACT ? 10 : 7); // Go back to savings question
-                  } else {
-                    setCurrentStep(formData.isACT ? 9 : 6); // Go back to loan question
-                  }
+                  // Go back to the loan question (last question before completion)
+                  setCurrentStep(formData.isACT ? 10 : 7); // Go back to loan question
                 }}
                 {...getBackButtonAnimation()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"

@@ -68,9 +68,10 @@ export const useFormStore = create((set, get) => ({
   
   // Final completion
   allFormsComplete: false,
+  showSummary: false,
   
   // Dropdown state management
-  openDropdown: null, // 'upfront' or 'ongoing' or null
+  openDropdown: null, // 'upfront' or 'ongoing' or 'summary' or null
   
   // Upfront costs display state
   showUpfrontDropdown: false,
@@ -311,6 +312,7 @@ export const useFormStore = create((set, get) => ({
     sellerQuestionsComplete: false,
     sellerQuestionsActiveStep: 1,
     allFormsComplete: false,
+    showSummary: false,
     openDropdown: null,
     showUpfrontDropdown: false,
     showDepositInUpfront: false,
