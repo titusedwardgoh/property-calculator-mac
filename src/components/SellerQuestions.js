@@ -14,6 +14,7 @@ export default function SellerQuestions() {
   const [direction, setDirection] = useState('forward');
   const [isInitialEntry, setIsInitialEntry] = useState(true);
   const [localCompletionState, setLocalCompletionState] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
   const totalSteps = 8;
 
   // Calculate the starting step number based on WA, ACT selection and loan need
@@ -768,7 +769,7 @@ export default function SellerQuestions() {
           {/* Step Content */}
           <AnimatePresence mode="wait">
             <motion.div
-              key={`content-${formData.sellerQuestionsComplete ? 'complete' : currentStep}`}
+              key={`content-${isExiting ? 'exiting' : (formData.sellerQuestionsComplete ? 'complete' : currentStep)}`}
               {...getQuestionSlideAnimation(direction, formData.sellerQuestionsComplete || (currentStep === 1 && isInitialEntry), 0.5, 0.3)}
               className="h-80"
             >
@@ -814,8 +815,14 @@ export default function SellerQuestions() {
                  
                  <motion.button
                    onClick={() => {
-                     updateFormData('allFormsComplete', true);
-                     updateFormData('showSummary', true);
+                     // Trigger exit animation
+                     setIsExiting(true);
+                     setDirection('forward');
+                     // Set final state after animation completes
+                     setTimeout(() => {
+                       updateFormData('allFormsComplete', true);
+                       updateFormData('showSummary', true);
+                     }, 500);
                    }}
                    {...getNextButtonAnimation()}
                    className="flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer"
