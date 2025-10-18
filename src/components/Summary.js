@@ -19,6 +19,18 @@ export default function Summary() {
         setIsExpanded(formData.openDropdown === 'summary');
     }, [formData.openDropdown]);
 
+    // Reset both local and global state when summary is first shown
+    useEffect(() => {
+        if (formData.showSummary) {
+            // Reset local expanded state to ensure summary starts collapsed
+            setIsExpanded(false);
+            // Also reset global dropdown state to prevent conflicts
+            if (formData.openDropdown === 'summary') {
+                formData.updateFormData('openDropdown', null);
+            }
+        }
+    }, [formData.showSummary]);
+
     // Only render when summary should be shown
     if (!formData.showSummary) {
         return null;
@@ -141,8 +153,17 @@ export default function Summary() {
         return propertyCosts + loanCosts;
     };
 
-    // Calculate loan amount
+    // Calculate loan amount (matching LoanDetails logic)
     const getLoanAmount = () => {
+        const propertyPrice = parseInt(formData.propertyPrice) || 0;
+        const deposit = parseInt(formData.loanDeposit) || 0;
+        const lmiCost = formData.loanLMI === 'yes' ? (formData.LMI_COST || 0) : 0;
+        const lmiStampDuty = formData.loanLMI === 'yes' ? (formData.LMI_STAMP_DUTY || 0) : 0;
+        return propertyPrice + lmiCost + lmiStampDuty - deposit;
+    };
+
+    // Get base loan amount (without LMI)
+    const getBaseLoanAmount = () => {
         const propertyPrice = parseInt(formData.propertyPrice) || 0;
         const deposit = parseInt(formData.loanDeposit) || 0;
         return propertyPrice - deposit;
@@ -479,10 +500,123 @@ export default function Summary() {
                                 })()}
                             </div>
 
+                            {/* Section 4: Loan Details (conditional) */}
+                            {formData.needsLoan === 'yes' && (
+                                <>
+                                    <div className="border-t border-gray-200"></div>
+                                    
+                                    <div className="space-y-0.5">
+                                        <div className="text-xs text-gray-500 font-medium">Loan Details</div>
+                                        
+                                        {/* Property Price */}
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                Property Price
+                                            </span>
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                {formatCurrency(parseInt(formData.propertyPrice) || 0)}
+                                            </span>
+                                        </div>
+                                        
+                                        {/* LMI Cost (if applicable) */}
+                                        {formData.loanLMI === 'yes' && (formData.LMI_COST > 0 || formData.LMI_STAMP_DUTY > 0) && (
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                    LMI Premium
+                                                </span>
+                                                <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                    {formatCurrency((formData.LMI_COST || 0) + (formData.LMI_STAMP_DUTY || 0))}
+                                                </span>
+                                            </div>
+                                        )}
+                                        
+                                        {/* Less Deposit */}
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                Less Deposit
+                                            </span>
+                                            <span className="text-green-600 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                -{formatCurrency(parseInt(formData.loanDeposit) || 0)}
+                                            </span>
+                                        </div>
+                                        
+                                        {/* Total Loan Amount */}
+                                        <div className="flex justify-between items-center border-t border-gray-200 pt-1">
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
+                                                Total Loan Amount
+                                            </span>
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-semibold">
+                                                {formatCurrency(getLoanAmount())}
+                                            </span>
+                                        </div>
+                                        
+                                        
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                LVR (ex LMI)
+                                            </span>
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                {formData.LVR ? `${(formData.LVR * 100).toFixed(1)}%` : 'Not specified'}
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                Interest Rate
+                                            </span>
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                {formData.loanRate ? `${formData.loanRate}%` : 'Not specified'}
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                Loan Type
+                                            </span>
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                {formData.loanType === 'principal-and-interest' ? 'Principal & Interest' :
+                                                 formData.loanType === 'interest-only' ? 'Interest Only' :
+                                                 'Not specified'}
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                Loan Term
+                                            </span>
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                {formData.loanTerm ? `${formData.loanTerm} years` : 'Not specified'}
+                                            </span>
+                                        </div>
+                                        
+                                        {/* Interest-Only Period (only show if loan type is interest-only) */}
+                                        {formData.loanType === 'interest-only' && formData.loanInterestOnlyPeriod && (
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                    Interest-Only Period
+                                                </span>
+                                                <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                    {formData.loanInterestOnlyPeriod} years
+                                                </span>
+                                            </div>
+                                        )}
+                                        
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
+                                                Monthly Repayment
+                                            </span>
+                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
+                                                {formatCurrency(formData.MONTHLY_LOAN_REPAYMENT || 0)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
                             {/* Divider */}
                             <div className="border-t border-gray-200"></div>
 
-                            {/* Section 4: Financial Summary */}
+                            {/* Section 5: Financial Summary */}
                             <div className="space-y-0.5">
                                 <div className="text-xs text-gray-500 font-medium">Financial Summary</div>
                                 
@@ -598,72 +732,6 @@ export default function Summary() {
                                 </div>
                             </div>
 
-                            {/* Section 5: Loan Details (conditional) */}
-                            {formData.needsLoan === 'yes' && (
-                                <>
-                                    <div className="border-t border-gray-200"></div>
-                                    
-                                    <div className="space-y-2">
-                                        <div className="text-xs text-gray-500 font-medium">Loan Details</div>
-                                        
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
-                                                Loan Amount
-                                            </span>
-                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
-                                                {formatCurrency(getLoanAmount())}
-                                            </span>
-                                        </div>
-                                        
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
-                                                Deposit Amount
-                                            </span>
-                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
-                                                {formatCurrency(parseInt(formData.loanDeposit) || 0)}
-                                            </span>
-                                        </div>
-                                        
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
-                                                Interest Rate
-                                            </span>
-                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
-                                                {formData.loanRate ? `${formData.loanRate}%` : 'Not specified'}
-                                            </span>
-                                        </div>
-                                        
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
-                                                Loan Term
-                                            </span>
-                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
-                                                {formData.loanTerm ? `${formData.loanTerm} years` : 'Not specified'}
-                                            </span>
-                                        </div>
-                                        
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
-                                                Loan Type
-                                            </span>
-                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
-                                                {formData.loanType === 'principal-and-interest' ? 'Principal & Interest' :
-                                                 formData.loanType === 'interest-only' ? 'Interest Only' :
-                                                 'Not specified'}
-                                            </span>
-                                        </div>
-                                        
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
-                                                Monthly Repayment
-                                            </span>
-                                            <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
-                                                {formatCurrency(formData.MONTHLY_LOAN_REPAYMENT || 0)}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </>
-                            )}
                         </div>
                     </motion.div>
                 )}

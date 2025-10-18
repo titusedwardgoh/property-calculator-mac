@@ -255,7 +255,7 @@ export default function Page() {
                                         transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
                                         className="fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-base-100 md:bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:mt-8 md:px-6 md:pb-8 lg:mt-15 xl:mt-30"
                                     >
-                                        <div className="flex justify-center mx-auto mt-4">
+                                        <div className="flex flex-col sm:flex-row gap-3 justify-center mx-auto mt-4">
                                             <motion.button
                                                 whileHover={{ scale: 1.05 }}
                                                 whileTap={{ scale: 0.95 }}
@@ -269,6 +269,18 @@ export default function Page() {
                                                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
                                             >
                                                 ← Back to Seller Questions
+                                            </motion.button>
+                                            
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => {
+                                                    // Reset the entire form
+                                                    formData.resetForm();
+                                                }}
+                                                className="bg-gray-500 hover:bg-gray-600 px-6 py-3 rounded-full border border-gray-500 hover:border-gray-600 font-medium text-white hover:shadow-sm flex-shrink-0 cursor-pointer"
+                                            >
+                                                Start Over
                                             </motion.button>
                                         </div>
                                     </motion.div>
