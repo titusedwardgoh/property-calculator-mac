@@ -15,6 +15,7 @@ export default function SellerQuestions() {
   const [isInitialEntry, setIsInitialEntry] = useState(true);
   const [localCompletionState, setLocalCompletionState] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
+  const [buttonsExiting, setButtonsExiting] = useState(false);
   const totalSteps = 8;
 
   // Calculate the starting step number based on WA, ACT selection and loan need
@@ -442,28 +443,19 @@ export default function SellerQuestions() {
         <AnimatePresence mode="wait">
           <motion.div
             key="seller-complete"
-            initial={{ opacity: 1, y: 0 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.5, ease: "easeInOut" }}
+            {...getQuestionSlideAnimation('forward', false, 0.5, 0.3)}
             className="flex flex-col mt-12 md:mt-0 pr-2"
           >
-            <motion.h2 
-              initial={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
+            <h2 
               className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight"
             >
               Seller Questions Complete
-            </motion.h2>
-            <motion.p 
-              initial={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, delay: 0.1, ease: "easeInOut" }}
+            </h2>
+            <p 
               className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8"
             >
               All forms are now complete!
-            </motion.p>
+            </p>
           </motion.div>
         </AnimatePresence>
       );
@@ -754,7 +746,7 @@ export default function SellerQuestions() {
       <div className="flex">
         <AnimatePresence mode="wait">
           <motion.span
-            key={`step-${formData.sellerQuestionsComplete ? 'complete' : currentStep}`}
+            key={`step-${isExiting ? 'exiting' : (formData.sellerQuestionsComplete ? 'complete' : currentStep)}`}
             {...getQuestionNumberAnimation(direction, 0.4)}
             className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${
               formData.sellerQuestionsComplete ? 'text-base-100' : 'text-primary'
@@ -762,7 +754,11 @@ export default function SellerQuestions() {
           >
             <span className="text-xs text-base-100">{formData.needsLoan === 'yes' ? '3' : '2'}</span>
             {formData.sellerQuestionsComplete ? (getStartingStepNumber() + getActualStepsShown() - 1) : getCurrentStepNumber()} 
-            <span className={`text-xs ${formData.sellerQuestionsComplete ? 'text-primary' : ''}`}>→</span>
+            <span 
+              className={`text-xs ${formData.sellerQuestionsComplete ? 'text-primary' : ''}`}
+            >
+              →
+            </span>
           </motion.span>
         </AnimatePresence>
         <div className="pb-6 pb-24 md:pb-8 flex">
@@ -770,7 +766,7 @@ export default function SellerQuestions() {
           <AnimatePresence mode="wait">
             <motion.div
               key={`content-${isExiting ? 'exiting' : (formData.sellerQuestionsComplete ? 'complete' : currentStep)}`}
-              {...getQuestionSlideAnimation(direction, formData.sellerQuestionsComplete || (currentStep === 1 && isInitialEntry), 0.5, 0.3)}
+              {...getQuestionSlideAnimation(direction, false, 0.5, 0.3)}
               className="h-80"
             >
               {renderStep()}
@@ -794,7 +790,7 @@ export default function SellerQuestions() {
              // Completion state: Back to last question and Next to final completion
              <AnimatePresence mode="wait">
                <motion.div
-                 key="completion-buttons"
+                 key={`completion-buttons-${buttonsExiting ? 'exiting' : 'visible'}`}
                  initial={{ opacity: 1, y: 0 }}
                  exit={{ opacity: 0, y: 20 }}
                  transition={{ duration: 0.4, ease: "easeInOut" }}
@@ -803,9 +799,12 @@ export default function SellerQuestions() {
                  <motion.button
                    onClick={() => {
                      setDirection('backward');
-                     setLocalCompletionState(false);
-                     setCurrentStep(8);
-                     updateFormData('sellerQuestionsComplete', false);
+                     // Small delay to ensure direction is set before state changes
+                     setTimeout(() => {
+                       setLocalCompletionState(false);
+                       setCurrentStep(8);
+                       updateFormData('sellerQuestionsComplete', false);
+                     }, 10);
                    }}
                    {...getBackButtonAnimation()}
                    className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
@@ -815,14 +814,18 @@ export default function SellerQuestions() {
                  
                  <motion.button
                    onClick={() => {
-                     // Trigger exit animation
-                     setIsExiting(true);
-                     setDirection('forward');
-                     // Set final state after animation completes
+                     // Trigger button exit animation first
+                     setButtonsExiting(true);
+                     // Then trigger content exit animation
+                     setTimeout(() => {
+                       setIsExiting(true);
+                       setDirection('forward');
+                     }, 100);
+                     // Set final state after both animations complete
                      setTimeout(() => {
                        updateFormData('allFormsComplete', true);
                        updateFormData('showSummary', true);
-                     }, 500);
+                     }, 300);
                    }}
                    {...getNextButtonAnimation()}
                    className="flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer"
