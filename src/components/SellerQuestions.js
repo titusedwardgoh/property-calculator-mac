@@ -381,6 +381,18 @@ export default function SellerQuestions() {
     }
   }, [formData.sellerQuestionsComplete]);
 
+  // Set default rates when user reaches relevant steps
+  useEffect(() => {
+    if (currentStep === 1 && !formData.councilRates && formData.propertyPrice) {
+      const propertyPrice = parseInt(formData.propertyPrice) || 0;
+      const defaultCouncilRates = Math.round(propertyPrice * 0.0015); // 0.15%
+      updateFormData('councilRates', defaultCouncilRates.toString());
+    }
+    if (currentStep === 2 && !formData.waterRates) {
+      updateFormData('waterRates', '1500');
+    }
+  }, [currentStep, formData.councilRates, formData.waterRates, formData.propertyPrice, updateFormData]);
+
   // Auto-advance when construction questions are skipped
   useEffect(() => {
     const shouldShowConstructionQuestions = formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land';
@@ -468,7 +480,7 @@ export default function SellerQuestions() {
               Ask the seller: What are the annual council rates?
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
-              This helps calculate ongoing property costs
+              Below is an estimate only based on the property price
             </p>
             <div className="relative pr-8">
               <div className={`absolute left-0 top-1/2 transform -translate-y-1/2 text-2xl pointer-events-none ${
@@ -486,7 +498,7 @@ export default function SellerQuestions() {
                   updateFormData('councilRates', numericValue);
                 }}
                 {...getInputFieldAnimation()}
-                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
+                className="w-35 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
@@ -517,7 +529,7 @@ export default function SellerQuestions() {
                   updateFormData('waterRates', numericValue);
                 }}
                 {...getInputFieldAnimation()}
-                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
+                className="w-35 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
@@ -636,7 +648,7 @@ export default function SellerQuestions() {
                   updateFormData('bodyCorp', numericValue);
                 }}
                 {...getInputFieldAnimation()}
-                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
+                className="w-40 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
@@ -667,7 +679,7 @@ export default function SellerQuestions() {
                   updateFormData('landTransferFee', numericValue);
                 }}
                 {...getInputFieldAnimation()}
-                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
+                className="w-40 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
@@ -698,7 +710,7 @@ export default function SellerQuestions() {
                   updateFormData('legalFees', numericValue);
                 }}
                 {...getInputFieldAnimation()}
-                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
+                className="w-40 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
@@ -729,7 +741,7 @@ export default function SellerQuestions() {
                   updateFormData('buildingAndPestInspection', numericValue);
                 }}
                 {...getInputFieldAnimation()}
-                className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
+                className="w-35 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>

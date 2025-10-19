@@ -160,7 +160,7 @@ export default function OngoingCosts() {
                             duration: 0.3,
                             ease: "easeInOut"
                         }}
-                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 px-4 overflow-hidden z-10"
+                        className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 px-4 z-10 max-h-120 overflow-y-auto"
                     >
                         <div className="space-y-3 py-3">
                         {(() => {

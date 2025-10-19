@@ -819,7 +819,7 @@ export default function PropertyDetails() {
                     updateFormData('propertyPrice', numericValue);
                   }}
                   {...getInputFieldAnimation()}
-                  className="w-64 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
+                  className="w-50 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
                 />
               </div>
             </div>

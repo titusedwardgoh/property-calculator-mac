@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useFormNavigation from './shared/FormNavigation.js';
 import { useFormStore } from '../stores/formStore';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
+import { useStateSelector } from '../states/useStateSelector.js';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
@@ -175,7 +176,48 @@ export default function LoanDetails() {
         const depositAmount = parseInt(formData.loanDeposit) || 0;
         const propertyPrice = parseInt(formData.propertyPrice) || 0;
         const minimumDeposit = Math.round(propertyPrice * 0.05);
-        return depositAmount > 0 && depositAmount >= minimumDeposit;
+        
+        // Calculate net state duty for maximum deposit validation
+        let netStateDuty = 0;
+        if (formData.buyerDetailsComplete && formData.selectedState) {
+          const { stateFunctions } = useStateSelector(formData.selectedState);
+          if (stateFunctions?.calculateUpfrontCosts) {
+            const buyerData = {
+              selectedState: formData.selectedState,
+              buyerType: formData.buyerType,
+              isPPR: formData.isPPR,
+              isAustralianResident: formData.isAustralianResident,
+              isFirstHomeBuyer: formData.isFirstHomeBuyer,
+              ownedPropertyLast5Years: formData.ownedPropertyLast5Years,
+              hasPensionCard: formData.hasPensionCard,
+              needsLoan: formData.needsLoan,
+              savingsAmount: formData.savingsAmount,
+              income: formData.income,
+              dependants: formData.dependants,
+              dutiableValue: formData.dutiableValue,
+              constructionStarted: formData.constructionStarted,
+              sellerQuestionsComplete: formData.sellerQuestionsComplete
+            };
+            
+            const propertyData = {
+              propertyPrice: formData.propertyPrice,
+              propertyType: formData.propertyType,
+              propertyCategory: formData.propertyCategory,
+              isWA: formData.isWA,
+              isWAMetro: formData.isWAMetro,
+              isACT: formData.isACT
+            };
+            
+            const upfrontCostsResult = stateFunctions.calculateUpfrontCosts(buyerData, propertyData, formData.selectedState);
+            netStateDuty = upfrontCostsResult.netStateDuty || 0;
+          }
+        }
+        
+        const maximumDeposit = propertyPrice + netStateDuty;
+        
+        return depositAmount > 0 && 
+               depositAmount >= minimumDeposit && 
+               depositAmount <= maximumDeposit;
       case 2:
         return formData.loanType && formData.loanType.trim() !== '';
       case 3:
@@ -273,6 +315,16 @@ export default function LoanDetails() {
     formData.updateLoanRepayments();
   }, [formData.loanDeposit, formData.propertyPrice, formData.loanRate, formData.loanTerm, formData.loanType, formData.loanInterestOnlyPeriod, formData.loanLMI, formData.LMI_COST, formData.LMI_STAMP_DUTY, formData.updateLoanRepayments]);
 
+  // Set default fees when user reaches relevant steps
+  useEffect(() => {
+    if (currentStep === 6 && !formData.loanSettlementFees) {
+      updateFormData('loanSettlementFees', '200');
+    }
+    if (currentStep === 7 && !formData.loanEstablishmentFee) {
+      updateFormData('loanEstablishmentFee', '500');
+    }
+  }, [currentStep, formData.loanSettlementFees, formData.loanEstablishmentFee, updateFormData]);
+
   const renderStep = () => {
     // Show completion message if form is complete
     if (formData.loanDetailsComplete) {
@@ -320,13 +372,13 @@ export default function LoanDetails() {
                   updateFormData('loanDeposit', numericValue);
                 }}
                 {...getInputFieldAnimation()}
-                className={`w-64 pl-8 pr-8 py-2 text-2xl border-b-2 rounded-none focus:outline-none hover:border-gray-300 ${
+                className={`w-50 pl-8 pr-8 py-2 text-2xl border-b-2 rounded-none focus:outline-none hover:border-gray-300 ${
                   (() => {
                     const depositAmount = parseInt(formData.loanDeposit) || 0;
                     const propertyPrice = parseInt(formData.propertyPrice) || 0;
                     const minimumDeposit = Math.round(propertyPrice * 0.05);
                     return depositAmount > 0 && depositAmount < minimumDeposit 
-                      ? 'border-red-500 focus:border-red-500' 
+                      ? 'border-primary focus:border-primary' 
                       : 'border-gray-200 focus:border-secondary';
                   })()
                 }`}
@@ -340,8 +392,69 @@ export default function LoanDetails() {
               
               if (depositAmount > 0 && depositAmount < minimumDeposit) {
                 return (
-                  <p className="text-red-500 text-sm mt-2">
+                  <p className="text-primary text-sm mt-2">
                     Deposit must be at least ${formattedMinimumDeposit} (5% of property price)
+                  </p>
+                );
+              }
+              return null;
+            })()}
+            {(() => {
+              const depositAmount = parseInt(formData.loanDeposit) || 0;
+              const savingsAmount = parseInt(formData.savingsAmount) || 0;
+              const propertyPrice = parseInt(formData.propertyPrice) || 0;
+              
+              // Calculate net state duty using the same logic as UpfrontCosts
+              let netStateDuty = 0;
+              if (formData.buyerDetailsComplete && formData.selectedState) {
+                const { stateFunctions } = useStateSelector(formData.selectedState);
+                if (stateFunctions?.calculateUpfrontCosts) {
+                  const buyerData = {
+                    selectedState: formData.selectedState,
+                    buyerType: formData.buyerType,
+                    isPPR: formData.isPPR,
+                    isAustralianResident: formData.isAustralianResident,
+                    isFirstHomeBuyer: formData.isFirstHomeBuyer,
+                    ownedPropertyLast5Years: formData.ownedPropertyLast5Years,
+                    hasPensionCard: formData.hasPensionCard,
+                    needsLoan: formData.needsLoan,
+                    savingsAmount: formData.savingsAmount,
+                    income: formData.income,
+                    dependants: formData.dependants,
+                    dutiableValue: formData.dutiableValue,
+                    constructionStarted: formData.constructionStarted,
+                    sellerQuestionsComplete: formData.sellerQuestionsComplete
+                  };
+                  
+                  const propertyData = {
+                    propertyPrice: formData.propertyPrice,
+                    propertyType: formData.propertyType,
+                    propertyCategory: formData.propertyCategory,
+                    isWA: formData.isWA,
+                    isWAMetro: formData.isWAMetro,
+                    isACT: formData.isACT
+                  };
+                  
+                  const upfrontCostsResult = stateFunctions.calculateUpfrontCosts(buyerData, propertyData, formData.selectedState);
+                  netStateDuty = upfrontCostsResult.netStateDuty || 0;
+                }
+              }
+              
+              // Check if deposit exceeds property price + net state duty
+              if (depositAmount > 0 && propertyPrice > 0 && depositAmount > (propertyPrice + netStateDuty)) {
+                return (
+                  <p className="text-sm text-primary mt-2 italic">
+                    Deposit cannot exceed the Property + state duty
+                  </p>
+                );
+              }
+              
+              // Check if deposit exceeds savings
+              if (depositAmount > 0 && savingsAmount > 0 && depositAmount > savingsAmount) {
+                const formattedSavings = savingsAmount.toLocaleString('en-AU');
+                return (
+                  <p className="text-sm text-primary mt-2 italic">
+                    Are you sure? You mentioned you only have ${formattedSavings} of savings
                   </p>
                 );
               }
@@ -491,8 +604,16 @@ export default function LoanDetails() {
                     updateFormData('loanRate', value);
                   }
                 }}
+                onBlur={(e) => {
+                  const value = e.target.value;
+                  if (value && !isNaN(parseFloat(value))) {
+                    // Format to 2 decimal places
+                    const formattedValue = parseFloat(value).toFixed(2);
+                    updateFormData('loanRate', formattedValue);
+                  }
+                }}
                 {...getInputFieldAnimation()}
-                className="w-20 pl-2 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300 text-left [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="w-19 pl-2 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300 text-left [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               <span className="text-xl text-gray-500">
                 %
@@ -576,7 +697,7 @@ export default function LoanDetails() {
                   updateFormData('loanSettlementFees', numericValue);
                 }}
                 {...getInputFieldAnimation()}
-                className="w-30 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
+                className="w-31 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
@@ -607,7 +728,7 @@ export default function LoanDetails() {
                   updateFormData('loanEstablishmentFee', numericValue);
                 }}
                 {...getInputFieldAnimation()}
-                className="w-30 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
+                className="w-31 pl-8 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
               />
             </div>
           </div>
