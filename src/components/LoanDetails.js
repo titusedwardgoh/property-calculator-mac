@@ -16,6 +16,42 @@ export default function LoanDetails() {
   const [isInitialEntry, setIsInitialEntry] = useState(true); // Track if we're on initial entry from BuyerDetails
   const totalSteps = 7;
 
+  // Calculate net state duty at component level
+  const { stateFunctions } = useStateSelector(formData.selectedState);
+  const netStateDuty = (() => {
+    if (formData.buyerDetailsComplete && formData.selectedState && stateFunctions?.calculateUpfrontCosts) {
+      const buyerData = {
+        selectedState: formData.selectedState,
+        buyerType: formData.buyerType,
+        isPPR: formData.isPPR,
+        isAustralianResident: formData.isAustralianResident,
+        isFirstHomeBuyer: formData.isFirstHomeBuyer,
+        ownedPropertyLast5Years: formData.ownedPropertyLast5Years,
+        hasPensionCard: formData.hasPensionCard,
+        needsLoan: formData.needsLoan,
+        savingsAmount: formData.savingsAmount,
+        income: formData.income,
+        dependants: formData.dependants,
+        dutiableValue: formData.dutiableValue,
+        constructionStarted: formData.constructionStarted,
+        sellerQuestionsComplete: formData.sellerQuestionsComplete
+      };
+      
+      const propertyData = {
+        propertyPrice: formData.propertyPrice,
+        propertyType: formData.propertyType,
+        propertyCategory: formData.propertyCategory,
+        isWA: formData.isWA,
+        isWAMetro: formData.isWAMetro,
+        isACT: formData.isACT
+      };
+      
+      const upfrontCostsResult = stateFunctions.calculateUpfrontCosts(buyerData, propertyData, formData.selectedState);
+      return upfrontCostsResult.netStateDuty || 0;
+    }
+    return 0;
+  })();
+
   // Calculate the starting step number based on WA and ACT selection
   const getStartingStepNumber = () => {
     const isWA = formData.selectedState === 'WA';
@@ -176,42 +212,6 @@ export default function LoanDetails() {
         const depositAmount = parseInt(formData.loanDeposit) || 0;
         const propertyPrice = parseInt(formData.propertyPrice) || 0;
         const minimumDeposit = Math.round(propertyPrice * 0.05);
-        
-        // Calculate net state duty for maximum deposit validation
-        let netStateDuty = 0;
-        if (formData.buyerDetailsComplete && formData.selectedState) {
-          const { stateFunctions } = useStateSelector(formData.selectedState);
-          if (stateFunctions?.calculateUpfrontCosts) {
-            const buyerData = {
-              selectedState: formData.selectedState,
-              buyerType: formData.buyerType,
-              isPPR: formData.isPPR,
-              isAustralianResident: formData.isAustralianResident,
-              isFirstHomeBuyer: formData.isFirstHomeBuyer,
-              ownedPropertyLast5Years: formData.ownedPropertyLast5Years,
-              hasPensionCard: formData.hasPensionCard,
-              needsLoan: formData.needsLoan,
-              savingsAmount: formData.savingsAmount,
-              income: formData.income,
-              dependants: formData.dependants,
-              dutiableValue: formData.dutiableValue,
-              constructionStarted: formData.constructionStarted,
-              sellerQuestionsComplete: formData.sellerQuestionsComplete
-            };
-            
-            const propertyData = {
-              propertyPrice: formData.propertyPrice,
-              propertyType: formData.propertyType,
-              propertyCategory: formData.propertyCategory,
-              isWA: formData.isWA,
-              isWAMetro: formData.isWAMetro,
-              isACT: formData.isACT
-            };
-            
-            const upfrontCostsResult = stateFunctions.calculateUpfrontCosts(buyerData, propertyData, formData.selectedState);
-            netStateDuty = upfrontCostsResult.netStateDuty || 0;
-          }
-        }
         
         const maximumDeposit = propertyPrice + netStateDuty;
         
@@ -403,42 +403,6 @@ export default function LoanDetails() {
               const depositAmount = parseInt(formData.loanDeposit) || 0;
               const savingsAmount = parseInt(formData.savingsAmount) || 0;
               const propertyPrice = parseInt(formData.propertyPrice) || 0;
-              
-              // Calculate net state duty using the same logic as UpfrontCosts
-              let netStateDuty = 0;
-              if (formData.buyerDetailsComplete && formData.selectedState) {
-                const { stateFunctions } = useStateSelector(formData.selectedState);
-                if (stateFunctions?.calculateUpfrontCosts) {
-                  const buyerData = {
-                    selectedState: formData.selectedState,
-                    buyerType: formData.buyerType,
-                    isPPR: formData.isPPR,
-                    isAustralianResident: formData.isAustralianResident,
-                    isFirstHomeBuyer: formData.isFirstHomeBuyer,
-                    ownedPropertyLast5Years: formData.ownedPropertyLast5Years,
-                    hasPensionCard: formData.hasPensionCard,
-                    needsLoan: formData.needsLoan,
-                    savingsAmount: formData.savingsAmount,
-                    income: formData.income,
-                    dependants: formData.dependants,
-                    dutiableValue: formData.dutiableValue,
-                    constructionStarted: formData.constructionStarted,
-                    sellerQuestionsComplete: formData.sellerQuestionsComplete
-                  };
-                  
-                  const propertyData = {
-                    propertyPrice: formData.propertyPrice,
-                    propertyType: formData.propertyType,
-                    propertyCategory: formData.propertyCategory,
-                    isWA: formData.isWA,
-                    isWAMetro: formData.isWAMetro,
-                    isACT: formData.isACT
-                  };
-                  
-                  const upfrontCostsResult = stateFunctions.calculateUpfrontCosts(buyerData, propertyData, formData.selectedState);
-                  netStateDuty = upfrontCostsResult.netStateDuty || 0;
-                }
-              }
               
               // Check if deposit exceeds property price + net state duty
               if (depositAmount > 0 && propertyPrice > 0 && depositAmount > (propertyPrice + netStateDuty)) {
