@@ -663,7 +663,10 @@ export default function PropertyDetails() {
                       )}
                     </>
                   ) : (
-                    <div className="space-y-2 md:space-y-4">
+                    <motion.div 
+                      className="space-y-2 md:space-y-4"
+                      {...getQuestionSlideAnimation('forward', false, 0.3, 0.2)}
+                    >
                       <motion.input
                         type="text"
                         placeholder="Address (123 Main Street)"
@@ -672,39 +675,43 @@ export default function PropertyDetails() {
                         {...getInputFieldAnimation()}
                         className="w-full pl-4 pr-4 py-2 text-xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
                       />
-                      <motion.input
-                        type="text"
-                        placeholder="Postcode"
-                        value={manualAddress.postcode}
-                        onChange={(e) => handleManualAddressChange('postcode', e.target.value)}
-                        maxLength="4"
-                        {...getInputFieldAnimation()}
-                        className="w-full md:w-24 pl-4 pr-4 py-2 text-xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
-                      />
-                      {availableSuburbs.length > 0 ? (
-                        <select
-                          value={manualAddress.suburb}
-                          onChange={(e) => handleManualAddressChange('suburb', e.target.value)}
-                          className="w-full pl-4 pr-4 py-2 text-xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300 bg-white"
-                        >
-                          <option value="">Select Suburb</option>
-                          {availableSuburbs.map((suburb, index) => (
-                            <option key={index} value={suburb.name}>
-                              {suburb.name}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
+                      <div className="flex flex-col md:flex-row gap-2 md:gap-4">
                         <motion.input
                           type="text"
-                          placeholder={isLoadingSuburbs ? "Loading suburbs..." : "Suburb"}
-                          value={manualAddress.suburb}
-                          onChange={(e) => handleManualAddressChange('suburb', e.target.value)}
-                          disabled={isLoadingSuburbs}
+                          placeholder="Postcode"
+                          value={manualAddress.postcode}
+                          onChange={(e) => handleManualAddressChange('postcode', e.target.value)}
+                          maxLength="4"
                           {...getInputFieldAnimation()}
-                          className="w-full pl-4 pr-4 py-2 text-xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          className="w-full md:w-36 pl-4 pr-4 py-2 text-xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
                         />
-                      )}
+                        <div className="flex-1">
+                          {availableSuburbs.length > 0 ? (
+                            <select
+                              value={manualAddress.suburb}
+                              onChange={(e) => handleManualAddressChange('suburb', e.target.value)}
+                              className="w-full pl-4 pr-4 py-2 text-xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300 bg-white"
+                            >
+                              <option value="">Select Suburb</option>
+                              {availableSuburbs.map((suburb, index) => (
+                                <option key={index} value={suburb.name}>
+                                  {suburb.name}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <motion.input
+                              type="text"
+                              placeholder={isLoadingSuburbs ? "Loading suburbs..." : "Suburb"}
+                              value={manualAddress.suburb}
+                              onChange={(e) => handleManualAddressChange('suburb', e.target.value)}
+                              disabled={isLoadingSuburbs}
+                              {...getInputFieldAnimation()}
+                              className="w-full pl-4 pr-4 py-2 text-xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            />
+                          )}
+                        </div>
+                      </div>
                       <div className="flex gap-3 mt-6">
                         <button
                           onClick={saveManualAddress}
@@ -724,7 +731,7 @@ export default function PropertyDetails() {
                           Back
                         </button>
                       </div>
-                    </div>
+                    </motion.div>
                   )}
                 </>
               ) : (
