@@ -22,6 +22,18 @@ export default function PropertyDetails() {
   const autocompleteRef = useRef(null);
   const autocompleteInputRef = useRef(null);
   
+  // Manual address entry state
+  const [isManualEntry, setIsManualEntry] = useState(false);
+  const [manualAddress, setManualAddress] = useState({
+    address: '',
+    suburb: '',
+    state: '',
+    postcode: ''
+  });
+  const [hasValidAddress, setHasValidAddress] = useState(false);
+  const [availableSuburbs, setAvailableSuburbs] = useState([]);
+  const [isLoadingSuburbs, setIsLoadingSuburbs] = useState(false);
+  
   // Clear propertyDetailsCurrentStep on mount to prevent interference with normal navigation
   useEffect(() => {
     if (formData.propertyDetailsCurrentStep) {
@@ -49,6 +61,91 @@ export default function PropertyDetails() {
    
   // Get state-specific functions when state is selected
   const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW');
+
+  // Handle manual address entry
+  const handleManualAddressChange = (field, value) => {
+    setManualAddress(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // If postcode is being changed and it's 4 digits, fetch suburbs
+    if (field === 'postcode' && /^\d{4}$/.test(value)) {
+      fetchSuburbsForPostcode(value);
+    } else if (field === 'postcode' && value.length !== 4) {
+      // Clear suburbs if postcode is not 4 digits
+      setAvailableSuburbs([]);
+      setManualAddress(prev => ({ ...prev, suburb: '', state: '' }));
+    }
+  };
+
+  // Fetch suburbs for a given postcode
+  const fetchSuburbsForPostcode = async (postcode) => {
+    setIsLoadingSuburbs(true);
+    try {
+      const response = await fetch(`/api/validate-suburb?postcode=${postcode}`);
+      const data = await response.json();
+      
+      if (response.ok && data.suburbs) {
+        setAvailableSuburbs(data.suburbs);
+        // Auto-select state if all suburbs are in the same state
+        const states = [...new Set(data.suburbs.map(s => s.state))];
+        if (states.length === 1) {
+          setManualAddress(prev => ({ ...prev, state: states[0] }));
+        }
+      } else {
+        setAvailableSuburbs([]);
+      }
+    } catch (error) {
+      console.error('Error fetching suburbs:', error);
+      setAvailableSuburbs([]);
+    } finally {
+      setIsLoadingSuburbs(false);
+    }
+  };
+
+  // Validate manual address
+  const validateManualAddress = () => {
+    const { address, suburb, state, postcode } = manualAddress;
+    return address.trim() !== '' && 
+           suburb.trim() !== '' && 
+           state.trim() !== '' && 
+           postcode.trim() !== '' && 
+           /^\d{4}$/.test(postcode.trim());
+  };
+
+  // Save manual address to form data
+  const saveManualAddress = () => {
+    if (validateManualAddress()) {
+      const { address, suburb, state, postcode } = manualAddress;
+      
+      // Format the display to match Google API format
+      const streetAddress = address.trim();
+      const suburbPostcode = `${suburb}, ${state} ${postcode}`.trim();
+      const fullAddress = `${streetAddress}, ${suburbPostcode}`;
+      
+      updateFormData('propertyAddress', fullAddress);
+      updateFormData('propertyStreetAddress', streetAddress);
+      updateFormData('propertySuburbPostcode', suburbPostcode);
+      updateFormData('selectedState', state);
+      
+      setHasValidAddress(true);
+    }
+  };
+
+  // Reset address validation when address is cleared
+  const resetAddressValidation = () => {
+    setHasValidAddress(false);
+    setIsManualEntry(false);
+    setManualAddress({
+      address: '',
+      suburb: '',
+      state: '',
+      postcode: ''
+    });
+    setAvailableSuburbs([]);
+    setIsLoadingSuburbs(false);
+  };
 
   // Initialize Google Places Autocomplete
   const initializeAutocomplete = () => {
@@ -88,6 +185,9 @@ export default function PropertyDetails() {
             
             updateFormData('propertyStreetAddress', streetAddress);
             updateFormData('propertySuburbPostcode', suburbPostcode);
+            
+            // Mark as having valid address
+            setHasValidAddress(true);
             
             // Auto-detect state
             const stateComponent = addressComponents.find(component => 
@@ -470,7 +570,7 @@ export default function PropertyDetails() {
   const isCurrentStepValid = () => {
     switch (currentStep) {
       case 1:
-        return formData.propertyAddress && formData.propertyAddress.trim() !== '';
+        return hasValidAddress || (isManualEntry && validateManualAddress());
       case 2:
         return formData.selectedState && formData.selectedState.trim() !== '';
       case 3:
@@ -526,27 +626,107 @@ export default function PropertyDetails() {
               This helps us determine the state and provide accurate calculations
             </p>
             <div className="relative pr-8">
-              {!formData.propertyStreetAddress ? (
-                <motion.input
-                  ref={autocompleteInputRef}
-                  type="text"
-                  placeholder="Enter street address"
-                  value={formData.propertyAddress || ''}
-                  onChange={(e) => updateFormData('propertyAddress', e.target.value)}
-                  onFocus={(e) => {
-                    // Only scroll on mobile devices
-                    if (window.innerWidth < 768) { // md breakpoint
-                      setTimeout(() => {
-                        e.target.scrollIntoView({ 
-                          behavior: 'smooth', 
-                          block: 'center' 
-                        });
-                      }, 300);
-                    }
-                  }}
-                  {...getInputFieldAnimation()}
-                  className="w-full ml-1 pl-4 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
-                />
+              {!hasValidAddress ? (
+                <>
+                  {!isManualEntry ? (
+                    <>
+                      <motion.input
+                        ref={autocompleteInputRef}
+                        type="text"
+                        placeholder="Enter street address"
+                        value={formData.propertyAddress || ''}
+                        onChange={(e) => {
+                          updateFormData('propertyAddress', e.target.value);
+                          setHasValidAddress(false);
+                        }}
+                        onFocus={(e) => {
+                          // Only scroll on mobile devices
+                          if (window.innerWidth < 768) { // md breakpoint
+                            setTimeout(() => {
+                              e.target.scrollIntoView({ 
+                                behavior: 'smooth', 
+                                block: 'center' 
+                              });
+                            }, 300);
+                          }
+                        }}
+                        {...getInputFieldAnimation()}
+                        className="w-full ml-1 pl-4 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
+                      />
+                      {formData.propertyAddress && !hasValidAddress && (
+                        <button
+                          onClick={() => setIsManualEntry(true)}
+                          className="mt-4 text-sm text-blue-600 hover:text-blue-800 underline"
+                        >
+                          Can't find address?
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <div className="space-y-2 md:space-y-4">
+                      <motion.input
+                        type="text"
+                        placeholder="Address (123 Main Street)"
+                        value={manualAddress.address}
+                        onChange={(e) => handleManualAddressChange('address', e.target.value)}
+                        {...getInputFieldAnimation()}
+                        className="w-full pl-4 pr-4 py-2 text-xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
+                      />
+                      <motion.input
+                        type="text"
+                        placeholder="Postcode"
+                        value={manualAddress.postcode}
+                        onChange={(e) => handleManualAddressChange('postcode', e.target.value)}
+                        maxLength="4"
+                        {...getInputFieldAnimation()}
+                        className="w-full md:w-24 pl-4 pr-4 py-2 text-xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
+                      />
+                      {availableSuburbs.length > 0 ? (
+                        <select
+                          value={manualAddress.suburb}
+                          onChange={(e) => handleManualAddressChange('suburb', e.target.value)}
+                          className="w-full pl-4 pr-4 py-2 text-xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300 bg-white"
+                        >
+                          <option value="">Select Suburb</option>
+                          {availableSuburbs.map((suburb, index) => (
+                            <option key={index} value={suburb.name}>
+                              {suburb.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <motion.input
+                          type="text"
+                          placeholder={isLoadingSuburbs ? "Loading suburbs..." : "Suburb"}
+                          value={manualAddress.suburb}
+                          onChange={(e) => handleManualAddressChange('suburb', e.target.value)}
+                          disabled={isLoadingSuburbs}
+                          {...getInputFieldAnimation()}
+                          className="w-full pl-4 pr-4 py-2 text-xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        />
+                      )}
+                      <div className="flex gap-3 mt-6">
+                        <button
+                          onClick={saveManualAddress}
+                          disabled={!validateManualAddress()}
+                          className={`px-4 py-3 text-base rounded-lg flex-1 ${
+                            validateManualAddress() 
+                              ? 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800' 
+                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          }`}
+                        >
+                          Save Address
+                        </button>
+                        <button
+                          onClick={() => setIsManualEntry(false)}
+                          className="px-4 py-3 text-base text-gray-600 hover:text-gray-800 active:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-lg flex-1"
+                        >
+                          Back
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
                 <div className="w-full pl-4 pr-8 py-2 border-b-2 border-gray-200 rounded-none">
                   <div className="text-2xl text-gray-800 leading-tight ">
@@ -563,6 +743,7 @@ export default function PropertyDetails() {
                       updateFormData('detectedState', '');
                       updateFormData('detectedWALocation', '');
                       updateFormData('detectedWAMetro', '');
+                      resetAddressValidation();
                     }}
                     className="text-sm text-gray-500 hover:text-gray-700 mt-2 underline"
                   >
@@ -848,7 +1029,7 @@ export default function PropertyDetails() {
          </div>
         <div className="pb-6 pb-24 md:pb-8 flex">
           {/* Step Content */}
-          <div className="h-100 relative overflow-hidden">
+          <div className="h-100 relative">
             <AnimatePresence mode="wait">
               <motion.div
                 key={isComplete ? 'complete' : currentStep}
