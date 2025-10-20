@@ -690,7 +690,7 @@ export default function PropertyDetails() {
                             <select
                               value={manualAddress.suburb}
                               onChange={(e) => handleManualAddressChange('suburb', e.target.value)}
-                              className="w-full pl-4 pr-4 py-2 text-xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-301 bg-white"
+                              className="w-full pl-4 pr-4 py-2 text-xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300 bg-white"
                             >
                               <option value="">Select Suburb</option>
                               {availableSuburbs.map((suburb, index) => (
