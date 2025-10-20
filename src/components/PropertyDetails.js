@@ -658,7 +658,7 @@ export default function PropertyDetails() {
                           onClick={() => setIsManualEntry(true)}
                           className="mt-4 text-sm text-blue-600 hover:text-blue-800 underline"
                         >
-                          Can't find address?
+                          Can&apos;t find address?
                         </button>
                       )}
                     </>
