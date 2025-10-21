@@ -30,16 +30,27 @@ export default function PropertyDetails() {
     state: '',
     postcode: ''
   });
+  const [showManualEntryButton, setShowManualEntryButton] = useState(false);
   const [hasValidAddress, setHasValidAddress] = useState(false);
   const [availableSuburbs, setAvailableSuburbs] = useState([]);
   const [isLoadingSuburbs, setIsLoadingSuburbs] = useState(false);
+  const [typingTimeout, setTypingTimeout] = useState(null);
   
   // Clear propertyDetailsCurrentStep on mount to prevent interference with normal navigation
   useEffect(() => {
     if (formData.propertyDetailsCurrentStep) {
       updateFormData('propertyDetailsCurrentStep', null);
     }
-  }, []); // Only run once on mount
+  }, []);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeout) {
+        clearTimeout(typingTimeout);
+      }
+    };
+  }, [typingTimeout]); // Only run once on mount
   
   // Calculate the display step number (what the user sees)
   const getDisplayStep = () => {
@@ -79,6 +90,47 @@ export default function PropertyDetails() {
     }
   };
 
+  // Get state from postcode based on Australian postcode ranges
+  const getStateFromPostcode = (postcode) => {
+    const code = parseInt(postcode);
+    
+    // NSW: 2000-2599, 2619-2899, 2921-2999
+    if ((code >= 2000 && code <= 2599) || (code >= 2619 && code <= 2899) || (code >= 2921 && code <= 2999)) {
+      return 'NSW';
+    }
+    // ACT: 2600-2618, 2900-2920
+    if ((code >= 2600 && code <= 2618) || (code >= 2900 && code <= 2920)) {
+      return 'ACT';
+    }
+    // VIC: 3000-3999
+    if (code >= 3000 && code <= 3999) {
+      return 'VIC';
+    }
+    // QLD: 4000-4999
+    if (code >= 4000 && code <= 4999) {
+      return 'QLD';
+    }
+    // SA: 5000-5799
+    if (code >= 5000 && code <= 5799) {
+      return 'SA';
+    }
+    // WA: 6000-6797
+    if (code >= 6000 && code <= 6797) {
+      return 'WA';
+    }
+    // TAS: 7000-7799
+    if (code >= 7000 && code <= 7799) {
+      return 'TAS';
+    }
+    // NT: 0800-0899, 0900-0999
+    if ((code >= 800 && code <= 899) || (code >= 900 && code <= 999)) {
+      return 'NT';
+    }
+    
+    // Default to NSW if no match
+    return 'NSW';
+  };
+
   // Fetch suburbs for a given postcode
   const fetchSuburbsForPostcode = async (postcode) => {
     setIsLoadingSuburbs(true);
@@ -86,7 +138,7 @@ export default function PropertyDetails() {
       const response = await fetch(`/api/validate-suburb?postcode=${postcode}`);
       const data = await response.json();
       
-      if (response.ok && data.suburbs) {
+      if (response.ok && data.suburbs && data.suburbs.length > 0) {
         setAvailableSuburbs(data.suburbs);
         // Auto-select state if all suburbs are in the same state
         const states = [...new Set(data.suburbs.map(s => s.state))];
@@ -94,11 +146,17 @@ export default function PropertyDetails() {
           setManualAddress(prev => ({ ...prev, state: states[0] }));
         }
       } else {
+        // No suburbs found, auto-detect state from postcode
         setAvailableSuburbs([]);
+        const detectedState = getStateFromPostcode(postcode);
+        setManualAddress(prev => ({ ...prev, state: detectedState }));
       }
     } catch (error) {
       console.error('Error fetching suburbs:', error);
       setAvailableSuburbs([]);
+      // Auto-detect state from postcode even on API error
+      const detectedState = getStateFromPostcode(postcode);
+      setManualAddress(prev => ({ ...prev, state: detectedState }));
     } finally {
       setIsLoadingSuburbs(false);
     }
@@ -172,16 +230,22 @@ export default function PropertyDetails() {
           // Parse address components for display
           const addressComponents = place.address_components;
           if (addressComponents) {
-            // Extract street number and street name
-            const streetNumber = addressComponents.find(c => c.types.includes('street_number'))?.long_name || '';
-            const streetName = addressComponents.find(c => c.types.includes('route'))?.long_name || '';
+            // Extract suburb, state, and postcode
             const suburb = addressComponents.find(c => c.types.includes('locality'))?.long_name || '';
             const state = addressComponents.find(c => c.types.includes('administrative_area_level_1'))?.short_name || '';
             const postcode = addressComponents.find(c => c.types.includes('postal_code'))?.long_name || '';
             
-            // Store parsed components
-            const streetAddress = [streetNumber, streetName].filter(Boolean).join(' ');
+            // Create suburb/postcode string
             const suburbPostcode = [suburb, state, postcode].filter(Boolean).join(' ');
+            
+            // Extract street address by removing suburb/postcode from the full address
+            // This preserves unit numbers and complex addresses
+            let streetAddress = cleanedAddress;
+            if (suburbPostcode) {
+              // Remove the suburb/postcode part from the end
+              const suburbPostcodeRegex = new RegExp(`,\\s*${suburbPostcode.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`);
+              streetAddress = cleanedAddress.replace(suburbPostcodeRegex, '').trim();
+            }
             
             updateFormData('propertyStreetAddress', streetAddress);
             updateFormData('propertySuburbPostcode', suburbPostcode);
@@ -638,6 +702,21 @@ export default function PropertyDetails() {
                         onChange={(e) => {
                           updateFormData('propertyAddress', e.target.value);
                           setHasValidAddress(false);
+                          
+                          // Clear existing timeout
+                          if (typingTimeout) {
+                            clearTimeout(typingTimeout);
+                          }
+                          
+                          // Hide manual entry button immediately when typing
+                          setShowManualEntryButton(false);
+                          
+                          // Show manual entry button after user stops typing for 1 second
+                          const newTimeout = setTimeout(() => {
+                            setShowManualEntryButton(true);
+                          }, 1000);
+                          
+                          setTypingTimeout(newTimeout);
                         }}
                         onFocus={(e) => {
                           // Only scroll on mobile devices
@@ -653,13 +732,17 @@ export default function PropertyDetails() {
                         {...getInputFieldAnimation()}
                         className="w-full ml-1 pl-4 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
                       />
-                      {formData.propertyAddress && !hasValidAddress && (
-                        <button
+                      {formData.propertyAddress && !hasValidAddress && showManualEntryButton && (
+                        <motion.button
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          transition={{ duration: 0.3, ease: "easeOut" }}
                           onClick={() => setIsManualEntry(true)}
-                          className="mt-4 text-sm text-blue-600 hover:text-blue-800 underline"
+                          className="mt-4 text-sm text-primary hover:underline cursor-pointer"
                         >
                           Can&apos;t find address?
-                        </button>
+                        </motion.button>
                       )}
                     </>
                   ) : (
