@@ -713,23 +713,25 @@ export default function PropertyDetails() {
                         </div>
                       </div>
                       <div className="flex gap-3 mt-6">
-                        <button
+                        <motion.button
                           onClick={saveManualAddress}
                           disabled={!validateManualAddress()}
-                          className={`px-4 py-3 text-base rounded-lg flex-1 ${
+                          {...getNextButtonAnimation(validateManualAddress())}
+                          className={`px-6 py-3 rounded-full border border-primary font-medium flex-1 ${
                             validateManualAddress() 
-                              ? 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800' 
-                              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              ? 'bg-primary hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer' 
+                              : 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
                           }`}
                         >
                           Save Address
-                        </button>
-                        <button
+                        </motion.button>
+                        <motion.button
                           onClick={() => setIsManualEntry(false)}
-                          className="px-4 py-3 text-base text-gray-600 hover:text-gray-800 active:text-gray-900 bg-gray-50 hover:bg-gray-100 rounded-lg flex-1"
+                          {...getBackButtonAnimation()}
+                          className="px-6 py-3 rounded-full border font-medium flex-1 bg-secondary text-base-100 border-gray-200 hover:shadow-sm cursor-pointer"
                         >
                           Back
-                        </button>
+                        </motion.button>
                       </div>
                     </motion.div>
                   )}
