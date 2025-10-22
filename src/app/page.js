@@ -196,9 +196,13 @@ export default function Page() {
                             layout
                             transition={{ duration: 0.3, ease: "easeInOut" }}
                         >
-                            <UpfrontCosts />
-                            <div className="mt-3 -mb-5">   
-                                <OngoingCosts />
+                            <AnimatePresence mode="wait">
+                                <UpfrontCosts />
+                            </AnimatePresence>
+                            <div className="mt-3 -mb-5">
+                                <AnimatePresence mode="wait">
+                                    <OngoingCosts />
+                                </AnimatePresence>
                             </div>
                         </motion.div>
                     </div>

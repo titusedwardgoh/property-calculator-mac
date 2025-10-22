@@ -431,6 +431,20 @@ export default function PropertyDetails() {
     }
   }, [currentStep, formData.propertyStreetAddress]);
 
+  // Reinitialize autocomplete when switching back from manual entry
+  useEffect(() => {
+    if (currentStep === 1 && !isManualEntry && autocompleteInputRef.current) {
+      // Small delay to ensure the input is rendered
+      const timer = setTimeout(() => {
+        if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
+          initializeAutocomplete();
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isManualEntry, currentStep]);
+
   // Watch for property category changes and reset property type if needed
   useEffect(() => {
     // Only reset property type if the category actually changed (not just navigation)
@@ -690,9 +704,10 @@ export default function PropertyDetails() {
               This helps us determine the state and provide accurate calculations
             </p>
             <div className="relative pr-8">
-              {!hasValidAddress ? (
-                <>
-                  {!isManualEntry ? (
+              <AnimatePresence mode="wait">
+                {!hasValidAddress ? (
+                  <motion.div key="address-input">
+                    {!isManualEntry ? (
                     <>
                       <motion.input
                         ref={autocompleteInputRef}
@@ -818,9 +833,15 @@ export default function PropertyDetails() {
                       </div>
                     </motion.div>
                   )}
-                </>
-              ) : (
-                <div className="w-full pl-4 pr-8 py-2 border-b-2 border-gray-200 rounded-none">
+                  </motion.div>
+                ) : (
+                  <motion.div 
+                    key="confirmed-address"
+                    initial={{ y: -50, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                    className="w-full pl-4 pr-8 py-2 border-b-2 border-gray-200 rounded-none"
+                  >
                   <div className="text-2xl text-gray-800 leading-tight ">
                     {formData.propertyStreetAddress}
                   </div>
@@ -841,8 +862,9 @@ export default function PropertyDetails() {
                   >
                     Change address
                   </button>
-                </div>
-              )}
+                </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         );

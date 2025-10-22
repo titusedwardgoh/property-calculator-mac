@@ -17,9 +17,9 @@ import { useFormStore } from '../stores/formStore';
 
 export default function UpfrontCosts() {
     const formData = useFormStore();
-    const [hasJiggled, setHasJiggled] = useState(false);
-    const [hasJiggledOnBuyerComplete, setHasJiggledOnBuyerComplete] = useState(false);
-    const [hasJiggledOnSellerComplete, setHasJiggledOnSellerComplete] = useState(false);
+  const [hasJiggledOnBuyerComplete, setHasJiggledOnBuyerComplete] = useState(false);
+  const [hasJiggledOnLoanComplete, setHasJiggledOnLoanComplete] = useState(false);
+  const [hasJiggledOnSellerComplete, setHasJiggledOnSellerComplete] = useState(false);
   
   // Get state-specific functions when state is selected
   const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW');
@@ -27,19 +27,19 @@ export default function UpfrontCosts() {
   // Get display state from form store
   const displayState = formData.getUpfrontCostsDisplay();
   
-  // Trigger jiggle when PropertyDetails form is complete (only once)
-  useEffect(() => {
-    if (formData.propertyDetailsFormComplete && !hasJiggled) {
-      setHasJiggled(true);
-    }
-  }, [formData.propertyDetailsFormComplete]);
-
   // Trigger jiggle when BuyerDetails complete (only once)
   useEffect(() => {
     if (formData.buyerDetailsComplete && !hasJiggledOnBuyerComplete) {
       setHasJiggledOnBuyerComplete(true);
     }
   }, [formData.buyerDetailsComplete]);
+
+  // Trigger jiggle when LoanDetails complete (only once)
+  useEffect(() => {
+    if (formData.loanDetailsComplete && !hasJiggledOnLoanComplete) {
+      setHasJiggledOnLoanComplete(true);
+    }
+  }, [formData.loanDetailsComplete]);
 
   // Trigger jiggle when SellerQuestions complete (only once)
   useEffect(() => {
@@ -68,6 +68,19 @@ export default function UpfrontCosts() {
     formData.loanDetailsComplete,
     formData.sellerQuestionsComplete
   ]);
+
+  // Show invisible placeholder when not available yet to prevent layout shift
+  if (!displayState.canShowDropdown) {
+    return (
+      <div className="invisible" aria-hidden="true">
+        <div className="bg-secondary rounded-lg shadow-lg px-4 py-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-md lg:text-lg xl:text-xl font-medium text-base-100">Upfront Costs</h3>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const toggleExpanded = () => {
     if (displayState.canShowDropdown) {
@@ -239,17 +252,26 @@ export default function UpfrontCosts() {
   };
 
   return (
-    <div className="relative">
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ 
+        opacity: { duration: 0.5 },
+        y: { duration: 0.3 }
+      }}
+    >
+      <div className="relative">
       <motion.div 
         onClick={toggleExpanded}
-        animate={(hasJiggled || hasJiggledOnBuyerComplete || hasJiggledOnSellerComplete) ? {
+        animate={(hasJiggledOnBuyerComplete || hasJiggledOnLoanComplete || hasJiggledOnSellerComplete) ? {
           x: [0, -4, 4, -4, 4, 0],
           rotate: [0, -0.1, 0.1, -0.1, 0.1, 0]
         } : {}}
         transition={{ duration: 0.5 }}
         onAnimationComplete={() => {
-          setHasJiggled(false);
           setHasJiggledOnBuyerComplete(false);
+          setHasJiggledOnLoanComplete(false);
           setHasJiggledOnSellerComplete(false);
         }}
         className={`bg-secondary rounded-lg shadow-lg px-4 py-3 ${displayState.canShowDropdown ? 'cursor-pointer hover:shadow-xl transition-shadow duration-200' : ''}`}
@@ -696,5 +718,6 @@ export default function UpfrontCosts() {
         )}
       </AnimatePresence>
     </div>
+    </motion.div>
   );
 }

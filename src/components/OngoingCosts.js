@@ -8,7 +8,6 @@ import { ChevronDown } from 'lucide-react'
 export default function OngoingCosts() {
     const formData = useFormStore();
     const [isExpanded, setIsExpanded] = useState(false);
-    const [hasJiggled, setHasJiggled] = useState(false);
     const [hasJiggledOnSellerComplete, setHasJiggledOnSellerComplete] = useState(false);
     
     // Update ongoing costs when relevant fields change
@@ -42,19 +41,17 @@ export default function OngoingCosts() {
 
     const canShowDropdown = shouldShowOngoingCosts();
 
-    // Trigger jiggle when dropdown becomes available
+    // Trigger jiggle when SellerQuestions complete (only once) AND OngoingCosts is already visible
+    // This prevents jiggle when OngoingCosts first appears during seller questions complete (no loan case)
     useEffect(() => {
-        if (canShowDropdown && !hasJiggled) {
-            setHasJiggled(true);
+        if (formData.sellerQuestionsComplete && !hasJiggledOnSellerComplete && canShowDropdown) {
+            // Only jiggle if OngoingCosts was already visible (loan case) before seller questions complete
+            const wasAlreadyVisible = formData.needsLoan === 'yes' && formData.loanDetailsComplete;
+            if (wasAlreadyVisible) {
+                setHasJiggledOnSellerComplete(true);
+            }
         }
-    }, [canShowDropdown]);
-
-    // Trigger jiggle when SellerQuestions complete (only once)
-    useEffect(() => {
-        if (formData.sellerQuestionsComplete && !hasJiggledOnSellerComplete) {
-            setHasJiggledOnSellerComplete(true);
-        }
-    }, [formData.sellerQuestionsComplete]);
+    }, [formData.sellerQuestionsComplete, canShowDropdown, formData.needsLoan, formData.loanDetailsComplete]);
 
     // Close dropdown when navigating between form sections
     useEffect(() => {
@@ -81,6 +78,19 @@ export default function OngoingCosts() {
     useEffect(() => {
         setIsExpanded(formData.openDropdown === 'ongoing');
     }, [formData.openDropdown]);
+
+    // Show invisible placeholder when not available yet to prevent layout shift
+    if (!canShowDropdown) {
+        return (
+            <div className="invisible" aria-hidden="true">
+                <div className="bg-secondary rounded-lg shadow-lg px-4 py-3">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-md lg:text-lg xl:text-xl font-medium text-base-100">Ongoing Costs</h3>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     const toggleExpanded = () => {
         if (canShowDropdown) {
@@ -111,16 +121,24 @@ export default function OngoingCosts() {
     };
 
     return (
-        <div className="relative">
+        <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ 
+                opacity: { duration: 0.5 },
+                y: { duration: 0.3 }
+            }}
+        >
+            <div className="relative">
             <motion.div 
                 onClick={toggleExpanded}
-                animate={(hasJiggled || hasJiggledOnSellerComplete) ? {
+                animate={hasJiggledOnSellerComplete ? {
                     x: [0, 4, -4, 4, -4, 0],
                     rotate: [0, 0.1, -0.1, 0.1, -0.1, 0]
                 } : {}}
                 transition={{ duration: 0.5 }}
                 onAnimationComplete={() => {
-                    setHasJiggled(false);
                     setHasJiggledOnSellerComplete(false);
                 }}
                 className={`bg-secondary rounded-lg shadow-lg px-4 py-3 ${canShowDropdown ? 'cursor-pointer hover:shadow-xl transition-shadow duration-200' : ''}`}
@@ -322,5 +340,6 @@ export default function OngoingCosts() {
                 )}
             </AnimatePresence>
         </div>
+        </motion.div>
     );
 }
