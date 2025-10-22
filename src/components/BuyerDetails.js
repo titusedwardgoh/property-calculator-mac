@@ -279,7 +279,7 @@ export default function BuyerDetails() {
     // Show completion message if form is complete
     if (formData.buyerDetailsComplete) {
       return (
-        <div className="flex flex-col mt-12 md:mt-0 pr-2">
+        <div className="flex flex-col mt-8 md:mt-0 pr-2">
           <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
             Buyer Details Complete
           </h2>
@@ -297,7 +297,7 @@ export default function BuyerDetails() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               Are you an Owner or Investor?
             </h2>
@@ -337,7 +337,7 @@ export default function BuyerDetails() {
 
       case 2:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               Will you live in this property?
             </h2>
@@ -386,7 +386,7 @@ export default function BuyerDetails() {
 
       case 3:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               Australian citizen or permanent resident?
             </h2>
@@ -426,7 +426,7 @@ export default function BuyerDetails() {
 
       case 4:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               Is this your first home purchase?
             </h2>
@@ -467,7 +467,7 @@ export default function BuyerDetails() {
       case 5:
         if (formData.isACT) {
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 Have you owned any other property in the last 5 years?
               </h2>
@@ -517,7 +517,7 @@ export default function BuyerDetails() {
           );
         } else {
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 Are you a holder of a pensioneer card?
               </h2>
@@ -570,7 +570,7 @@ export default function BuyerDetails() {
       case 6:
         if (formData.isACT) {
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 Are you a holder of a pensioneer card?
               </h2>
@@ -620,7 +620,7 @@ export default function BuyerDetails() {
           );
         } else {
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 How much savings do you have?
               </h2>
@@ -653,7 +653,7 @@ export default function BuyerDetails() {
       case 7:
         if (formData.isACT) {
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 What is your income?
               </h2>
@@ -683,7 +683,7 @@ export default function BuyerDetails() {
           );
         } else {
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 Do you need a loan to purchase?
               </h2>
@@ -729,7 +729,7 @@ export default function BuyerDetails() {
       case 8:
         if (formData.isACT) {
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 How many dependants do you have?
               </h2>
@@ -759,7 +759,7 @@ export default function BuyerDetails() {
       case 9:
         if (formData.isACT) {
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 How much savings do you have?
               </h2>
@@ -794,7 +794,7 @@ export default function BuyerDetails() {
       case 10:
         if (formData.isACT) {
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 Do you need a loan to purchase?
               </h2>
@@ -847,7 +847,7 @@ export default function BuyerDetails() {
           <motion.span
             key={`step-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
             {...getQuestionNumberAnimation(direction, 0.4)}
-            className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${
+            className={`flex items-center text-xs -mt-93 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${
               formData.buyerDetailsComplete ? 'text-base-100' : 'text-primary'
             }`}
           >

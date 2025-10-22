@@ -329,7 +329,7 @@ export default function LoanDetails() {
     // Show completion message if form is complete
     if (formData.loanDetailsComplete) {
       return (
-        <div className="flex flex-col mt-12 md:mt-0 pr-2">
+        <div className="flex flex-col mt-8 md:mt-0 pr-2">
           <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
             Loan Details Complete
           </h2>
@@ -343,7 +343,7 @@ export default function LoanDetails() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               What is your deposit amount?
             </h2>
@@ -429,7 +429,7 @@ export default function LoanDetails() {
 
       case 2:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               What type of loan do you need?
             </h2>
@@ -465,7 +465,7 @@ export default function LoanDetails() {
 
       case 3:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               How long do you want your mortgage for?
             </h2>
@@ -546,7 +546,7 @@ export default function LoanDetails() {
 
       case 4:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               What is your interest rate are you paying?
             </h2>
@@ -593,7 +593,7 @@ export default function LoanDetails() {
 
       case 5:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               Do you need Lenders Mortgage Insurance?
             </h2>
@@ -638,7 +638,7 @@ export default function LoanDetails() {
 
       case 6:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               Banks usually charge a Settlement Fee
             </h2>
@@ -669,7 +669,7 @@ export default function LoanDetails() {
 
       case 7:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               Banks usually charge an Establishment Fee
             </h2>
@@ -710,7 +710,7 @@ export default function LoanDetails() {
           <motion.span
             key={`step-${formData.loanDetailsComplete ? 'complete' : currentStep}`}
             {...getQuestionNumberAnimation(direction, 0.4)}
-            className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${formData.loanDetailsComplete ? 'text-base-100' : 'text-primary'}`}
+            className={`flex items-center text-xs -mt-93 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${formData.loanDetailsComplete ? 'text-base-100' : 'text-primary'}`}
           >
             <span className="text-xs text-base-100">{formData.needsLoan === 'yes' ? '3' : '2'}</span>{formData.loanDetailsComplete ? (getStartingStepNumber() + totalSteps - 1) : (currentStep + getStartingStepNumber() - 1)} 
             <span className={`text-xs ${formData.loanDetailsComplete ? 'text-primary' : ''}`}>→</span>

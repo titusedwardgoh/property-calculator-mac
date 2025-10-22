@@ -682,7 +682,7 @@ export default function PropertyDetails() {
     // Show completion message if form is complete
     if (isComplete) {
       return (
-        <div className="flex flex-col mt-12 md:mt-0 pr-2">
+        <div className="flex flex-col mt-8 md:mt-0 pr-2">
           <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
             Basic Property Details Complete
           </h2>
@@ -696,7 +696,7 @@ export default function PropertyDetails() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               What&apos;s the property address?
             </h2>
@@ -871,7 +871,7 @@ export default function PropertyDetails() {
 
       case 2:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">  
               Which state is the property in?
             </h2>
@@ -916,7 +916,7 @@ export default function PropertyDetails() {
       case 3:
         if (formData.selectedState === 'WA') {
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 Where is the Property
               </h2>
@@ -1004,7 +1004,7 @@ export default function PropertyDetails() {
 
         case 4:
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 What type of property is it?
               </h2>
@@ -1037,7 +1037,7 @@ export default function PropertyDetails() {
 
         case 5:
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 {formData.propertyCategory === 'land' 
                   ? 'Is this a house and land package?' 
@@ -1091,7 +1091,7 @@ export default function PropertyDetails() {
 
         case 6:
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 What is the property&apos;s price?
               </h2>
@@ -1128,7 +1128,7 @@ export default function PropertyDetails() {
   return (
     <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
         <div className="flex">
-         <div className="ml-2 md:ml-3 lg:ml-2 flex items-center text-xs -mt-105 md:-mt-113 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap relative overflow-hidden min-w-[3ch]">
+         <div className="ml-2 md:ml-3 lg:ml-2 flex items-center text-xs -mt-113 md:-mt-113 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap relative overflow-hidden min-w-[3ch]">
            <span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span>
            <AnimatePresence mode="wait">
              <motion.span

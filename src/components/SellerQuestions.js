@@ -456,7 +456,7 @@ export default function SellerQuestions() {
           <motion.div
             key="seller-complete"
             {...getQuestionSlideAnimation('forward', false, 0.5, 0.3)}
-            className="flex flex-col mt-12 md:mt-0 pr-2"
+            className="flex flex-col mt-8 md:mt-0 pr-2"
           >
             <h2 
               className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight"
@@ -475,7 +475,7 @@ export default function SellerQuestions() {
     switch (currentStep) {
       case 1:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               Ask the seller: What are the annual council rates?
             </h2>
@@ -506,7 +506,7 @@ export default function SellerQuestions() {
 
       case 2:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
             Ask the seller: What are the annual water rates?
             </h2>
@@ -539,7 +539,7 @@ export default function SellerQuestions() {
         // Only show construction question if property type is off-the-plan or house-and-land
         if (formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land') {
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 Has construction already started on the property?
               </h2>
@@ -590,7 +590,7 @@ export default function SellerQuestions() {
           
           // Show dutiable value question for VIC off-the-plan or house-and-land
           return (
-            <div className="flex flex-col mt-12 md:mt-0 pr-2">
+            <div className="flex flex-col mt-8 md:mt-0 pr-2">
               <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
                 What is the dutiable value of the property?
               </h2>
@@ -625,7 +625,7 @@ export default function SellerQuestions() {
 
       case 5:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               Ask the seller: Is there body corporate or strata fees?
             </h2>
@@ -656,7 +656,7 @@ export default function SellerQuestions() {
 
       case 6:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               What is the Land Transfer Fee?
             </h2>
@@ -687,7 +687,7 @@ export default function SellerQuestions() {
 
       case 7:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               What is the cost for Legal & Conveyancing Services?
             </h2>
@@ -718,7 +718,7 @@ export default function SellerQuestions() {
 
       case 8:
         return (
-          <div className="flex flex-col mt-12 md:mt-0 pr-2">
+          <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
               What is the cost for Building and Pest Inspection?
             </h2>
@@ -760,7 +760,7 @@ export default function SellerQuestions() {
           <motion.span
             key={`step-${isExiting ? 'exiting' : (formData.sellerQuestionsComplete ? 'complete' : currentStep)}`}
             {...getQuestionNumberAnimation(direction, 0.4)}
-            className={`flex items-center text-xs -mt-85 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${
+            className={`flex items-center text-xs -mt-93 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${
               formData.sellerQuestionsComplete ? 'text-base-100' : 'text-primary'
             }`}
           >
