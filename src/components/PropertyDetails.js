@@ -35,6 +35,8 @@ export default function PropertyDetails() {
   const [availableSuburbs, setAvailableSuburbs] = useState([]);
   const [isLoadingSuburbs, setIsLoadingSuburbs] = useState(false);
   const [typingTimeout, setTypingTimeout] = useState(null);
+  const scriptLoadingRef = useRef(false);
+  const scriptLoadedRef = useRef(false);
   
   // Clear propertyDetailsCurrentStep on mount to prevent interference with normal navigation
   useEffect(() => {
@@ -391,10 +393,31 @@ export default function PropertyDetails() {
   useEffect(() => {
     const loadGoogleMapsScript = async () => {
       try {
-        // Check if script already loaded
-        if (window.google && window.google.maps && window.google.maps.places) {
+        // Check if script already loaded or is currently loading
+        if (scriptLoadedRef.current || scriptLoadingRef.current) {
           return;
         }
+
+        // Check if Google Maps is already available globally
+        if (window.__googleMapsLoaded || (window.google && window.google.maps && window.google.maps.places)) {
+          scriptLoadedRef.current = true;
+          return;
+        }
+
+        // Check if script tag already exists
+        const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+        if (existingScript) {
+          scriptLoadedRef.current = true;
+          return;
+        }
+
+        // Check global loading state to prevent multiple simultaneous loads
+        if (window.__googleMapsLoading) {
+          return;
+        }
+
+        window.__googleMapsLoading = true;
+        scriptLoadingRef.current = true;
 
         // Fetch script URL from backend API
         const response = await fetch('/api/google-maps-config');
@@ -406,10 +429,30 @@ export default function PropertyDetails() {
           script.src = data.scriptUrl;
           script.async = true;
           script.defer = true;
+          
+          // Add load event listener
+          script.onload = () => {
+            scriptLoadedRef.current = true;
+            scriptLoadingRef.current = false;
+            window.__googleMapsLoading = false;
+            window.__googleMapsLoaded = true;
+          };
+          
+          script.onerror = () => {
+            scriptLoadingRef.current = false;
+            window.__googleMapsLoading = false;
+            console.error('Failed to load Google Maps script');
+          };
+          
           document.head.appendChild(script);
+        } else {
+          scriptLoadingRef.current = false;
+          window.__googleMapsLoading = false;
         }
       } catch (error) {
         console.error('Failed to load Google Maps script:', error);
+        scriptLoadingRef.current = false;
+        window.__googleMapsLoading = false;
       }
     };
 
@@ -421,7 +464,7 @@ export default function PropertyDetails() {
     if (currentStep === 1 && !formData.propertyStreetAddress) {
       // Wait for Google Maps API to load AND for the input to be rendered
       const checkGoogleMaps = () => {
-        if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places && autocompleteInputRef.current) {
+        if (typeof window !== 'undefined' && (window.__googleMapsLoaded || (window.google && window.google.maps && window.google.maps.places)) && autocompleteInputRef.current) {
           initializeAutocomplete();
         } else {
           setTimeout(checkGoogleMaps, 100);
@@ -436,7 +479,7 @@ export default function PropertyDetails() {
     if (currentStep === 1 && !isManualEntry && autocompleteInputRef.current) {
       // Small delay to ensure the input is rendered
       const timer = setTimeout(() => {
-        if (typeof window !== 'undefined' && window.google && window.google.maps && window.google.maps.places) {
+        if (typeof window !== 'undefined' && (window.__googleMapsLoaded || (window.google && window.google.maps && window.google.maps.places))) {
           initializeAutocomplete();
         }
       }, 100);
@@ -1159,12 +1202,20 @@ export default function PropertyDetails() {
       {/* Navigation - Fixed bottom on mobile, normal position on desktop */}
       <div className="md:pl-8 xl:text-lg fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-base-100 md:bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:-mt-16 md:px-6 md:pb-8 lg:-mt-9 xl:mt-10">
         {/* Progress Bar - Now rendered on main page for medium+ screens */}
-        <div className="block md:hidden w-full bg-gray-100 h-1 mb-4">
-          <div 
-            className="bg-primary h-1 transition-all duration-300"
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="block md:hidden w-full bg-gray-100 h-1 mb-4"
+        >
+          <motion.div 
+            initial={{ opacity: 0, scaleY: 0 }}
+            animate={{ opacity: 1, scaleY: 1 }}
+            transition={{ duration: 0.5, delay: 0.4 }}
+            className="bg-primary h-1 transition-all duration-300 origin-top"
             style={{ width: `${isComplete ? 100 : ((getDisplayStep() - 1) / getDisplayTotalSteps()) * 100}%` }}
-          ></div>
-        </div>
+          ></motion.div>
+        </motion.div>
         
         <div className="flex justify-start mx-auto mt-4">
           {isComplete ? (

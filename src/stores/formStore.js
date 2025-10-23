@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 
 export const useFormStore = create((set, get) => ({
+  // Welcome Page
+  showWelcomePage: true,
+  
   // Property Details
   propertyPrice: '',
   propertyAddress: '',
@@ -313,6 +316,7 @@ export const useFormStore = create((set, get) => ({
     sellerQuestionsActiveStep: 1,
     allFormsComplete: false,
     showSummary: false,
+    showWelcomePage: true,
     openDropdown: null,
     showUpfrontDropdown: false,
     showDepositInUpfront: false,

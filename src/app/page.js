@@ -9,10 +9,12 @@ import PropertyDetails from '../components/PropertyDetails';
 import BuyerDetails from '../components/BuyerDetails';
 import LoanDetails from '../components/LoanDetails';
 import SellerQuestions from '../components/SellerQuestions';
+import WelcomePage from '../components/WelcomePage';
 import { useFormStore } from '../stores/formStore';
 
 export default function Page() {
     const formData = useFormStore();
+    const showWelcomePage = formData.showWelcomePage;
     const propertyDetailsComplete = formData.propertyDetailsComplete;
     const buyerDetailsComplete = formData.buyerDetailsComplete;
     const needsLoan = formData.needsLoan;
@@ -36,16 +38,26 @@ export default function Page() {
 
     return (
         <div className="min-h-screen bg-base-200">
-            <main className="container mx-auto px-4 py-4 lg:py-10 max-w-7xl">
+            {showWelcomePage ? (
+                <WelcomePage />
+            ) : (
+                <main className="container mx-auto px-4 py-4 lg:py-10 max-w-7xl">
                 {/* Progress Bars - above questions on larger screens */}
                 <div className="hidden md:block mb-6 md:w-[57%]">
                     <div className="space-y-4 ml-10">
                         {/* Overall Progress */}
-                        <div>
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.2 }}
+                        >
                             <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2">Overall Progress</h4>
                             <div className="w-full bg-gray-100 h-1">
-                                <div 
-                                    className="bg-primary h-1 transition-all duration-300"
+                                <motion.div 
+                                    initial={{ opacity: 0, scaleY: 0 }}
+                                    animate={{ opacity: 1, scaleY: 1 }}
+                                    transition={{ duration: 0.5, delay: 0.4 }}
+                                    className="bg-primary h-1 transition-all duration-300 origin-top"
                                     style={{ width: `${(() => {
                                         if (!propertyDetailsComplete) return 0;
                                         if (!buyerDetailsComplete) return 25;
@@ -56,16 +68,23 @@ export default function Page() {
                                         if (buyerDetailsComplete && needsLoan !== 'yes') return 75;
                                         return 0;
                                     })()}%` }}
-                                ></div>
+                                ></motion.div>
                             </div>
-                        </div>
+                        </motion.div>
                         
                         {/* Current Form Progress */}
-                        <div>
+                        <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.5, delay: 0.3 }}
+                        >
                             <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2">Current Form Progress</h4>
                             <div className="w-full bg-gray-100 h-1">
-                                <div 
-                                    className="bg-primary h-1 transition-all duration-300"
+                                <motion.div 
+                                    initial={{ opacity: 0, scaleY: 0 }}
+                                    animate={{ opacity: 1, scaleY: 1 }}
+                                    transition={{ duration: 0.5, delay: 0.5 }}
+                                    className="bg-primary h-1 transition-all duration-300 origin-top"
                                     style={{ width: `${(() => {
                                         let progress = 0;
                                         
@@ -167,9 +186,9 @@ export default function Page() {
                                         
                                         return progress;
                                     })()}%` }}
-                                ></div>
+                                ></motion.div>
                             </div>
-                        </div>
+                        </motion.div>
                     </div>
                 </div>
 
@@ -294,6 +313,7 @@ export default function Page() {
                     </div>
                 </div>
             </main>
+            )}
         </div>
     )
 }
