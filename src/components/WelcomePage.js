@@ -27,7 +27,7 @@ export default function WelcomePage() {
         return () => {
             document.removeEventListener('keydown', handleKeyPress);
         };
-    }, []);
+    }, [handleGetStarted]);
 
     return (
         <div className="mt-40 ml-10 bg-base-200">
@@ -51,7 +51,7 @@ export default function WelcomePage() {
                                 transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
                                 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight text-center md:text-left md:w-5/6"
                             >
-                                Let's figure out what you need to buy your place.
+                                Let&apos;s figure out what you need to buy your place.
                             </motion.h1>
 
                             {/* Supporting statement */}
@@ -76,7 +76,7 @@ export default function WelcomePage() {
                                     onClick={handleGetStarted}
                                     className="bg-primary hover:bg-primary-focus text-secondary px-8 py-3 rounded-full font-medium text-base transition-all duration-200 hover:shadow-lg w-full md:w-auto mx-auto md:mx-0"
                                 >
-                                    Let's go
+                                    Let&apos;s go
                                 </motion.button>
 
                                 {/* Keyboard shortcut hint */}
