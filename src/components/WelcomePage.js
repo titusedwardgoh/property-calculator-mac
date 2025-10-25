@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useFormStore } from '../stores/formStore';
+import Image from 'next/image';
 
 export default function WelcomePage() {
     const formData = useFormStore();
@@ -90,6 +91,30 @@ export default function WelcomePage() {
                                     <span className="ml-1 text-xs">⏎</span>
                                 </motion.div>
                             </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                    
+                    {/* Image section - hidden on mobile, shown on md+ */}
+                    <div className="order-1 md:order-2 md:w-1/2 md:-mt-10 md:-ml-12 flex items-center justify-center mb-8 md:mb-0 hidden md:flex">
+                        <AnimatePresence>
+                            {!isExiting && (
+                                <motion.div
+                                    initial={{ opacity: 0, x: 20 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 20 }}
+                                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                                    className="relative w-full max-w-md"
+                                >
+                                    <Image
+                                        src="/welcome.png"
+                                        alt="Property planning illustration"
+                                        width={500}
+                                        height={500}
+                                        priority
+                                        className="object-contain"
+                                    />
                                 </motion.div>
                             )}
                         </AnimatePresence>

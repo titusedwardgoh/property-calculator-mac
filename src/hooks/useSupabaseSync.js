@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { getSessionId } from '../lib/sessionManager'
+import { useStateSelector } from '../states/useStateSelector'
 
 /**
  * Hook to sync form data with Supabase
@@ -126,6 +127,115 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
     }
   }, [])
 
+  // Calculate grant and concession information for analytics
+  const calculateGrantAndConcessionInfo = useCallback((data) => {
+    // Only calculate when buyer details are complete
+    if (!data.buyerDetailsComplete || !data.propertyDetailsComplete) {
+      return {
+        GRANT_ELIGIBLE: false,
+        GRANT_AMOUNT: 0,
+        GRANT_TYPE: null,
+        CONCESSION_ELIGIBLE: false,
+        CONCESSION_AMOUNT: 0,
+        CONCESSION_TYPE: null
+      }
+    }
+
+    // Get state-specific functions
+    const { stateFunctions } = useStateSelector(data.selectedState || 'NSW')
+    
+    if (!stateFunctions?.calculateUpfrontCosts) {
+      return {
+        GRANT_ELIGIBLE: false,
+        GRANT_AMOUNT: 0,
+        GRANT_TYPE: null,
+        CONCESSION_ELIGIBLE: false,
+        CONCESSION_AMOUNT: 0,
+        CONCESSION_TYPE: null
+      }
+    }
+
+    // Prepare buyer and property data
+    const buyerData = {
+      selectedState: data.selectedState,
+      buyerType: data.buyerType,
+      isPPR: data.isPPR,
+      isAustralianResident: data.isAustralianResident,
+      isFirstHomeBuyer: data.isFirstHomeBuyer,
+      ownedPropertyLast5Years: data.ownedPropertyLast5Years,
+      hasPensionCard: data.hasPensionCard,
+      needsLoan: data.needsLoan,
+      savingsAmount: data.savingsAmount,
+      income: data.income,
+      dependants: data.dependants,
+      dutiableValue: data.dutiableValue,
+      constructionStarted: data.constructionStarted,
+      sellerQuestionsComplete: data.sellerQuestionsComplete
+    }
+
+    const propertyData = {
+      propertyPrice: data.propertyPrice,
+      propertyType: data.propertyType,
+      propertyCategory: data.propertyCategory,
+      isWA: data.isWA,
+      isWAMetro: data.isWAMetro,
+      isACT: data.isACT
+    }
+
+    // Calculate upfront costs to get grants and concessions
+    try {
+      const upfrontCosts = stateFunctions.calculateUpfrontCosts(
+        buyerData,
+        propertyData,
+        data.selectedState
+      )
+
+      // Extract grant info
+      let grantInfo = {
+        GRANT_ELIGIBLE: false,
+        GRANT_AMOUNT: 0,
+        GRANT_TYPE: null
+      }
+
+      if (upfrontCosts.grants && upfrontCosts.grants.length > 0) {
+        const grant = upfrontCosts.grants[0] // Take the first grant
+        grantInfo = {
+          GRANT_ELIGIBLE: grant.eligible || false,
+          GRANT_AMOUNT: grant.amount || 0,
+          GRANT_TYPE: grant.type || 'First Home Owners Grant'
+        }
+      }
+
+      // Extract concession info
+      let concessionInfo = {
+        CONCESSION_ELIGIBLE: false,
+        CONCESSION_AMOUNT: 0,
+        CONCESSION_TYPE: null
+      }
+
+      if (upfrontCosts.concessions && upfrontCosts.concessions.length > 0) {
+        const concession = upfrontCosts.concessions[0] // Take the first concession
+        concessionInfo = {
+          CONCESSION_ELIGIBLE: concession.eligible || false,
+          CONCESSION_AMOUNT: concession.amount || 0,
+          CONCESSION_TYPE: concession.type || 'Stamp Duty Concession'
+        }
+      }
+
+      return { ...grantInfo, ...concessionInfo }
+    } catch (error) {
+      console.error('Error calculating grant/concession info:', error)
+      return {
+        GRANT_ELIGIBLE: false,
+        GRANT_AMOUNT: 0,
+        GRANT_TYPE: null,
+        CONCESSION_ELIGIBLE: false,
+        CONCESSION_AMOUNT: 0,
+        CONCESSION_TYPE: null
+      }
+    }
+  }, [])
+
   // Save data to Supabase via API route
   const saveToSupabase = useCallback(async (data) => {
     try {
@@ -139,6 +249,15 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
       const completionPercentage = calculateCompletionPercentage(sections)
       const currentSection = getCurrentSection(data)
       const completionStatus = completionPercentage === 100 ? 'complete' : 'in_progress'
+      
+      // Calculate grant and concession info for analytics
+      const grantConcessionInfo = calculateGrantAndConcessionInfo(data)
+      
+      // Merge grant/concession info into calculated values
+      const calculatedValuesWithGrants = {
+        ...sections.calculated_values,
+        ...grantConcessionInfo
+      }
 
       const requestData = {
         action: 'save',
@@ -152,7 +271,7 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
           buyerDetails: sections.buyer_details,
           loanDetails: sections.loan_details,
           sellerQuestions: sections.seller_questions,
-          calculatedValues: sections.calculated_values,
+          calculatedValues: calculatedValuesWithGrants,
           completionStatus,
           completionPercentage,
           currentSection
@@ -182,7 +301,7 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
       console.error('❌ Error saving to Supabase:', error)
       // Don't throw error - allow form to continue working offline
     }
-  }, [propertyId, setPropertyId, organizeFormDataIntoSections, calculateCompletionPercentage, getCurrentSection])
+  }, [propertyId, setPropertyId, organizeFormDataIntoSections, calculateCompletionPercentage, getCurrentSection, calculateGrantAndConcessionInfo])
 
   // Load existing data from Supabase via API route
   const loadFromSupabase = useCallback(async () => {
