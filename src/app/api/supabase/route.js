@@ -17,11 +17,11 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 
 export async function POST(request) {
   try {
-    const { action, sessionId, data, propertyId } = await request.json()
+    const { action, sessionId, userId, data, propertyId } = await request.json()
 
     switch (action) {
       case 'save':
-        return await saveProperty(sessionId, data, propertyId)
+        return await saveProperty(sessionId, userId, data, propertyId)
       case 'load':
         return await loadProperty(sessionId)
       default:
@@ -33,7 +33,7 @@ export async function POST(request) {
   }
 }
 
-async function saveProperty(sessionId, data, propertyId) {
+async function saveProperty(sessionId, userId, data, propertyId) {
   try {
     const {
       propertyPrice,
@@ -50,6 +50,7 @@ async function saveProperty(sessionId, data, propertyId) {
     } = data
 
     const recordData = {
+      user_id: userId || null,
       session_id: sessionId,
       property_price: propertyPrice ? parseFloat(propertyPrice) : null,
       property_address: propertyAddress || null,

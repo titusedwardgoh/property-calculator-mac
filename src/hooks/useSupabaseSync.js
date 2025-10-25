@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
-import { getSessionId } from '../lib/sessionManager'
+import { v4 as uuidv4 } from 'uuid'
+import { getSessionId, getUserId, setUserId } from '../lib/sessionManager'
 import { useStateSelector } from '../states/useStateSelector'
 
 /**
@@ -246,6 +247,14 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
         return
       }
 
+      // Get persistent user ID (just a UUID stored in localStorage)
+      let userId = getUserId()
+      if (!userId || userId === 'pending') {
+        // Generate a new UUID for the user
+        userId = uuidv4()
+        setUserId(userId)
+      }
+
       const sections = organizeFormDataIntoSections(data)
       const completionPercentage = calculateCompletionPercentage(sections)
       const currentSection = getCurrentSection(data)
@@ -263,6 +272,7 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
       const requestData = {
         action: 'save',
         sessionId,
+        userId,
         propertyId,
         data: {
           propertyPrice: data.propertyPrice,
