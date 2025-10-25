@@ -12,6 +12,9 @@ import { useStateSelector } from '../states/useStateSelector'
 export function useSupabaseSync(formData, updateFormData, propertyId, setPropertyId) {
   const saveTimeoutRef = useRef(null)
   const isInitialLoadRef = useRef(true)
+  
+  // Get state-specific functions once at component level
+  const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW')
 
   // Calculate completion percentage based on filled fields
   const calculateCompletionPercentage = useCallback((data) => {
@@ -125,7 +128,7 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
         BODY_CORP_MONTHLY: data.BODY_CORP_MONTHLY || 0
       }
     }
-  }, [])
+  }, [stateFunctions])
 
   // Calculate grant and concession information for analytics
   const calculateGrantAndConcessionInfo = useCallback((data) => {
@@ -141,9 +144,7 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
       }
     }
 
-    // Get state-specific functions
-    const { stateFunctions } = useStateSelector(data.selectedState || 'NSW')
-    
+    // Use state functions from closure (from component level useStateSelector)
     if (!stateFunctions?.calculateUpfrontCosts) {
       return {
         GRANT_ELIGIBLE: false,
