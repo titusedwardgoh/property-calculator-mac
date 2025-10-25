@@ -30,7 +30,7 @@ export default function WelcomePage() {
     }, [handleGetStarted]);
 
     return (
-        <div className="mt-40 ml-10 bg-base-200">
+        <div className="mt-40 ml-0 md:ml-10 bg-base-200">
             <main className="container mx-auto px-4 py-4 lg:py-10 max-w-7xl">
                 <div className="flex flex-col md:flex-row">
                     {/* Main content area */}
