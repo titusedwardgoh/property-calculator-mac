@@ -42,7 +42,7 @@ export default function WelcomePage() {
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -20 }}
                                     transition={{ duration: 0.5, ease: "easeInOut" }}
-                                    className="flex flex-col mt-8 md:mt-0 pr-2"
+                                    className="flex flex-col mt-8 md:mt-0"
                                 >
                             {/* Main heading */}
                             <motion.h1
