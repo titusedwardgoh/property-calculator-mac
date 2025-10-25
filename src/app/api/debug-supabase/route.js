@@ -14,6 +14,37 @@ export async function GET() {
       }, { status: 500 })
     }
 
+    // Test the URL format
+    let urlTest = "URL format check: ";
+    try {
+      new URL(supabaseUrl);
+      urlTest += "Valid URL format";
+    } catch (urlError) {
+      urlTest += `Invalid URL format: ${urlError.message}`;
+    }
+    
+    // Test if we can reach the Supabase API directly
+    let apiTest = "API reachability test: ";
+    try {
+      const testUrl = `${supabaseUrl}/rest/v1/`;
+      const response = await fetch(testUrl, {
+        method: 'GET',
+        headers: {
+          'apikey': supabaseServiceKey,
+          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        apiTest += "API is reachable";
+      } else {
+        apiTest += `API returned ${response.status}: ${response.statusText}`;
+      }
+    } catch (fetchError) {
+      apiTest += `API unreachable: ${fetchError.message}`;
+    }
+
     // Try to create Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -33,14 +64,22 @@ export async function GET() {
         success: false,
         error: 'Supabase query failed',
         details: error.message,
-        code: error.code
+        code: error.code,
+        tests: {
+          urlTest,
+          apiTest
+        }
       }, { status: 500 })
     }
 
     return Response.json({
       success: true,
       message: 'Supabase connection successful',
-      data: data
+      data: data,
+      tests: {
+        urlTest,
+        apiTest
+      }
     })
 
   } catch (error) {
