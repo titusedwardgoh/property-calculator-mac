@@ -113,7 +113,7 @@ export default function WelcomePage() {
                                         width={500}
                                         height={500}
                                         priority
-                                        className="object-contain"
+                                        className="object-contain "
                                     />
                                 </motion.div>
                             )}
