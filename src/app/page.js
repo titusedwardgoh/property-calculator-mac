@@ -11,9 +11,17 @@ import LoanDetails from '../components/LoanDetails';
 import SellerQuestions from '../components/SellerQuestions';
 import WelcomePage from '../components/WelcomePage';
 import { useFormStore } from '../stores/formStore';
+import { useSupabaseSync } from '../hooks/useSupabaseSync';
 
 export default function Page() {
     const formData = useFormStore();
+    const updateFormData = formData.updateFormData;
+    const propertyId = formData.propertyId;
+    const setPropertyId = formData.setPropertyId;
+    
+    // Initialize Supabase sync
+    useSupabaseSync(formData, updateFormData, propertyId, setPropertyId);
+    
     const showWelcomePage = formData.showWelcomePage;
     const propertyDetailsComplete = formData.propertyDetailsComplete;
     const buyerDetailsComplete = formData.buyerDetailsComplete;

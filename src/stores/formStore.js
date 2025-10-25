@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 
 export const useFormStore = create((set, get) => ({
+  // Supabase integration
+  propertyId: null, // Current property record ID in Supabase
+  
   // Welcome Page
   showWelcomePage: true,
   
@@ -253,6 +256,9 @@ export const useFormStore = create((set, get) => ({
     ...state, 
     [field]: value 
   })),
+  
+  // Set property ID from Supabase
+  setPropertyId: (id) => set({ propertyId: id }),
   
   // Reset all form data
   resetForm: () => set({
