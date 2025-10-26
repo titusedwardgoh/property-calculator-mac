@@ -262,6 +262,7 @@ export const useFormStore = create((set, get) => ({
   
   // Reset all form data
   resetForm: () => set({
+    propertyId: null, // Clear property ID to trigger new record creation
     propertyPrice: '',
     propertyAddress: '',
     selectedState: '',

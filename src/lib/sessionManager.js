@@ -1,79 +1,75 @@
 import { v4 as uuidv4 } from 'uuid'
 
-const USER_ID_KEY = 'property_calculator_user_id'
-const SESSION_ID_KEY = 'property_calculator_session_id'
+const DEVICE_ID_KEY = 'property_calculator_device_id'
 
 /**
- * Get or create a persistent user ID for anonymous users
- * This persists across browser sessions to track the same user over time
- * @returns {string} user ID from database
+ * Get or create a persistent device ID for tracking anonymous users
+ * This persists FOREVER in localStorage to track the same device across all sessions
+ * @returns {string} device ID (UUID)
  */
-export function getUserId() {
+export function getDeviceId() {
   if (typeof window === 'undefined') {
     return null
   }
 
-  let userId = localStorage.getItem(USER_ID_KEY)
+  let deviceId = localStorage.getItem(DEVICE_ID_KEY)
   
-  if (!userId) {
-    // First time - will be created in database when first property is saved
-    userId = 'pending'
-    localStorage.setItem(USER_ID_KEY, userId)
+  if (!deviceId) {
+    // First time visitor - create new device ID
+    deviceId = uuidv4()
+    localStorage.setItem(DEVICE_ID_KEY, deviceId)
+    console.log('🆕 New device ID created:', deviceId)
   }
   
-  return userId
+  return deviceId
 }
 
 /**
- * Set the user ID (called after creating anonymous user in database)
- */
-export function setUserId(userId) {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(USER_ID_KEY, userId)
-  }
-}
-
-/**
- * Get or create a session ID for this browser session
- * This is per-browser-session (cleared on browser close, but persists across page refreshes)
- * @returns {string} session ID
+ * Generate a NEW session ID for each page load
+ * This creates a fresh session every time, so page refresh = new form attempt
+ * Does NOT store in sessionStorage - generates new UUID every call
+ * @returns {string} session ID (UUID)
  */
 export function getSessionId() {
   if (typeof window === 'undefined') {
     return null
   }
 
-  let sessionId = sessionStorage.getItem(SESSION_ID_KEY)
-  
-  if (!sessionId) {
-    // Generate new session ID
-    sessionId = uuidv4()
-    sessionStorage.setItem(SESSION_ID_KEY, sessionId)
-  }
+  // Always generate a new session ID
+  const sessionId = uuidv4()
+  console.log('🔄 New session ID generated:', sessionId)
   
   return sessionId
 }
 
 /**
- * Clear the current session ID and create a new one
- * Useful for "Start Over" functionality
- * Keeps the user ID but starts a fresh session
+ * For future use: Set the authenticated user ID when user logs in
+ * Currently not used (all users are anonymous)
+ * @param {string} userId - User ID from users table
  */
-export function clearSessionId() {
+export function setAuthenticatedUserId(userId) {
   if (typeof window !== 'undefined') {
-    sessionStorage.removeItem(SESSION_ID_KEY)
-    // New session ID will be created on next getSessionId() call
+    localStorage.setItem('property_calculator_authenticated_user_id', userId)
   }
 }
 
 /**
- * Check if we have a valid session ID
- * @returns {boolean}
+ * For future use: Get the authenticated user ID if logged in
+ * @returns {string|null} User ID or null if not logged in
  */
-export function hasSessionId() {
+export function getAuthenticatedUserId() {
   if (typeof window === 'undefined') {
-    return false
+    return null
   }
   
-  return !!sessionStorage.getItem(SESSION_ID_KEY)
+  return localStorage.getItem('property_calculator_authenticated_user_id')
+}
+
+/**
+ * For future use: Clear authenticated user ID on logout
+ */
+export function clearAuthenticatedUserId() {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('property_calculator_authenticated_user_id')
+  }
 }

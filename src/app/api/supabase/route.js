@@ -17,11 +17,11 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 
 export async function POST(request) {
   try {
-    const { action, sessionId, userId, data, propertyId } = await request.json()
+    const { action, sessionId, deviceId, userId, data, propertyId } = await request.json()
 
     switch (action) {
       case 'save':
-        return await saveProperty(sessionId, userId, data, propertyId)
+        return await saveProperty(sessionId, deviceId, userId, data, propertyId)
       case 'load':
         return await loadProperty(sessionId)
       default:
@@ -33,7 +33,7 @@ export async function POST(request) {
   }
 }
 
-async function saveProperty(sessionId, userId, data, propertyId) {
+async function saveProperty(sessionId, deviceId, userId, data, propertyId) {
   try {
     const {
       propertyPrice,
@@ -50,8 +50,9 @@ async function saveProperty(sessionId, userId, data, propertyId) {
     } = data
 
     const recordData = {
-      user_id: userId || null,
-      session_id: sessionId,
+      device_id: deviceId, // Permanent device identifier
+      session_id: sessionId, // Unique per form attempt
+      user_id: userId || null, // NULL for anonymous, set when user logs in
       property_price: propertyPrice ? parseFloat(propertyPrice) : null,
       property_address: propertyAddress || null,
       selected_state: selectedState || null,
@@ -72,9 +73,13 @@ async function saveProperty(sessionId, userId, data, propertyId) {
         .update(recordData)
         .eq('id', propertyId)
         .select()
-        .single()
+        .maybeSingle() // Use maybeSingle() instead of single() to handle 0 rows gracefully
 
       if (error) throw error
+
+      if (!updatedRecord) {
+        throw new Error('Record not found for update')
+      }
 
       return Response.json({ 
         success: true, 
@@ -87,9 +92,16 @@ async function saveProperty(sessionId, userId, data, propertyId) {
         .from('properties')
         .insert(recordData)
         .select()
-        .single()
+        .maybeSingle() // Use maybeSingle() instead of single() to handle cases where insert might return nothing
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase insert error:', error)
+        throw error
+      }
+
+      if (!newRecord) {
+        throw new Error('Failed to create new record')
+      }
 
       return Response.json({ 
         success: true, 

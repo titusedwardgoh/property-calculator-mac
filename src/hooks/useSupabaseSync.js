@@ -1,6 +1,5 @@
-import { useEffect, useRef, useCallback } from 'react'
-import { v4 as uuidv4 } from 'uuid'
-import { getSessionId, getUserId, setUserId } from '../lib/sessionManager'
+import { useEffect, useRef, useCallback, useState } from 'react'
+import { getSessionId, getDeviceId } from '../lib/sessionManager'
 import { useStateSelector } from '../states/useStateSelector'
 
 /**
@@ -12,7 +11,11 @@ import { useStateSelector } from '../states/useStateSelector'
  */
 export function useSupabaseSync(formData, updateFormData, propertyId, setPropertyId) {
   const saveTimeoutRef = useRef(null)
-  const isInitialLoadRef = useRef(true)
+  const isInitialMountRef = useRef(true)
+  
+  // Generate session ID once on mount (new session for each page load)
+  const [sessionId] = useState(() => getSessionId())
+  const [deviceId] = useState(() => getDeviceId())
   
   // Get state-specific functions once at component level
   const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW')
@@ -241,18 +244,9 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
   // Save data to Supabase via API route
   const saveToSupabase = useCallback(async (data) => {
     try {
-      const sessionId = getSessionId()
-      if (!sessionId) {
-        console.log('No session ID available, skipping save')
+      if (!sessionId || !deviceId) {
+        console.log('No session/device ID available, skipping save')
         return
-      }
-
-      // Get persistent user ID (just a UUID stored in localStorage)
-      let userId = getUserId()
-      if (!userId || userId === 'pending') {
-        // Generate a new UUID for the user
-        userId = uuidv4()
-        setUserId(userId)
       }
 
       const sections = organizeFormDataIntoSections(data)
@@ -272,7 +266,8 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
       const requestData = {
         action: 'save',
         sessionId,
-        userId,
+        deviceId,
+        userId: null, // For future: will be set when user logs in
         propertyId,
         data: {
           propertyPrice: data.propertyPrice,
@@ -312,7 +307,7 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
       console.error('❌ Error saving to Supabase:', error)
       // Don't throw error - allow form to continue working offline
     }
-  }, [propertyId, setPropertyId, organizeFormDataIntoSections, calculateCompletionPercentage, getCurrentSection, calculateGrantAndConcessionInfo])
+  }, [sessionId, deviceId, propertyId, setPropertyId, organizeFormDataIntoSections, calculateCompletionPercentage, getCurrentSection, calculateGrantAndConcessionInfo])
 
   // Load existing data from Supabase via API route
   const loadFromSupabase = useCallback(async () => {
@@ -378,19 +373,16 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
     }, 500) // 500ms delay
   }, [saveToSupabase])
 
-  // Load data on mount
+  // Auto-save when form data changes (but skip the very first render)
   useEffect(() => {
-    if (isInitialLoadRef.current) {
-      loadFromSupabase()
-      isInitialLoadRef.current = false
+    if (isInitialMountRef.current) {
+      // Skip save on initial mount
+      isInitialMountRef.current = false
+      return
     }
-  }, [loadFromSupabase])
-
-  // Auto-save when form data changes (but not on initial load)
-  useEffect(() => {
-    if (!isInitialLoadRef.current) {
-      debouncedSave(formData)
-    }
+    
+    // Auto-save on every subsequent change
+    debouncedSave(formData)
   }, [formData, debouncedSave])
 
   // Cleanup timeout on unmount
