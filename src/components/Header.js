@@ -5,7 +5,7 @@ export default function Header() {
         <div className="flex items-center space-x-3">
           
           <div>
-            <h1 className="text-lg font-bold text-base">Australian Property Calculator</h1>
+            <h1 className="text-lg font-bold text-base">PropWiz</h1>
           </div>
         </div>
       </div>
