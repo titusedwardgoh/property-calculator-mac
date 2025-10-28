@@ -77,6 +77,12 @@ export default function PropertyDetails() {
 
   // Handle manual address entry
   const handleManualAddressChange = (field, value) => {
+    // For postcode field, only allow numeric input
+    if (field === 'postcode') {
+      // Remove any non-numeric characters
+      value = value.replace(/[^\d]/g, '');
+    }
+    
     setManualAddress(prev => ({
       ...prev,
       [field]: value
@@ -216,7 +222,19 @@ export default function PropertyDetails() {
         autocompleteRef.current = null;
       }
       
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(autocompleteInputRef.current, {
+      // Ensure the input is visible and properly rendered
+      const input = autocompleteInputRef.current;
+      if (!input.offsetParent) {
+        // Input is not visible, retry after a short delay
+        setTimeout(() => {
+          if (autocompleteInputRef.current && autocompleteInputRef.current.offsetParent) {
+            initializeAutocomplete();
+          }
+        }, 100);
+        return;
+      }
+      
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(input, {
         types: ['address'],
         componentRestrictions: { country: 'au' }, // Restrict to Australia
         fields: ['formatted_address', 'address_components', 'geometry'] // Request geometry data
@@ -436,6 +454,14 @@ export default function PropertyDetails() {
             scriptLoadingRef.current = false;
             window.__googleMapsLoading = false;
             window.__googleMapsLoaded = true;
+            
+            // Trigger autocomplete initialization if we're on step 1
+            if (currentStep === 1 && !formData.propertyStreetAddress && autocompleteInputRef.current) {
+              // Add a small delay for mobile devices
+              setTimeout(() => {
+                initializeAutocomplete();
+              }, 200);
+            }
           };
           
           script.onerror = () => {
@@ -457,32 +483,41 @@ export default function PropertyDetails() {
     };
 
     loadGoogleMapsScript();
-  }, []);
+  }, [currentStep, formData.propertyStreetAddress]);
 
   // Initialize Google Places Autocomplete when component mounts and when on step 1
   useEffect(() => {
-    if (currentStep === 1 && !formData.propertyStreetAddress) {
+    if (currentStep === 1 && !formData.propertyStreetAddress && !isManualEntry) {
       // Wait for Google Maps API to load AND for the input to be rendered
       const checkGoogleMaps = () => {
-        if (typeof window !== 'undefined' && (window.__googleMapsLoaded || (window.google && window.google.maps && window.google.maps.places)) && autocompleteInputRef.current) {
+        if (typeof window !== 'undefined' && 
+            (window.__googleMapsLoaded || (window.google && window.google.maps && window.google.maps.places)) && 
+            autocompleteInputRef.current) {
           initializeAutocomplete();
         } else {
-          setTimeout(checkGoogleMaps, 100);
+          // Increase timeout for mobile devices
+          const timeout = window.innerWidth < 768 ? 200 : 100;
+          setTimeout(checkGoogleMaps, timeout);
         }
       };
-      checkGoogleMaps();
+      
+      // Add initial delay for mobile devices to ensure proper rendering
+      const initialDelay = window.innerWidth < 768 ? 300 : 100;
+      setTimeout(checkGoogleMaps, initialDelay);
     }
-  }, [currentStep, formData.propertyStreetAddress]);
+  }, [currentStep, formData.propertyStreetAddress, isManualEntry]);
 
   // Reinitialize autocomplete when switching back from manual entry
   useEffect(() => {
     if (currentStep === 1 && !isManualEntry && autocompleteInputRef.current) {
-      // Small delay to ensure the input is rendered
+      // Longer delay for mobile devices to ensure proper rendering
+      const delay = window.innerWidth < 768 ? 300 : 100;
       const timer = setTimeout(() => {
-        if (typeof window !== 'undefined' && (window.__googleMapsLoaded || (window.google && window.google.maps && window.google.maps.places))) {
+        if (typeof window !== 'undefined' && 
+            (window.__googleMapsLoaded || (window.google && window.google.maps && window.google.maps.places))) {
           initializeAutocomplete();
         }
-      }, 100);
+      }, delay);
       
       return () => clearTimeout(timer);
     }
@@ -786,6 +821,15 @@ export default function PropertyDetails() {
                               });
                             }, 300);
                           }
+                          
+                          // Ensure autocomplete is initialized on mobile focus
+                          if (window.innerWidth < 768 && !autocompleteRef.current && 
+                              typeof window !== 'undefined' && 
+                              (window.__googleMapsLoaded || (window.google && window.google.maps && window.google.maps.places))) {
+                            setTimeout(() => {
+                              initializeAutocomplete();
+                            }, 100);
+                          }
                         }}
                         {...getInputFieldAnimation()}
                         className="w-full ml-1 pl-4 pr-8 py-2 text-2xl border-b-2 border-gray-200 rounded-none focus:border-secondary focus:outline-none hover:border-gray-300"
@@ -864,7 +908,7 @@ export default function PropertyDetails() {
                               : 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
                           }`}
                         >
-                          Save Address
+                          Save
                         </motion.button>
                         <motion.button
                           onClick={() => setIsManualEntry(false)}
