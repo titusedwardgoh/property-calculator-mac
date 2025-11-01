@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -33,6 +35,33 @@ export default function Header() {
               <Link href="/">
                 <h1 className="text-lg font-bold text-base">PropWiz</h1>
               </Link>
+              {/* Desktop nav links */}
+              <nav className="hidden md:flex items-center gap-10 lg: gap-15 font-medium text-md lg:text-lg ml-10 lg:ml-20">
+                <Link
+                  href="/"
+                  className={`hover:text-primary transition-colors ${
+                    pathname === '/' ? 'underline underline-offset-6 decoration-2' : ''
+                  }`}
+                >
+                  Home
+                </Link>
+                <Link
+                  href="/about"
+                  className={`hover:text-primary transition-colors ${
+                    pathname === '/about' ? 'underline underline-offset-6 decoration-2' : ''
+                  }`}
+                >
+                  About
+                </Link>
+                <Link
+                  href="/contact"
+                  className={`hover:text-primary transition-colors ${
+                    pathname === '/contact' ? 'underline underline-offset-6 decoration-2' : ''
+                  }`}
+                >
+                  Contact
+                </Link>
+              </nav>
             </div>
             
             <div className="flex items-center">
