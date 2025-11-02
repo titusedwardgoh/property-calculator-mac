@@ -67,16 +67,18 @@ export default function Header() {
             <div className="flex items-center">
               {/* Auth buttons */}
               <div className="flex items-center gap-3 mr-4">
-                <button
-                  className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-lg hover:bg-primary/10 transition-colors"
+                <Link
+                  href="/login"
+                  className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors"
                 >
                   Log In
-                </button>
-                <button
-                  className="px-3 py-2 text-sm font-medium text-base-100 bg-primary rounded-lg hover:bg-primary/90 transition-colors"
+                </Link>
+                <Link
+                  href="/signup"
+                  className="px-3 py-2 text-sm font-medium text-secondary bg-primary rounded-full hover:bg-primary/90 transition-colors"
                 >
                   Sign Up
-                </button>
+                </Link>
               </div>
               
               {/* Hamburger button - mobile only */}
