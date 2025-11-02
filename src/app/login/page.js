@@ -17,12 +17,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-base-200 flex items-start md:items-center justify-center px-4 py-12 pt-20 md:pt-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-base-100 rounded-lg w-full max-w-md md: max-w-xl p-8"
+        className="bg-base-100 rounded-lg w-full max-w-md md:max-w-xl p-8"
       >
         {/* Header */}
         <div className="text-center mb-8">
