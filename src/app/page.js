@@ -1,327 +1,319 @@
 "use client";
 
-import { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import UpfrontCosts from '../components/UpfrontCosts';
-import OngoingCosts from '../components/OngoingCosts';
-import Summary from '../components/Summary';
-import PropertyDetails from '../components/PropertyDetails';
-import BuyerDetails from '../components/BuyerDetails';
-import LoanDetails from '../components/LoanDetails';
-import SellerQuestions from '../components/SellerQuestions';
-import WelcomePage from '../components/WelcomePage';
+import { motion } from 'framer-motion';
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { useFormStore } from '../stores/formStore';
-import { useSupabaseSync } from '../hooks/useSupabaseSync';
 
-export default function Page() {
-    const formData = useFormStore();
-    const updateFormData = formData.updateFormData;
-    const propertyId = formData.propertyId;
-    const setPropertyId = formData.setPropertyId;
+export default function HomePage() {
+    const router = useRouter();
+    const updateFormData = useFormStore(state => state.updateFormData);
     
-    // Initialize Supabase sync
-    useSupabaseSync(formData, updateFormData, propertyId, setPropertyId);
-    
-    const showWelcomePage = formData.showWelcomePage;
-    const propertyDetailsComplete = formData.propertyDetailsComplete;
-    const buyerDetailsComplete = formData.buyerDetailsComplete;
-    const needsLoan = formData.needsLoan;
-    const showLoanDetails = formData.showLoanDetails;
-    const loanDetailsComplete = formData.loanDetailsComplete;
-    const showSellerQuestions = formData.showSellerQuestions;
-    const sellerQuestionsComplete = formData.sellerQuestionsComplete;
-    const allFormsComplete = formData.allFormsComplete;
-    const selectedState = formData.selectedState;
-    const isACT = formData.isACT;
-    const propertyType = formData.propertyType;
-    
-    // Subscribe to the active step fields to ensure re-renders
-    const propertyDetailsCurrentStep = formData.propertyDetailsCurrentStep;
-    const propertyDetailsActiveStep = formData.propertyDetailsActiveStep;
-    const buyerDetailsActiveStep = formData.buyerDetailsActiveStep;
-    const loanDetailsActiveStep = formData.loanDetailsActiveStep;
-    const sellerQuestionsActiveStep = formData.sellerQuestionsActiveStep;
-    
-
+    const handleGetStarted = () => {
+        // Reset showWelcomePage to false so users go straight to the survey
+        updateFormData('showWelcomePage', false);
+        // Navigate to calculator route
+        router.push('/calculator');
+    };
 
     return (
         <div className="min-h-screen bg-base-200">
-            {showWelcomePage ? (
-                <WelcomePage />
-            ) : (
-                <main className="container mx-auto px-4 py-4 lg:py-10 max-w-7xl">
-                {/* Progress Bars - above questions on larger screens */}
-                <div className="hidden md:block mb-6 md:w-[57%]">
-                    <div className="space-y-4 ml-10">
-                        {/* Overall Progress */}
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: 0.2 }}
-                        >
-                            <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2">Overall Progress</h4>
-                            <div className="w-full bg-gray-100 h-1">
-                                <motion.div 
-                                    initial={{ opacity: 0, scaleY: 0 }}
-                                    animate={{ opacity: 1, scaleY: 1 }}
-                                    transition={{ duration: 0.5, delay: 0.4 }}
-                                    className="bg-primary h-1 transition-all duration-300 origin-top"
-                                    style={{ width: `${(() => {
-                                        if (!propertyDetailsComplete) return 0;
-                                        if (!buyerDetailsComplete) return 25;
-                                        if (buyerDetailsComplete && needsLoan === 'yes' && !loanDetailsComplete) return 50;
-                                        if (buyerDetailsComplete && needsLoan === 'yes' && loanDetailsComplete && !showSellerQuestions) return 75;
-                                        if (buyerDetailsComplete && showSellerQuestions && !sellerQuestionsComplete) return 75;
-                                        if (buyerDetailsComplete && sellerQuestionsComplete) return 100;
-                                        if (buyerDetailsComplete && needsLoan !== 'yes') return 75;
-                                        return 0;
-                                    })()}%` }}
-                                ></motion.div>
-                            </div>
-                        </motion.div>
-                        
-                        {/* Current Form Progress */}
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: 0.3 }}
-                        >
-                            <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2">Current Form Progress</h4>
-                            <div className="w-full bg-gray-100 h-1">
-                                <motion.div 
-                                    initial={{ opacity: 0, scaleY: 0 }}
-                                    animate={{ opacity: 1, scaleY: 1 }}
-                                    transition={{ duration: 0.5, delay: 0.5 }}
-                                    className="bg-primary h-1 transition-all duration-300 origin-top"
-                                    style={{ width: `${(() => {
-                                        let progress = 0;
-                                        
-                                        if (!propertyDetailsComplete) {
-                                            // PropertyDetails progress - calculate based on display step and total steps
-                                            const internalStep = propertyDetailsActiveStep || 1;
-                                            let displayStep = internalStep;
-                                            
-                                            // For non-WA states, adjust step numbers to match what user sees
-                                            if (selectedState !== 'WA' && internalStep >= 4) {
-                                                displayStep = internalStep - 1; // Show 3, 4, 5 instead of 4, 5, 6
-                                            }
-                                            
-                                            const totalSteps = selectedState === 'WA' ? 6 : 5;
-                                            
-                                            // Check if we're actually on the completion page (step 6 and form complete)
-                                            if (internalStep === 6 && formData.propertyDetailsFormComplete) {
-                                                progress = 100;
-                                            } else {
-                                                progress = ((displayStep - 1) / totalSteps) * 100;
-                                            }
-                                            
-                                        } else if (!buyerDetailsComplete || (buyerDetailsComplete && !formData.showLoanDetails && !formData.showSellerQuestions)) {
-                                            // BuyerDetails progress - calculate based on current step and total steps
-                                            const currentStep = buyerDetailsActiveStep || 1;
-                                            const totalSteps = isACT ? 10 : 7;
-                                            
-                                            // Check if form is complete (on completion page)
-                                            if (formData.buyerDetailsComplete && !formData.showLoanDetails && !formData.showSellerQuestions) {
-                                                progress = 100;
-                                            } else {
-                                                progress = ((currentStep - 1) / totalSteps) * 100;
-                                            }
-                                        } else if (needsLoan === 'yes' && showLoanDetails && !loanDetailsComplete) {
-                                            // LoanDetails progress - calculate based on current step and total steps
-                                            const currentStep = loanDetailsActiveStep || 1;
-                                            const totalSteps = 7;
-                                            
-                                            progress = ((currentStep - 1) / totalSteps) * 100;
-                                        } else if (needsLoan === 'yes' && loanDetailsComplete && !showSellerQuestions) {
-                                            // LoanDetails complete - show 100%
-                                            progress = 100;
-                                        } else if (showSellerQuestions && !sellerQuestionsComplete) {
-                                            // SellerQuestions progress - calculate based on current step and total steps
-                                            const currentStep = sellerQuestionsActiveStep || 1;
-                                            
-                                            // Calculate actual steps shown based on property type (same logic as SellerQuestions)
-                                            const shouldShowConstructionQuestions = propertyType === 'off-the-plan' || propertyType === 'house-and-land';
-                                            const isOffThePlanNonVIC = propertyType === 'off-the-plan' && selectedState !== 'VIC';
-                                            
-                                            let totalSteps;
-                                            if (shouldShowConstructionQuestions) {
-                                                if (isOffThePlanNonVIC) {
-                                                    // Off-the-plan (non-VIC): Skip dutiable value question (subtract 1)
-                                                    totalSteps = 7;
-                                                } else {
-                                                    // VIC off-the-plan or house-and-land: All questions shown
-                                                    totalSteps = 8;
-                                                }
-                                            } else {
-                                                // Construction questions are skipped (subtract 2)
-                                                totalSteps = 6;
-                                            }
-                                            
-                                            // Map internal currentStep to actual step position within visible steps
-                                            let actualStepPosition;
-                                            if (shouldShowConstructionQuestions) {
-                                                if (isOffThePlanNonVIC) {
-                                                    // Off-the-plan (non-VIC): Skip dutiable value question (case 4)
-                                                    if (currentStep <= 3) {
-                                                        actualStepPosition = currentStep;
-                                                    } else if (currentStep >= 5) {
-                                                        actualStepPosition = currentStep - 1; // Adjust for skipped case 4
-                                                    } else {
-                                                        actualStepPosition = currentStep; // Case 4 shouldn't happen, but fallback
-                                                    }
-                                                } else {
-                                                    // VIC off-the-plan or house-and-land: All questions shown
-                                                    actualStepPosition = currentStep;
-                                                }
-                                            } else {
-                                                // Construction questions are skipped (cases 3-4)
-                                                if (currentStep <= 2) {
-                                                    actualStepPosition = currentStep;
-                                                } else if (currentStep >= 5) {
-                                                    actualStepPosition = currentStep - 2; // Adjust for skipped cases 3-4
-                                                } else {
-                                                    actualStepPosition = currentStep; // Cases 3-4 shouldn't happen, but fallback
-                                                }
-                                            }
-                                            
-                                            // Check if form is complete (on completion page)
-                                            if (formData.sellerQuestionsComplete) {
-                                                progress = 100;
-                                            } else {
-                                                progress = ((actualStepPosition - 1) / totalSteps) * 100;
-                                            }
-                                        }
-                                        
-                                        return progress;
-                                    })()}%` }}
-                                ></motion.div>
-                            </div>
-                        </motion.div>
-                    </div>
-                </div>
-
-                <div className="flex flex-col md:flex-row">
-                    {/* Sidebar with costs - only on larger screens */}
-                    <div className="order-1 md:order-2 md:w-2/5 md:flex-shrink-0 md:p-6 md:rounded-r-lg md:mt-10">
-                        {/* Summary Component - appears when summary should be shown */}
-                        <AnimatePresence>
-                            {formData.showSummary && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5 }}
-                                    className="mb-4"
-                                >
-                                    <Summary />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                        
-                        {/* Upfront and Ongoing Costs with layout animation */}
-                        <motion.div
-                            layout
-                            transition={{ duration: 0.3, ease: "easeInOut" }}
-                        >
-                            <AnimatePresence mode="wait">
-                                <UpfrontCosts />
-                            </AnimatePresence>
-                            <div className="mt-3 -mb-5">
-                                <AnimatePresence mode="wait">
-                                    <OngoingCosts />
-                                </AnimatePresence>
-                            </div>
-                        </motion.div>
-                    </div>
+            {/* Hero Section */}
+            <section className="container mx-auto px-4 py-16 md:py-24 lg:py-32">
+                <div className="max-w-4xl mx-auto text-center">
+                    <motion.h1
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, ease: "easeOut" }}
+                        className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight"
+                    >
+                        The Simplest Property Cost Calculator.
+                        <span className="block text-primary mt-2">
+                            Completely Free, No Account Needed
+                        </span>
+                    </motion.h1>
                     
-                    {/* Main content area */}
-                    <div className="order-2 md:order-1 md:w-3/5">
-                        {!propertyDetailsComplete ? (
-                            <PropertyDetails />
-                        ) : !buyerDetailsComplete ? (
-                            <BuyerDetails />
-                        ) : buyerDetailsComplete && showLoanDetails && !loanDetailsComplete ? (
-                            <LoanDetails />
-                        ) : buyerDetailsComplete && loanDetailsComplete && !showSellerQuestions ? (
-                            <LoanDetails />
-                        ) : buyerDetailsComplete && showSellerQuestions && !sellerQuestionsComplete ? (
-                            <SellerQuestions />
-                        ) : buyerDetailsComplete && sellerQuestionsComplete && !allFormsComplete ? (
-                            <SellerQuestions />
-                        ) : buyerDetailsComplete && !showLoanDetails && !showSellerQuestions && !formData.buyerDetailsCurrentStep ? (
-                            <BuyerDetails /> // This ensures BuyerDetails completion page remains visible
-                        ) : formData.buyerDetailsCurrentStep ? (
-                            <BuyerDetails /> // Show BuyerDetails when going back to a specific step
-                        ) : allFormsComplete ? (
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key="all-forms-complete"
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                                    className="bg-base-100 rounded-lg overflow-hidden mt-15 p-8 text-center"
-                                >
-                                    <motion.h2 
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-                                        className="text-3xl md:text-5xl font-base text-gray-800 mb-4 leading-tight"
-                                    >
-                                        All Forms Complete!
-                                    </motion.h2>
-                                    <motion.p 
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
-                                        className="md:text-2xl text-gray-500 leading-relaxed mb-8 max-w-lg mx-auto"
-                                    >
-                                        Thank you for completing all the forms. Your information has been processed.
-                                    </motion.p>
-                                    
-                                    {/* Navigation - Fixed bottom on mobile, normal position on desktop */}
-                                    <motion.div 
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
-                                        className="fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-base-100 md:bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:mt-8 md:px-6 md:pb-8 lg:mt-15 xl:mt-30"
-                                    >
-                                        <div className="flex flex-col sm:flex-row gap-3 justify-center mx-auto mt-4">
-                                            <motion.button
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                                onClick={() => {
-                                                    formData.updateFormData('allFormsComplete', false);
-                                                    formData.updateFormData('showSummary', false);
-                                                    formData.updateFormData('sellerQuestionsComplete', false);
-                                                    // Set the active step to the last step of SellerQuestions
-                                                    formData.updateFormData('sellerQuestionsActiveStep', 8);
-                                                }}
-                                                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
-                                            >
-                                                ← Back to Seller Questions
-                                            </motion.button>
-                                            
-                                            <motion.button
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                                onClick={() => {
-                                                    // Reset the entire form
-                                                    formData.resetForm();
-                                                }}
-                                                className="bg-gray-500 hover:bg-gray-600 px-6 py-3 rounded-full border border-gray-500 hover:border-gray-600 font-medium text-white hover:shadow-sm flex-shrink-0 cursor-pointer"
-                                            >
-                                                Start Over
-                                            </motion.button>
-                                        </div>
-                                    </motion.div>
-                                </motion.div>
-                            </AnimatePresence>
-                        ) : null}
+                    <motion.p
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+                        className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto"
+                    >
+                        Calculate stamp duty, upfront costs, loan repayments, and all associated expenses for any Australian property. Get instant, accurate estimates in minutes.
+                    </motion.p>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
+                        className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+                    >
+                        <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={handleGetStarted}
+                            className="bg-primary hover:bg-primary-focus text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg w-full sm:w-auto"
+                        >
+                            Start Free Calculator
+                        </motion.button>
+                        
+                        <p className="text-sm text-gray-500">
+                            Takes less than 5 minutes
+                        </p>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* How It Works Section */}
+            <section className="container mx-auto px-4 py-16 bg-base-100">
+                <div className="max-w-6xl mx-auto">
+                    <motion.h2
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6 }}
+                        className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-12"
+                    >
+                        How It Works
+                    </motion.h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        {[
+                            {
+                                number: 1,
+                                title: "Enter Property Details",
+                                description: "Provide basic information about your property including address, price, and property type."
+                            },
+                            {
+                                number: 2,
+                                title: "Answer Simple Questions",
+                                description: "Tell us about your buyer situation, loan requirements, and residency status."
+                            },
+                            {
+                                number: 3,
+                                title: "Get Instant Results",
+                                description: "Receive a comprehensive breakdown of all costs including stamp duty, LMI, ongoing fees, and more."
+                            }
+                        ].map((step, index) => (
+                            <motion.div
+                                key={index}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.6, delay: index * 0.1 }}
+                                className="text-center"
+                            >
+                                <div className="w-50 h-50 mx-auto mb-4 flex items-center justify-center relative">
+                                    <Image
+                                        src={`/hero${step.number}.png`}
+                                        alt={`Step ${step.number}`}
+                                        width={1024}
+                                        height={1024}
+                                        className="object-contain"
+                                        unoptimized
+                                    />
+                                </div>
+                                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                                    {step.title}
+                                </h3>
+                                <p className="text-gray-600">
+                                    {step.description}
+                                </p>
+                            </motion.div>
+                        ))}
                     </div>
                 </div>
-            </main>
-            )}
+            </section>
+
+            {/* Social Proof Section */}
+            <section className="container mx-auto px-4 py-16">
+                <div className="max-w-4xl mx-auto">
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        whileInView={{ opacity: 1 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6 }}
+                        className="text-center"
+                    >
+                        <p className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                            Used by thousands of home buyers
+                        </p>
+                        <p className="text-lg text-gray-600 mb-12">
+                            Trusted by first-time buyers, investors, and real estate professionals across Australia
+                        </p>
+                    </motion.div>
+
+                    {/* Testimonials */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {[
+                            {
+                                quote: "Finally, a calculator that actually shows me all the hidden costs! This saved me from a costly surprise.",
+                                author: "Sarah M.",
+                                role: "First Home Buyer"
+                            },
+                            {
+                                quote: "The most comprehensive property calculator I've found. It covers things I didn't even know to consider.",
+                                author: "James K.",
+                                role: "Property Investor"
+                            }
+                        ].map((testimonial, index) => (
+                            <motion.div
+                                key={index}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.6, delay: index * 0.1 }}
+                                className="bg-base-100 rounded-lg p-6 shadow-sm"
+                            >
+                                <p className="text-gray-700 italic mb-4">
+                                    &quot;{testimonial.quote}&quot;
+                                </p>
+                                <p className="font-semibold text-gray-900">
+                                    {testimonial.author}
+                                </p>
+                                <p className="text-sm text-gray-600">
+                                    {testimonial.role}
+                                </p>
+                            </motion.div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
+            {/* Feature Preview Section */}
+            <section className="container mx-auto px-4 py-16 bg-base-100">
+                <div className="max-w-6xl mx-auto">
+                    <motion.h2
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6 }}
+                        className="text-3xl md:text-4xl font-bold text-gray-900 text-center mb-12"
+                    >
+                        What You Get
+                    </motion.h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {/* Free Features */}
+                        {[
+                            {
+                                title: "Comprehensive Cost Breakdown",
+                                description: "See all upfront costs, ongoing expenses, and hidden fees in one place"
+                            },
+                            {
+                                title: "Accurate Stamp Duty Calculations",
+                                description: "State-specific calculations including all concessions and exemptions"
+                            },
+                            {
+                                title: "Loan Cost Estimates",
+                                description: "Calculate LMI, loan repayments, and interest costs"
+                            },
+                            {
+                                title: "State-Specific Rules",
+                                description: "Automatic calculations for your state's unique regulations and schemes"
+                            },
+                            {
+                                title: "Instant Results",
+                                description: "Get your complete breakdown in minutes, not hours"
+                            },
+                            {
+                                title: "No Account Required",
+                                description: "Start calculating immediately without any sign-up or commitment"
+                            }
+                        ].map((feature, index) => (
+                            <motion.div
+                                key={index}
+                                initial={{ opacity: 0, y: 20 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.6, delay: index * 0.05 }}
+                                className="bg-base-200 rounded-lg p-6 border border-gray-200 hover:border-primary transition-colors"
+                            >
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                    {feature.title}
+                                </h3>
+                                <p className="text-gray-600">
+                                    {feature.description}
+                                </p>
+                            </motion.div>
+                        ))}
+                    </div>
+
+                    {/* Paid Features Teaser */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6, delay: 0.3 }}
+                        className="mt-12 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-8 border border-primary/20"
+                    >
+                        <h3 className="text-2xl font-bold text-gray-900 text-center mb-6">
+                            Coming Soon
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            {[
+                                {
+                                    title: "Save Your Calculations",
+                                    description: "Create an account to save and compare multiple properties"
+                                },
+                                {
+                                    title: "Export to PDF",
+                                    description: "Download your results as a professional report"
+                                },
+                                {
+                                    title: "Advanced Analytics",
+                                    description: "Compare scenarios and get investment insights"
+                                }
+                            ].map((feature, index) => (
+                                <div key={index} className="text-center opacity-75">
+                                    <h4 className="font-semibold text-gray-900 mb-1">
+                                        {feature.title}
+                                    </h4>
+                                    <p className="text-sm text-gray-600">
+                                        {feature.description}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* Final CTA Section */}
+            <section className="container mx-auto px-4 py-16">
+                <div className="max-w-3xl mx-auto text-center">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 0.6 }}
+                    >
+                        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                            Ready to Calculate Your Property Costs?
+                        </h2>
+                        <p className="text-lg text-gray-600 mb-8">
+                            Join thousands of Australians who use our calculator to make informed property decisions
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={handleGetStarted}
+                                className="bg-primary hover:bg-primary-focus text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg w-full sm:w-auto"
+                            >
+                                Start Free Calculator
+                            </motion.button>
+                            <Link
+                                href="/login"
+                                className="px-8 py-4 rounded-full font-medium text-lg border-2 border-primary text-primary hover:bg-primary/10 transition-all duration-200 w-full sm:w-auto text-center"
+                            >
+                                Create Account
+                            </Link>
+                        </div>
+                    </motion.div>
+                </div>
+            </section>
         </div>
-    )
+    );
 }

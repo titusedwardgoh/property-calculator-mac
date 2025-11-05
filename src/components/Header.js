@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -32,8 +33,29 @@ export default function Header() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
-              <Link href="/">
-                <h1 className="text-lg font-bold text-base">PropWiz</h1>
+              <Link href="/" className="flex items-center">
+                {/* Mobile: Show Icon2.png */}
+                <div className="w-12 h-12 md:hidden flex items-center">
+                  <Image
+                    src="/Icon2.png"
+                    alt="PropWiz"
+                    width={447}
+                    height={444}
+                    className="w-full h-full object-contain"
+                    priority
+                  />
+                </div>
+                {/* Desktop: Show Icon3.png */}
+                <div className="hidden md:flex md:items-center md:h-12">
+                  <Image
+                    src="/Icon3.png"
+                    alt="PropWiz"
+                    width={447}
+                    height={444}
+                    className="h-full w-auto object-contain"
+                    priority
+                  />
+                </div>
               </Link>
               {/* Desktop nav links */}
               <nav className="hidden md:flex items-center gap-10 lg: gap-15 font-medium text-md lg:text-lg ml-10 lg:ml-20">
