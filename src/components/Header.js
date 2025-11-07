@@ -9,6 +9,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
+  
+  // Hide header when on calculator route (simplified overlay is shown instead)
+  const shouldHideHeader = pathname === '/calculator';
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -29,7 +32,9 @@ export default function Header() {
 
   return (
     <>
-      <header className="bg-base-100 backdrop-blur-sm shadow-sm sticky top-0 z-100">
+      <header
+        className={`bg-base-100 backdrop-blur-sm shadow-sm sticky top-0 z-100 ${shouldHideHeader ? 'md:invisible md:pointer-events-none md:opacity-0' : ''}`}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
@@ -131,7 +136,7 @@ export default function Header() {
 
       {/* Mobile menu overlay */}
       <AnimatePresence>
-        {isMenuOpen && (
+        {isMenuOpen && !shouldHideHeader && (
           <>
             {/* Backdrop */}
             <motion.div

@@ -1,0 +1,80 @@
+"use client";
+
+import Link from 'next/link';
+import Image from 'next/image';
+import { useRouter, usePathname } from 'next/navigation';
+import { useFormStore } from '../stores/formStore';
+
+export default function SurveyHeaderOverlay() {
+    const router = useRouter();
+    const pathname = usePathname();
+    const resetForm = useFormStore(state => state.resetForm);
+
+    // Only show overlay when on calculator route
+    if (pathname !== '/calculator') {
+        return null;
+    }
+
+    const handleClose = () => {
+        // Reset form data so welcome page shows again on next visit
+        resetForm();
+        // Navigate back to home page
+        router.push('/');
+    };
+
+    return (
+        <header className="fixed top-0 left-0 right-0 bg-base-100 backdrop-blur-sm shadow-sm z-[150]">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div className="flex items-center justify-between">
+                    {/* Home icon - left side */}
+                    <Link href="/" className="flex items-center">
+                        {/* Mobile: Show Icon2.png */}
+                        <div className="w-12 h-12 md:hidden flex items-center">
+                            <Image
+                                src="/Icon2.png"
+                                alt="PropWiz"
+                                width={447}
+                                height={444}
+                                className="w-full h-full object-contain"
+                                priority
+                            />
+                        </div>
+                        {/* Desktop: Show Icon3.png */}
+                        <div className="hidden md:flex md:items-center md:h-12">
+                            <Image
+                                src="/Icon3.png"
+                                alt="PropWiz"
+                                width={447}
+                                height={444}
+                                className="h-full w-auto object-contain"
+                                priority
+                            />
+                        </div>
+                    </Link>
+                    
+                    {/* Close button - right side */}
+                    <button
+                        onClick={handleClose}
+                        className="focus:outline-none p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        aria-label="Close survey"
+                    >
+                        <svg 
+                            className="w-6 h-6 text-base-content" 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                        >
+                            <path 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round" 
+                                strokeWidth={2} 
+                                d="M6 18L18 6M6 6l12 12" 
+                            />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+    );
+}
+

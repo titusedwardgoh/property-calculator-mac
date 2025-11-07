@@ -11,9 +11,7 @@ export default function HomePage() {
     const updateFormData = useFormStore(state => state.updateFormData);
     
     const handleGetStarted = () => {
-        // Reset showWelcomePage to false so users go straight to the survey
-        updateFormData('showWelcomePage', false);
-        // Navigate to calculator route
+        // Navigate to calculator route (welcome page will show first)
         router.push('/calculator');
     };
 

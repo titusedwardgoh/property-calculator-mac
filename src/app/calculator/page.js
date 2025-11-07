@@ -10,6 +10,7 @@ import BuyerDetails from '../../components/BuyerDetails';
 import LoanDetails from '../../components/LoanDetails';
 import SellerQuestions from '../../components/SellerQuestions';
 import WelcomePage from '../../components/WelcomePage';
+import SurveyHeaderOverlay from '../../components/SurveyHeaderOverlay';
 import { useFormStore } from '../../stores/formStore';
 import { useSupabaseSync } from '../../hooks/useSupabaseSync';
 
@@ -21,6 +22,20 @@ export default function CalculatorPage() {
     
     // Initialize Supabase sync
     useSupabaseSync(formData, updateFormData, propertyId, setPropertyId);
+    
+    // Reset showWelcomePage to true when entering calculator with no form data (fresh start)
+    useEffect(() => {
+        // Check if this is a fresh start (no form data filled in)
+        const hasFormData = formData.propertyPrice || 
+                           formData.propertyAddress || 
+                           formData.selectedState || 
+                           formData.buyerType;
+        
+        // If no form data exists, always show welcome page
+        if (!hasFormData) {
+            updateFormData('showWelcomePage', true);
+        }
+    }, []); // Only run on mount
     
     const showWelcomePage = formData.showWelcomePage;
     const propertyDetailsComplete = formData.propertyDetailsComplete;
@@ -46,12 +61,14 @@ export default function CalculatorPage() {
 
     return (
         <div className="min-h-screen bg-base-200">
+            {/* Simplified header overlay - always shown on calculator route */}
+            <SurveyHeaderOverlay />
             {showWelcomePage ? (
                 <WelcomePage />
             ) : (
                 <main className="container mx-auto px-4 py-4 lg:py-10 max-w-7xl">
                 {/* Progress Bars - above questions on larger screens */}
-                <div className="hidden md:block mb-6 md:w-[57%]">
+                <div className="hidden md:block mb-0 md:w-[57%]">
                     <div className="space-y-4 ml-10">
                         {/* Overall Progress */}
                         <motion.div
