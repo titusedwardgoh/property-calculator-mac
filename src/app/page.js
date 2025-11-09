@@ -63,6 +63,59 @@ export default function HomePage() {
                 </div>
             </section>
 
+            {/* Hook Section */}
+            <section className="bg-accent">
+                <div className="container mx-auto px-4 py-16 lg:py-10">
+                    <div className="grid gap-12 lg:gap-20 md:grid-cols-2 items-center">
+                        <motion.div
+                            initial={{ opacity: 0, x: -40 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true, amount: 0.3 }}
+                            transition={{ duration: 0.6, ease: "easeOut" }}
+                            className="flex justify-center"
+                        >
+                            <div className="w-full max-w-md">
+                                <Image
+                                    src="/hook.png"
+                                    alt="Person contemplating home buying costs"
+                                    width={1200}
+                                    height={1200}
+                                    priority
+                                    className="w-full h-auto object-contain"
+                                />
+                            </div>
+                        </motion.div>
+
+                        <motion.div
+                            initial={{ opacity: 0, x: 40 }}
+                            whileInView={{ opacity: 1, x: 0 }}
+                            viewport={{ once: true, amount: 0.3 }}
+                            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+                            className="max-w-xl"
+                        >
+                            <p className="text-sm font-semibold tracking-wide uppercase text-primary mb-3">
+                                What type of property buyer are you?
+                            </p>
+                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-5">
+                                Tired of guessing how much you need for a home?
+                            </h2>
+                            <p className="text-lg md:text-xl text-gray-600 leading-relaxed mb-10">
+                                Why struggle to piece together your budget from three different calculators? Australian property costs are complex, combining state-specific stamp duty, LMI, and legal fees that can easily cost you thousands if you miss a single detail. Get the full financial picture—accurate, comprehensive, and completely free—in one simple place.
+                            </p>
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={handleGetStarted}
+                                className="bg-primary hover:bg-primary-focus text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg inline-flex items-center gap-2"
+                            >
+                                Start Free Calculator
+                                <span aria-hidden="true">→</span>
+                            </motion.button>
+                        </motion.div>
+                    </div>
+                </div>
+            </section>
+
             {/* How It Works Section */}
             <section className="container mx-auto px-4 py-16 bg-base-100">
                 <div className="max-w-6xl mx-auto">
