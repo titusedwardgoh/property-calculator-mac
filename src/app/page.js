@@ -74,12 +74,12 @@ export default function HomePage() {
                             transition={{ duration: 0.6, ease: "easeOut" }}
                             className="flex justify-center"
                         >
-                            <div className="w-full max-w-md">
+                            <div className="w-full max-w-lg">
                                 <Image
                                     src="/hook.png"
                                     alt="Person contemplating home buying costs"
-                                    width={1200}
-                                    height={1200}
+                                    width={820}
+                                    height={932}
                                     priority
                                     className="w-full h-auto object-contain"
                                 />
@@ -178,7 +178,7 @@ export default function HomePage() {
             </section>
 
             {/* Social Proof Section */}
-            <section className="container mx-auto px-4 py-16">
+            <section className="px-4 py-16 bg-secondary">
                 <div className="max-w-4xl mx-auto">
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -187,10 +187,10 @@ export default function HomePage() {
                         transition={{ duration: 0.6 }}
                         className="text-center"
                     >
-                        <p className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                        <p className="text-3xl md:text-4xl font-bold text-gray-300 mb-4">
                             Used by thousands of home buyers
                         </p>
-                        <p className="text-lg text-gray-600 mb-12">
+                        <p className="text-lg text-primary mb-12">
                             Trusted by first-time buyers, investors, and real estate professionals across Australia
                         </p>
                     </motion.div>
@@ -297,7 +297,7 @@ export default function HomePage() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6, delay: 0.3 }}
-                        className="mt-12 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-8 border border-primary/20"
+                        className="hidden mt-12 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-lg p-8 border border-primary/20"
                     >
                         <h3 className="text-2xl font-bold text-gray-900 text-center mb-6">
                             Coming Soon
@@ -332,7 +332,7 @@ export default function HomePage() {
             </section>
 
             {/* Final CTA Section */}
-            <section className="container mx-auto px-4 py-16">
+            <section className="px-4 py-16 bg-accent">
                 <div className="max-w-3xl mx-auto text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
