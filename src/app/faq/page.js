@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ArrowLeft, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function FAQPage() {
@@ -61,74 +62,113 @@ export default function FAQPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <Link 
-            href="/" 
-            className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-800 transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back to Calculator</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center mb-4">
-            <HelpCircle className="w-12 h-12 text-blue-600" />
+    <div className="min-h-screen bg-base-200">
+      <main className="pb-24">
+        {/* Hero Section */}
+        <section className="container mx-auto px-4 py-16 lg:py-20">
+          <div className="max-w-3xl mx-auto text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className="flex items-center justify-center mb-6"
+            >
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary">
+                <HelpCircle className="w-8 h-8" />
+              </div>
+            </motion.div>
+            <motion.h1
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+              className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6"
+            >
+              Frequently Asked Questions
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+              className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-12"
+            >
+              Find answers to common questions about the Australian Property Calculator
+            </motion.p>
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Find answers to common questions about the Australian Property Calculator
-          </p>
-        </div>
+        </section>
 
         {/* FAQ Items */}
-        <div className="space-y-4">
-          {faqs.map((faq, index) => (
-            <div key={index} className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-              <button
-                onClick={() => toggleItem(index)}
-                className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 pr-4">
-                  {faq.question}
-                </h3>
-                {openItems.has(index) ? (
-                  <ChevronUp className="w-5 h-5 text-gray-500 flex-shrink-0" />
-                ) : (
-                  <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
-                )}
-              </button>
-              {openItems.has(index) && (
-                <div className="px-6 pb-4">
-                  <p className="text-gray-600 leading-relaxed">
-                    {faq.answer}
-                  </p>
-                </div>
-              )}
+        <section className="container mx-auto px-4 pb-16">
+          <div className="max-w-4xl mx-auto">
+            <div className="space-y-4">
+              {faqs.map((faq, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: index * 0.05 }}
+                  className="bg-base-100 rounded-2xl border border-base-200 shadow-sm overflow-hidden"
+                >
+                  <button
+                    onClick={() => toggleItem(index)}
+                    className="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-base-200 transition-colors cursor-pointer"
+                  >
+                    <h3 className="text-lg font-semibold text-gray-900 pr-4">
+                      {faq.question}
+                    </h3>
+                    <motion.div
+                      animate={{ rotate: openItems.has(index) ? 180 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
+                    </motion.div>
+                  </button>
+                  <AnimatePresence>
+                    {openItems.has(index) && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                      >
+                        <div className="px-6 pb-5">
+                          <p className="text-gray-600 leading-relaxed">
+                            {faq.answer}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Contact Section */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-12">
-          <h3 className="text-lg font-semibold text-blue-900 mb-2">Still have questions?</h3>
-          <p className="text-blue-700 mb-4">
-            If you couldn&apos;t find the answer you&apos;re looking for, feel free to contact us.
-          </p>
-          <Link 
-            href="/contact" 
-            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Contact Us
-          </Link>
-        </div>
-      </div>
+            {/* Contact Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+              className="bg-primary/10 border border-primary/20 rounded-2xl p-6 md:p-8 mt-12"
+            >
+              <h3 className="text-lg font-semibold text-primary mb-2">Still have questions?</h3>
+              <p className="text-gray-700 mb-6 leading-relaxed">
+                If you couldn&apos;t find the answer you&apos;re looking for, feel free to contact us.
+              </p>
+              <Link 
+                href="/contact"
+                className="inline-flex items-center gap-2 bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
+              >
+                Contact Us
+              </Link>
+            </motion.div>
+          </div>
+        </section>
+      </main>
     </div>
   );
-} 
+}
