@@ -56,8 +56,7 @@ export default function AboutPage() {
                     <div className="max-w-3xl mx-auto text-center">
                         <motion.h1
                             initial={{ opacity: 0, y: 16 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
+                            animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, ease: "easeOut" }}
                             className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6"
                         >
@@ -66,8 +65,7 @@ export default function AboutPage() {
 
                         <motion.p
                             initial={{ opacity: 0, y: 16 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
+                            animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
                             className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-8"
                         >
@@ -76,8 +74,7 @@ export default function AboutPage() {
 
                         <motion.div
                             initial={{ opacity: 0, y: 16 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
+                            animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
                             className="flex flex-col sm:flex-row gap-4 justify-center items-center"
                         >

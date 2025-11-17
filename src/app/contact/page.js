@@ -33,12 +33,11 @@ export default function ContactPage() {
     <div className="min-h-screen bg-base-200">
       <main className="pb-24">
         {/* Hero Section */}
-        <section className="container mx-auto px-4 py-16 lg:py-20">
+        <section className="container mx-auto px-4 py-16 lg:pt-20">
           <div className="max-w-3xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
               className="flex items-center justify-center mb-6"
             >
@@ -48,8 +47,7 @@ export default function ContactPage() {
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
               className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6"
             >
@@ -57,10 +55,9 @@ export default function ContactPage() {
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-              className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-12"
+              className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-5"
             >
               Have questions, feedback, or suggestions? We&apos;d love to hear from you.
             </motion.p>
@@ -73,9 +70,8 @@ export default function ContactPage() {
             {/* Contact Form */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
               className="bg-base-100 rounded-2xl border border-base-200 shadow-sm p-8"
             >
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Send us a message</h2>
@@ -184,9 +180,8 @@ export default function ContactPage() {
             <div className="space-y-8">
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
                 className="bg-base-100 rounded-2xl border border-base-200 shadow-sm p-8"
               >
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Get in touch</h2>
@@ -218,9 +213,8 @@ export default function ContactPage() {
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
                 className="bg-primary/10 border border-primary/20 rounded-2xl p-6"
               >
                 <h3 className="text-lg font-semibold text-primary mb-3">Before you contact us</h3>
@@ -234,9 +228,8 @@ export default function ContactPage() {
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
                 className="bg-warning/20 border border-warning rounded-2xl p-6"
               >
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Important Notice</h3>

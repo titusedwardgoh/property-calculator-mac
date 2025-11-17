@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { LogIn } from 'lucide-react';
 import { getInputFieldAnimation } from '../../components/shared/animations/inputAnimations';
 
 export default function LoginPage() {
@@ -17,7 +18,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200 flex items-start md:items-center justify-center px-4 py-12 pt-20 md:pt-12">
+    <div className="min-h-screen bg-base-200 flex items-start justify-center px-4 py-16 lg:py-12">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -26,13 +27,35 @@ export default function LoginPage() {
       >
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Welcome back</h1>
-          <p className="text-gray-600">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="flex items-center justify-center mb-6"
+          >
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary">
+              <LogIn className="w-8 h-8" />
+            </div>
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+            className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6"
+          >
+            Welcome back
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+            className="text-lg md:text-xl text-gray-600"
+          >
             New to PropWiz?{' '}
-            <Link href="/signup" className="text-primary hover:underline font-medium">
+            <Link href="/signup" className="text-primary hover:text-primary-focus font-medium underline">
               Sign up
             </Link>
-          </p>
+          </motion.p>
         </div>
 
         {/* Form */}

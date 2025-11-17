@@ -12,8 +12,7 @@ export default function TermsPage() {
           <div className="max-w-3xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
               className="flex items-center justify-center mb-6"
             >
@@ -23,8 +22,7 @@ export default function TermsPage() {
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
               className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6"
             >
@@ -32,8 +30,7 @@ export default function TermsPage() {
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
               className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-12"
             >
@@ -41,8 +38,7 @@ export default function TermsPage() {
             </motion.p>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
               className="text-sm text-gray-500"
             >
@@ -56,9 +52,8 @@ export default function TermsPage() {
           <div className="max-w-4xl mx-auto">
             <motion.div
               initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, ease: "easeOut" }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
               className="bg-base-100 border border-base-200 rounded-3xl shadow-sm p-8 md:p-12 space-y-8"
             >
               {/* Introduction */}

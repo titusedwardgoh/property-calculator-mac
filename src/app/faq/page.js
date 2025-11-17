@@ -69,8 +69,7 @@ export default function FAQPage() {
           <div className="max-w-3xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, ease: "easeOut" }}
               className="flex items-center justify-center mb-6"
             >
@@ -80,8 +79,7 @@ export default function FAQPage() {
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
               className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6"
             >
@@ -89,8 +87,7 @@ export default function FAQPage() {
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
               className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-12"
             >
@@ -107,9 +104,8 @@ export default function FAQPage() {
                 <motion.div
                   key={index}
                   initial={{ opacity: 0, y: 20 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: index * 0.05 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.3 + index * 0.05 }}
                   className="bg-base-100 rounded-2xl border border-base-200 shadow-sm overflow-hidden"
                 >
                   <button
@@ -150,9 +146,8 @@ export default function FAQPage() {
             {/* Contact Section */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.8, ease: "easeOut" }}
               className="bg-primary/10 border border-primary/20 rounded-2xl p-6 md:p-8 mt-12"
             >
               <h3 className="text-lg font-semibold text-primary mb-2">Still have questions?</h3>
