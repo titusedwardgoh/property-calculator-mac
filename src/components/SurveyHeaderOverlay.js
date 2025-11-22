@@ -15,11 +15,26 @@ export default function SurveyHeaderOverlay() {
         return null;
     }
 
+    const handleNavigation = (url) => {
+        // Check if navigation warning should be shown
+        if (typeof window !== 'undefined' && window.__navigationWarning) {
+            const canNavigate = window.__navigationWarning.checkNavigation(url);
+            if (!canNavigate) {
+                // Navigation warning will handle showing the modal
+                return;
+            }
+        }
+        // Navigate normally
+        router.push(url);
+    };
+
     const handleClose = () => {
-        // Reset form data so welcome page shows again on next visit
-        resetForm();
-        // Navigate back to home page
-        router.push('/');
+        handleNavigation('/');
+    };
+
+    const handleLogoClick = (e) => {
+        e.preventDefault();
+        handleNavigation('/');
     };
 
     return (
@@ -27,7 +42,7 @@ export default function SurveyHeaderOverlay() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                 <div className="flex items-center justify-between">
                     {/* Home icon - left side */}
-                    <Link href="/" className="flex items-center">
+                    <Link href="/" onClick={handleLogoClick} className="flex items-center">
                         {/* Mobile: Show Icon2.png */}
                         <div className="w-12 h-12 md:hidden flex items-center">
                             <Image

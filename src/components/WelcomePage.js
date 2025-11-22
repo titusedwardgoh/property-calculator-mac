@@ -1,15 +1,21 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useFormStore } from '../stores/formStore';
+import { createNewSession } from '../lib/sessionManager';
 import Image from 'next/image';
 
 export default function WelcomePage() {
     const formData = useFormStore();
     const updateFormData = useFormStore(state => state.updateFormData);
+    const resetForm = useFormStore(state => state.resetForm);
     const [isExiting, setIsExiting] = useState(false);
 
     const handleGetStarted = () => {
         setIsExiting(true);
+        // Clear all form data and start fresh
+        resetForm();
+        // Create a new session ID for this survey attempt
+        createNewSession();
         // Delay the actual navigation to allow exit animation to complete
         setTimeout(() => {
             updateFormData('showWelcomePage', false);

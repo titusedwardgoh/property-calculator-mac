@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import UpfrontCosts from '../../components/UpfrontCosts';
 import OngoingCosts from '../../components/OngoingCosts';
@@ -11,28 +12,109 @@ import LoanDetails from '../../components/LoanDetails';
 import SellerQuestions from '../../components/SellerQuestions';
 import WelcomePage from '../../components/WelcomePage';
 import SurveyHeaderOverlay from '../../components/SurveyHeaderOverlay';
+import NavigationWarning from '../../components/NavigationWarning';
+import EndOfSurveyPrompt from '../../components/EndOfSurveyPrompt';
 import { useFormStore } from '../../stores/formStore';
 import { useSupabaseSync } from '../../hooks/useSupabaseSync';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function CalculatorPage() {
     const formData = useFormStore();
     const updateFormData = formData.updateFormData;
     const propertyId = formData.propertyId;
     const setPropertyId = formData.setPropertyId;
+    const setIsResumingSurvey = formData.setIsResumingSurvey;
+    const { user } = useAuth();
+    const searchParams = useSearchParams();
+    const [isLoadingResume, setIsLoadingResume] = useState(false);
     
     // Initialize Supabase sync
-    useSupabaseSync(formData, updateFormData, propertyId, setPropertyId);
+    // Auto-save to database is ALWAYS enabled (for both logged-in and anonymous users)
+    // The "save" prompts are about linking records to user's dashboard (user_id)
+    const { saveToSupabase, hasUnsavedChanges, loadFromSupabase } = useSupabaseSync(
+        formData, 
+        updateFormData, 
+        propertyId, 
+        setPropertyId,
+        { 
+            autoSave: true, // Enable auto-save functionality
+            enableAutoSave: true // Always auto-save to database (logged in or not)
+        }
+    );
     
-    // Reset showWelcomePage to true when entering calculator with no form data (fresh start)
+    // Handle resume functionality
     useEffect(() => {
-        // Check if this is a fresh start (no form data filled in)
-        const hasFormData = formData.propertyPrice || 
-                           formData.propertyAddress || 
-                           formData.selectedState || 
-                           formData.buyerType;
+        const resumePropertyId = sessionStorage.getItem('resumePropertyId');
+        const shouldResume = searchParams.get('resume') === 'true' && resumePropertyId;
         
-        // If no form data exists, always show welcome page
-        if (!hasFormData) {
+        if (shouldResume && !isLoadingResume) {
+            setIsLoadingResume(true);
+            setIsResumingSurvey(true);
+            
+            // Load the property data
+            fetch('/api/supabase', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'loadPropertyById',
+                    propertyId: resumePropertyId,
+                    userId: user?.id,
+                }),
+            })
+            .then(res => res.json())
+            .then(result => {
+                if (result.success && result.data) {
+                    const record = result.data;
+                    setPropertyId(record.id);
+                    
+                    // Merge all sections back into form data
+                    const allSections = {
+                        ...record.property_details,
+                        ...record.buyer_details,
+                        ...record.loan_details,
+                        ...record.seller_questions,
+                        ...record.calculated_values,
+                        propertyPrice: record.property_price,
+                        propertyAddress: record.property_address,
+                        selectedState: record.selected_state,
+                    };
+                    
+                    // Update form data with loaded values
+                    Object.entries(allSections).forEach(([key, value]) => {
+                        if (value !== null && value !== undefined) {
+                            updateFormData(key, value);
+                        }
+                    });
+                    
+                    // Skip welcome page when resuming
+                    updateFormData('showWelcomePage', false);
+                    
+                    // Clear resume flag from sessionStorage
+                    sessionStorage.removeItem('resumePropertyId');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading survey to resume:', error);
+            })
+            .finally(() => {
+                setIsLoadingResume(false);
+            });
+        } else if (!shouldResume) {
+            // When NOT resuming, always start fresh
+            // Reset form data and show welcome page
+            const hasFormData = formData.propertyPrice || 
+                               formData.propertyAddress || 
+                               formData.selectedState || 
+                               formData.buyerType;
+            
+            // If there's existing form data, reset it (user clicked "Start New Survey")
+            if (hasFormData) {
+                formData.resetForm();
+            }
+            
+            // Always show welcome page for fresh starts
             updateFormData('showWelcomePage', true);
         }
     }, []); // Only run on mount
@@ -59,8 +141,54 @@ export default function CalculatorPage() {
     
 
 
+    const handleSave = async (userSaved = false) => {
+        // Save will automatically link to user's account if logged in
+        // (user_id is already set in saveToSupabase via getSupabaseUserId)
+        // userSaved = true when user explicitly clicks "SAVE" in navigation warning
+        // Note: saveToSupabase from useSupabaseSync uses formData from the hook's closure
+        console.log('💾 handleSave called with userSaved:', userSaved);
+        await saveToSupabase(userSaved);
+    };
+
+    const handleLinkToAccount = async (userId) => {
+        // When anonymous user logs in/creates account, link existing record to their account
+        // Just trigger a save - saveToSupabase will automatically set user_id from session
+        if (propertyId) {
+            await saveToSupabase();
+        }
+    };
+
+    const handleDiscard = () => {
+        // Clear form data when discarding
+        formData.resetForm();
+    };
+
+    const handleEndOfSurveyDismiss = () => {
+        // User chose not to save - data is still retained in backend
+        // Just close the prompt
+    };
+
     return (
         <div className="min-h-screen bg-base-200">
+            {/* Navigation warning for unsaved changes */}
+            {/* Only show if logged in AND property address is set */}
+            <NavigationWarning
+                hasUnsavedChanges={hasUnsavedChanges()}
+                onSave={() => handleSave(true)} // Set user_saved = true when user clicks SAVE
+                onDiscard={handleDiscard}
+                onLinkToAccount={handleLinkToAccount}
+                propertyAddress={formData.propertyAddress}
+            />
+            
+            {/* End of survey save prompt */}
+            {formData.allFormsComplete && (
+                <EndOfSurveyPrompt
+                    onSave={handleSave}
+                    onDismiss={handleEndOfSurveyDismiss}
+                    onLinkToAccount={handleLinkToAccount}
+                />
+            )}
+            
             {/* Simplified header overlay - always shown on calculator route */}
             <SurveyHeaderOverlay />
             {showWelcomePage ? (

@@ -3,12 +3,29 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '@/hooks/useAuth';
+import { createClient } from '@/lib/supabase/client';
+import { User, LogOut } from 'lucide-react';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, loading } = useAuth();
+  const supabase = createClient();
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      await supabase.auth.signOut();
+      router.push('/');
+      router.refresh();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
   
   // Hide header when on calculator route (simplified overlay is shown instead)
   const shouldHideHeader = pathname === '/calculator';
@@ -94,18 +111,44 @@ export default function Header() {
             <div className="flex items-center">
               {/* Auth buttons */}
               <div className="flex items-center gap-3 mr-4">
-                <Link
-                  href="/login"
-                  className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors"
-                >
-                  Log In
-                </Link>
-                <Link
-                  href="/signup"
-                  className="px-3 py-2 text-sm font-medium text-secondary bg-primary rounded-full hover:bg-primary/90 transition-colors"
-                >
-                  Sign Up
-                </Link>
+                {loading ? (
+                  // Show nothing while loading
+                  null
+                ) : user ? (
+                  // Show Account and Logout when logged in
+                  <>
+                    <Link
+                      href="/dashboard"
+                      className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors flex items-center gap-2"
+                    >
+                      <User className="w-4 h-4" />
+                      Account
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  // Show Login and Sign Up when not logged in
+                  <>
+                    <Link
+                      href="/login"
+                      className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors"
+                    >
+                      Log In
+                    </Link>
+                    <Link
+                      href="/signup"
+                      className="px-3 py-2 text-sm font-medium text-secondary bg-primary rounded-full hover:bg-primary/90 transition-colors"
+                    >
+                      Sign Up
+                    </Link>
+                  </>
+                )}
               </div>
               
               {/* Hamburger button - mobile only */}
@@ -201,6 +244,57 @@ export default function Header() {
                         Contact
                       </Link>
                     </li>
+                    {!loading && (
+                      <>
+                        {user ? (
+                          <>
+                            <li>
+                              <Link
+                                href="/dashboard"
+                                onClick={closeMenu}
+                                className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200 flex items-center gap-2"
+                              >
+                                <User className="w-5 h-5" />
+                                Account
+                              </Link>
+                            </li>
+                            <li>
+                              <button
+                                onClick={() => {
+                                  handleLogout();
+                                  closeMenu();
+                                }}
+                                className="w-full text-left block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200 flex items-center gap-2"
+                              >
+                                <LogOut className="w-5 h-5" />
+                                Logout
+                              </button>
+                            </li>
+                          </>
+                        ) : (
+                          <>
+                            <li>
+                              <Link
+                                href="/login"
+                                onClick={closeMenu}
+                                className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200"
+                              >
+                                Log In
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
+                                href="/signup"
+                                onClick={closeMenu}
+                                className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200"
+                              >
+                                Sign Up
+                              </Link>
+                            </li>
+                          </>
+                        )}
+                      </>
+                    )}
                   </ul>
                 </nav>
               </div>

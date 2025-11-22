@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { getSessionId, getDeviceId } from '../lib/sessionManager'
+import { getSessionId, getDeviceId, getSupabaseUserId } from '../lib/sessionManager'
 import { useStateSelector } from '../states/useStateSelector'
 
 /**
@@ -9,11 +9,16 @@ import { useStateSelector } from '../states/useStateSelector'
  * @param {string} propertyId - Current property record ID (if exists)
  * @param {Function} setPropertyId - Function to set property record ID
  */
-export function useSupabaseSync(formData, updateFormData, propertyId, setPropertyId) {
+export function useSupabaseSync(formData, updateFormData, propertyId, setPropertyId, options = {}) {
+  const { 
+    autoSave = false, // Auto-save disabled by default (only for logged-in users who want it)
+    enableAutoSave = false // Flag to enable auto-save (set to true for logged-in users)
+  } = options
+  
   const saveTimeoutRef = useRef(null)
   const isInitialMountRef = useRef(true)
   
-  // Generate session ID once on mount (new session for each page load)
+  // Generate session ID once on mount (persists for this survey attempt)
   const [sessionId] = useState(() => getSessionId())
   const [deviceId] = useState(() => getDeviceId())
   
@@ -242,12 +247,15 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
   }, [])
 
   // Save data to Supabase via API route
-  const saveToSupabase = useCallback(async (data) => {
+  const saveToSupabase = useCallback(async (data, userSaved = false) => {
     try {
       if (!sessionId || !deviceId) {
         console.log('No session/device ID available, skipping save')
         return
       }
+
+      // Get Supabase user ID from session (if authenticated)
+      const userId = await getSupabaseUserId()
 
       const sections = organizeFormDataIntoSections(data)
       const completionPercentage = calculateCompletionPercentage(sections)
@@ -267,8 +275,9 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
         action: 'save',
         sessionId,
         deviceId,
-        userId: null, // For future: will be set when user logs in
+        userId: userId || null, // Use Supabase user ID from session
         propertyId,
+        userSaved: userSaved, // Set to true when user explicitly saves
         data: {
           propertyPrice: data.propertyPrice,
           propertyAddress: data.propertyAddress,
@@ -373,7 +382,7 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
     }, 500) // 500ms delay
   }, [saveToSupabase])
 
-  // Auto-save when form data changes (but skip the very first render)
+  // Auto-save when form data changes (only if enabled and user is logged in)
   useEffect(() => {
     if (isInitialMountRef.current) {
       // Skip save on initial mount
@@ -381,9 +390,11 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
       return
     }
     
-    // Auto-save on every subsequent change
-    debouncedSave(formData)
-  }, [formData, debouncedSave])
+    // Only auto-save if explicitly enabled (for logged-in users who want it)
+    if (autoSave && enableAutoSave) {
+      debouncedSave(formData)
+    }
+  }, [formData, debouncedSave, autoSave, enableAutoSave])
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -394,8 +405,25 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
     }
   }, [])
 
+  // Explicit save function (can be called on demand)
+  const saveExplicitly = useCallback(async (userSaved = false) => {
+    return await saveToSupabase(formData, userSaved)
+  }, [saveToSupabase, formData])
+
   return {
-    saveToSupabase,
-    loadFromSupabase
+    saveToSupabase: saveExplicitly, // Expose explicit save function
+    loadFromSupabase,
+    hasUnsavedChanges: () => {
+      // Check if there's any form data filled in
+      return !!(
+        formData.propertyPrice ||
+        formData.propertyAddress ||
+        formData.selectedState ||
+        formData.buyerType ||
+        formData.needsLoan ||
+        formData.loanDeposit ||
+        formData.councilRates
+      )
+    }
   }
 }

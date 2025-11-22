@@ -3,6 +3,7 @@ import { create } from 'zustand'
 export const useFormStore = create((set, get) => ({
   // Supabase integration
   propertyId: null, // Current property record ID in Supabase
+  isResumingSurvey: false, // Flag to track if we're resuming an existing survey
   
   // Welcome Page
   showWelcomePage: true,
@@ -260,9 +261,28 @@ export const useFormStore = create((set, get) => ({
   // Set property ID from Supabase
   setPropertyId: (id) => set({ propertyId: id }),
   
+  // Set resume flag
+  setIsResumingSurvey: (isResuming) => set({ isResumingSurvey: isResuming }),
+  
+  // Check if form has unsaved changes
+  hasUnsavedChanges: () => {
+    const state = get()
+    // Check if any key fields have been filled
+    return !!(
+      state.propertyPrice ||
+      state.propertyAddress ||
+      state.selectedState ||
+      state.buyerType ||
+      state.needsLoan ||
+      state.loanDeposit ||
+      state.councilRates
+    )
+  },
+  
   // Reset all form data
   resetForm: () => set({
     propertyId: null, // Clear property ID to trigger new record creation
+    isResumingSurvey: false, // Clear resume flag
     propertyPrice: '',
     propertyAddress: '',
     selectedState: '',

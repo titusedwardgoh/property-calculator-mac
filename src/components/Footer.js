@@ -1,8 +1,23 @@
+"use client";
+
 import React from 'react';
 import { Home, Info, HelpCircle, Mail, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 export default function Footer() {
+  const pathname = usePathname();
+  
+  // Check if we're on calculator page and need to intercept navigation
+  const handleLinkClick = (e, href) => {
+    if (pathname === '/calculator' && typeof window !== 'undefined' && window.__navigationWarning) {
+      const canNavigate = window.__navigationWarning.checkNavigation(href);
+      if (!canNavigate) {
+        e.preventDefault();
+        return;
+      }
+    }
+  };
   return (
     <footer className="bg-secondary">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -36,6 +51,7 @@ export default function Footer() {
               <li>
                 <Link 
                   href="/about" 
+                  onClick={(e) => handleLinkClick(e, '/about')}
                   className="text-base-100/70 hover:text-primary transition-colors flex items-center gap-2"
                 >
                   <Info className="w-4 h-4" />
@@ -45,6 +61,7 @@ export default function Footer() {
               <li>
                 <Link 
                   href="/faq" 
+                  onClick={(e) => handleLinkClick(e, '/faq')}
                   className="text-base-100/70 hover:text-primary transition-colors flex items-center gap-2"
                 >
                   <HelpCircle className="w-4 h-4" />
@@ -54,6 +71,7 @@ export default function Footer() {
               <li>
                 <Link 
                   href="/contact" 
+                  onClick={(e) => handleLinkClick(e, '/contact')}
                   className="text-base-100/70 hover:text-primary transition-colors flex items-center gap-2"
                 >
                   <Mail className="w-4 h-4" />
@@ -68,12 +86,20 @@ export default function Footer() {
             <h4 className="text-lg font-semibold text-base-100 mb-4">Legal</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/privacy" className="text-base-100/70 hover:text-primary transition-colors">
+                <Link 
+                  href="/privacy" 
+                  onClick={(e) => handleLinkClick(e, '/privacy')}
+                  className="text-base-100/70 hover:text-primary transition-colors"
+                >
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/terms" className="text-base-100/70 hover:text-primary transition-colors">
+                <Link 
+                  href="/terms" 
+                  onClick={(e) => handleLinkClick(e, '/terms')}
+                  className="text-base-100/70 hover:text-primary transition-colors"
+                >
                   Terms of Service
                 </Link>
               </li>
