@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import UpfrontCosts from '../../components/UpfrontCosts';
@@ -18,7 +18,7 @@ import { useFormStore } from '../../stores/formStore';
 import { useSupabaseSync } from '../../hooks/useSupabaseSync';
 import { useAuth } from '../../hooks/useAuth';
 
-export default function CalculatorPage() {
+function CalculatorPageContent() {
     const formData = useFormStore();
     const updateFormData = formData.updateFormData;
     const propertyId = formData.propertyId;
@@ -469,4 +469,19 @@ export default function CalculatorPage() {
             )}
         </div>
     )
+}
+
+export default function CalculatorPage() {
+    return (
+        <Suspense fallback={
+            <div className="min-h-screen bg-base-200 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading calculator...</p>
+                </div>
+            </div>
+        }>
+            <CalculatorPageContent />
+        </Suspense>
+    );
 }
