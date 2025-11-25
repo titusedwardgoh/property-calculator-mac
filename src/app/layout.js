@@ -3,6 +3,7 @@ import "./globals.css";
 import Footer from '../components/Footer';
 import Header from "../components/Header";
 import LoggedInHeaderOverlay from "../components/LoggedInHeaderOverlay";
+import SettingsNavigation from "../components/SettingsNavigation";
 
 const robotoFont = Roboto({
   display: "swap",
@@ -31,6 +32,7 @@ export default function RootLayout({ children }) {
       >
         <Header />
         <LoggedInHeaderOverlay />
+        <SettingsNavigation />
         {children}
         <Footer />
       </body>
