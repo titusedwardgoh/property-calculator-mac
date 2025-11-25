@@ -4,11 +4,13 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useFormStore } from '../stores/formStore';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function SurveyHeaderOverlay() {
     const router = useRouter();
     const pathname = usePathname();
     const resetForm = useFormStore(state => state.resetForm);
+    const { user } = useAuth();
 
     // Only show overlay when on calculator route
     if (pathname !== '/calculator') {
@@ -29,12 +31,16 @@ export default function SurveyHeaderOverlay() {
     };
 
     const handleClose = () => {
-        handleNavigation('/');
+        // Navigate to dashboard if logged in, home if not
+        const targetUrl = user ? '/dashboard' : '/';
+        handleNavigation(targetUrl);
     };
 
     const handleLogoClick = (e) => {
         e.preventDefault();
-        handleNavigation('/');
+        // Navigate to dashboard if logged in, home if not
+        const targetUrl = user ? '/dashboard' : '/';
+        handleNavigation(targetUrl);
     };
 
     return (

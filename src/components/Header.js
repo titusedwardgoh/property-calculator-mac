@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -16,6 +16,16 @@ export default function Header() {
   const { user, loading } = useAuth();
   const supabase = createClient();
 
+  // Re-check auth state when pathname changes (e.g., after login redirect)
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      // This will trigger the useAuth hook to update via onAuthStateChange
+      // We just need to ensure the session is checked
+    };
+    checkAuth();
+  }, [pathname, supabase]);
+
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
@@ -28,7 +38,8 @@ export default function Header() {
   };
   
   // Hide header when on calculator route (simplified overlay is shown instead)
-  const shouldHideHeader = pathname === '/calculator';
+  // Also hide when user is logged in (LoggedInHeaderOverlay will be shown instead)
+  const shouldHideHeader = pathname === '/calculator' || (user && pathname !== '/calculator');
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -126,7 +137,7 @@ export default function Header() {
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2"
+                      className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2 cursor-pointer"
                     >
                       <LogOut className="w-4 h-4" />
                       Logout

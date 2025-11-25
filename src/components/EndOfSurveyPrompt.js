@@ -48,6 +48,9 @@ export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount }
     if (onDismiss) {
       onDismiss();
     }
+    // Navigate to dashboard if logged in, home if not
+    const targetUrl = user ? '/dashboard' : '/';
+    router.push(targetUrl);
   };
 
   const handleCreateAccount = () => {

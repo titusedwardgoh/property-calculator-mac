@@ -11,7 +11,10 @@ export async function GET(request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      return NextResponse.redirect(new URL(next, request.url))
+      const response = NextResponse.redirect(new URL(next, request.url))
+      // Force a refresh to update auth state
+      response.headers.set('Cache-Control', 'no-store, must-revalidate')
+      return response
     }
   }
 

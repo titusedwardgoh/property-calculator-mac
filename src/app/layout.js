@@ -2,6 +2,7 @@ import { Roboto, Unbounded } from "next/font/google";
 import "./globals.css";
 import Footer from '../components/Footer';
 import Header from "../components/Header";
+import LoggedInHeaderOverlay from "../components/LoggedInHeaderOverlay";
 
 const robotoFont = Roboto({
   display: "swap",
@@ -29,6 +30,7 @@ export default function RootLayout({ children }) {
         className={robotoFont.className}
       >
         <Header />
+        <LoggedInHeaderOverlay />
         {children}
         <Footer />
       </body>

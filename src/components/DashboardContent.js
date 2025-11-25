@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LogOut, User, Play, Eye, Trash2, FileText, Loader2 } from 'lucide-react';
+import { User, Play, Eye, Trash2, FileText, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { useFormStore } from '@/stores/formStore';
@@ -123,7 +123,7 @@ export default function DashboardContent({ userEmail, handleLogout }) {
     <div className="min-h-screen bg-base-200">
       <main className="pb-24">
         {/* Hero Section */}
-        <section className="container mx-auto px-4 py-16 lg:py-20">
+        <section className="container bg-secondary mx-auto px-4 py-16 lg:py-20">
           <div className="max-w-3xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -139,7 +139,7 @@ export default function DashboardContent({ userEmail, handleLogout }) {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-              className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6"
+              className="text-4xl md:text-5xl font-bold text-base-100 leading-tight mb-6"
             >
               Dashboard
             </motion.h1>
@@ -147,7 +147,7 @@ export default function DashboardContent({ userEmail, handleLogout }) {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-              className="text-lg md:text-xl text-gray-600 mb-8"
+              className="text-lg md:text-xl text-base-100 mb-8"
             >
               Welcome back, {userEmail}
             </motion.p>
@@ -155,14 +155,14 @@ export default function DashboardContent({ userEmail, handleLogout }) {
         </section>
 
         {/* Dashboard Content */}
-        <section className="container mx-auto px-4 pb-16">
+        <section className="container mx-auto px-4 py-16">
           <div className="max-w-4xl mx-auto space-y-6">
             {/* Action Buttons */}
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
-              className="bg-base-100 border border-base-200 rounded-3xl shadow-sm p-6 flex flex-col sm:flex-row gap-4 justify-between items-center"
+              className="bg-base-100  p-6 flex justify-center items-center"
             >
               <Link
                 href="/calculator"
@@ -175,20 +175,11 @@ export default function DashboardContent({ userEmail, handleLogout }) {
                     sessionStorage.removeItem('resumePropertyId');
                   }
                 }}
-                className="bg-primary hover:bg-primary-focus text-secondary px-8 py-3 rounded-full font-medium text-base transition-all duration-200 hover:shadow-lg flex items-center justify-center gap-2"
+                className="bg-primary text-lg hover:bg-primary-focus text-secondary px-12 py-5 rounded-full font-medium text-base transition-all duration-200 hover:shadow-lg flex items-center justify-center gap-2"
               >
                 <FileText className="w-5 h-5" />
                 Start New Survey
               </Link>
-              <form action={handleLogout}>
-                <button
-                  type="submit"
-                  className="flex items-center justify-center gap-2 bg-base-200 hover:bg-base-300 text-gray-700 px-6 py-3 rounded-full font-medium text-base transition-all duration-200 hover:shadow-lg"
-                >
-                  <LogOut className="w-5 h-5" />
-                  Log out
-                </button>
-              </form>
             </motion.div>
 
             {/* Saved Surveys */}

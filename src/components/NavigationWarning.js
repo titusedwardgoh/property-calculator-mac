@@ -63,6 +63,10 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
     if (pendingNavigation) {
       router.push(pendingNavigation);
       setPendingNavigation(null);
+    } else {
+      // If no pending navigation, navigate to dashboard if logged in, home if not
+      const targetUrl = user ? '/dashboard' : '/';
+      router.push(targetUrl);
     }
   };
 
@@ -74,6 +78,10 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
     if (pendingNavigation) {
       router.push(pendingNavigation);
       setPendingNavigation(null);
+    } else {
+      // If no pending navigation, navigate to dashboard if logged in, home if not
+      const targetUrl = user ? '/dashboard' : '/';
+      router.push(targetUrl);
     }
   };
 
