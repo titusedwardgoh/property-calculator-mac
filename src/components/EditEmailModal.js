@@ -133,7 +133,7 @@ export default function EditEmailModal({ isOpen, onClose, currentEmail, onUpdate
                                             Verification Email Sent
                                         </h4>
                                         <p className="text-gray-600 mb-4">
-                                            We've sent a verification email to <strong>{newEmail}</strong>. 
+                                            We&apos;ve sent a verification email to <strong>{newEmail}</strong>. 
                                             Please check your inbox and click the verification link to complete the email change.
                                         </p>
                                         <p className="text-sm text-gray-500 mb-6">

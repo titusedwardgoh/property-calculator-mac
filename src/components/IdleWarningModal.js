@@ -66,14 +66,14 @@ export default function IdleWarningModal({ isOpen, onStayLoggedIn, onLogoutNow }
               {/* Middle Text Section */}
               <div className="px-8 py-6">
                 <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                  You've been idle for a while
+                  You&apos;ve been idle for a while
                 </h3>
                 <p className="text-gray-600 text-base mb-4">
-                  You'll be automatically logged out in{' '}
+                  You&apos;ll be automatically logged out in{' '}
                   <span className="font-semibold text-primary">{countdown}</span> second{countdown !== 1 ? 's' : ''} for security.
                 </p>
                 <p className="text-sm text-gray-500">
-                  Click "Stay Logged In" to continue your session.
+                  Click &quot;Stay Logged In&quot; to continue your session.
                 </p>
               </div>
               
