@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import DashboardContent from '@/components/DashboardContent';
 
 export default async function DashboardPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
 
   if (error || !user) {
@@ -12,7 +12,7 @@ export default async function DashboardPage() {
 
   const handleLogout = async () => {
     'use server';
-    const supabase = createClient();
+    const supabase = await createClient();
     await supabase.auth.signOut();
     redirect('/login');
   };

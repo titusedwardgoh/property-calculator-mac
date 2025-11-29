@@ -37,9 +37,14 @@ export default function Header() {
     }
   };
   
-  // Hide header when on calculator route (simplified overlay is shown instead)
-  // Also hide when user is logged in (LoggedInHeaderOverlay will be shown instead)
-  const shouldHideHeader = pathname === '/calculator' || (user && pathname !== '/calculator');
+  // Define public pages where normal header should always show (even when logged in)
+  const publicPages = ['/', '/about', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup'];
+  const isPublicPage = publicPages.includes(pathname);
+  
+  // Hide header only on calculator route (simplified overlay is shown instead)
+  // On public pages, always show the normal header (even if logged in)
+  // On protected pages (dashboard, settings), LoggedInHeaderOverlay will be shown instead
+  const shouldHideHeader = pathname === '/calculator' || (user && !isPublicPage && pathname !== '/calculator');
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -125,26 +130,8 @@ export default function Header() {
                 {loading ? (
                   // Show nothing while loading
                   null
-                ) : user ? (
-                  // Show Account and Logout when logged in
-                  <>
-                    <Link
-                      href="/dashboard"
-                      className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors flex items-center gap-2"
-                    >
-                      <User className="w-4 h-4" />
-                      Account
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2 cursor-pointer"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
-                  </>
                 ) : (
-                  // Show Login and Sign Up when not logged in
+                  // Always show Login and Sign Up on public pages (even when logged in)
                   <>
                     <Link
                       href="/login"
@@ -257,53 +244,25 @@ export default function Header() {
                     </li>
                     {!loading && (
                       <>
-                        {user ? (
-                          <>
-                            <li>
-                              <Link
-                                href="/dashboard"
-                                onClick={closeMenu}
-                                className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200 flex items-center gap-2"
-                              >
-                                <User className="w-5 h-5" />
-                                Account
-                              </Link>
-                            </li>
-                            <li>
-                              <button
-                                onClick={() => {
-                                  handleLogout();
-                                  closeMenu();
-                                }}
-                                className="w-full text-left block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200 flex items-center gap-2"
-                              >
-                                <LogOut className="w-5 h-5" />
-                                Logout
-                              </button>
-                            </li>
-                          </>
-                        ) : (
-                          <>
-                            <li>
-                              <Link
-                                href="/login"
-                                onClick={closeMenu}
-                                className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200"
-                              >
-                                Log In
-                              </Link>
-                            </li>
-                            <li>
-                              <Link
-                                href="/signup"
-                                onClick={closeMenu}
-                                className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200"
-                              >
-                                Sign Up
-                              </Link>
-                            </li>
-                          </>
-                        )}
+                        {/* Always show Login and Sign Up on public pages (even when logged in) */}
+                        <li>
+                          <Link
+                            href="/login"
+                            onClick={closeMenu}
+                            className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200"
+                          >
+                            Log In
+                          </Link>
+                        </li>
+                        <li>
+                          <Link
+                            href="/signup"
+                            onClick={closeMenu}
+                            className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200"
+                          >
+                            Sign Up
+                          </Link>
+                        </li>
                       </>
                     )}
                   </ul>

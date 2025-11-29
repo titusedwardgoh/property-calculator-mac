@@ -46,8 +46,12 @@ export default function LoggedInHeaderOverlay() {
         }
     };
 
-    // Only show overlay when user is logged in AND not on calculator route
-    if (loading || !user || pathname === '/calculator') {
+    // Define public pages where normal header should show instead
+    const publicPages = ['/', '/about', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup'];
+    const isPublicPage = publicPages.includes(pathname);
+    
+    // Only show overlay when user is logged in AND on protected pages (not public pages, not calculator)
+    if (loading || !user || pathname === '/calculator' || isPublicPage) {
         return null;
     }
 

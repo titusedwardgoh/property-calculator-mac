@@ -4,6 +4,7 @@ import Footer from '../components/Footer';
 import Header from "../components/Header";
 import LoggedInHeaderOverlay from "../components/LoggedInHeaderOverlay";
 import SettingsNavigation from "../components/SettingsNavigation";
+import AuthSessionManager from "../components/AuthSessionManager";
 
 const robotoFont = Roboto({
   display: "swap",
@@ -30,6 +31,7 @@ export default function RootLayout({ children }) {
       <body
         className={robotoFont.className}
       >
+        <AuthSessionManager />
         <Header />
         <LoggedInHeaderOverlay />
         <SettingsNavigation />

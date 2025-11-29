@@ -16,7 +16,7 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
-  
+
   // Get the 'next' parameter from URL to know where to redirect after login
   const nextUrl = searchParams.get('next') || '/dashboard';
 
@@ -26,37 +26,21 @@ function LoginPageContent() {
     setLoading(true);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
+      // Use client-side Supabase directly - it handles cookies automatically
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(data.error || 'Login failed');
+      if (error) {
+        setError(error.message || 'Login failed');
         setLoading(false);
         return;
       }
 
-      // Wait for session to be confirmed before redirecting
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // Use window.location for full page reload to ensure auth state updates
-        // Redirect to the intended destination or default to dashboard
-        window.location.href = nextUrl;
-      } else {
-        // If session not immediately available, wait a bit and try again
-        setTimeout(async () => {
-          const { data: { session: retrySession } } = await supabase.auth.getSession();
-          if (retrySession) {
-            window.location.href = nextUrl;
-          }
-        }, 500);
-      }
+      // Session is automatically set by Supabase client
+      // Use window.location for full page reload to ensure auth state updates
+      window.location.href = nextUrl;
     } catch (err) {
       setError('An error occurred. Please try again.');
       setLoading(false);
