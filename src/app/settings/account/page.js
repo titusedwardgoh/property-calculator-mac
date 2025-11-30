@@ -37,6 +37,7 @@ export default function AccountSettingsPage() {
     const [isEditingPhone, setIsEditingPhone] = useState(false);
     const [phoneData, setPhoneData] = useState('');
     const [isSavingPhone, setIsSavingPhone] = useState(false);
+    const [isSavingBuyerInfo, setIsSavingBuyerInfo] = useState(false);
     const [isEditingAddress, setIsEditingAddress] = useState(false);
     const [addressData, setAddressData] = useState('');
     const [isSavingAddress, setIsSavingAddress] = useState(false);
@@ -355,11 +356,18 @@ export default function AccountSettingsPage() {
                 setFormData({
                     firstName: profile.first_name || '',
                     lastName: profile.last_name || '',
-                    buyerType: profile.buyer_type || '',
-                    isAustralianResident: profile.is_australian_resident || '',
-                    isFirstHomeBuyer: profile.is_first_home_buyer || '',
-                    hasPensionCard: profile.has_pension_card || ''
+                    buyerType: profile.owner_investor || profile.buyer_type || '',
+                    isAustralianResident: profile.australian_citizen || profile.is_australian_resident || '',
+                    isFirstHomeBuyer: profile.first_home_buyer || profile.is_first_home_buyer || '',
+                    hasPensionCard: profile.pensioner || profile.has_pension_card || ''
                 });
+                
+                // Load use_info_populate toggle (default to true if not set)
+                if (profile.use_info_populate !== undefined) {
+                    setUseBuyerInfoForSurvey(profile.use_info_populate);
+                } else {
+                    setUseBuyerInfoForSurvey(true);
+                }
                 
                 // Set name data for editing
                 setNameData({
@@ -702,6 +710,98 @@ export default function AccountSettingsPage() {
 
     const handleCancelEditBuyerInfo = () => {
         setIsEditingBuyerInfo(false);
+        // Reset form data to original values
+        loadUserData();
+    };
+
+    const handleSaveBuyerInfo = async () => {
+        if (!user) return;
+        setIsSavingBuyerInfo(true);
+
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({
+                    owner_investor: formData.buyerType,
+                    australian_citizen: formData.isAustralianResident,
+                    first_home_buyer: formData.isFirstHomeBuyer,
+                    pensioner: formData.hasPensionCard,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', user.id);
+
+            if (error) {
+                if (isRefreshTokenError(error)) {
+                    console.error('Invalid refresh token detected, redirecting to login...');
+                    router.push('/login?next=/settings/account');
+                    return;
+                }
+                throw error;
+            }
+
+            setIsEditingBuyerInfo(false);
+            setNotification({
+                isOpen: true,
+                type: 'success',
+                title: 'Buyer Information Updated',
+                message: 'Buyer information updated successfully!'
+            });
+        } catch (error) {
+            console.error('Error updating buyer information:', error);
+            if (isRefreshTokenError(error)) {
+                console.error('Invalid refresh token detected, redirecting to login...');
+                router.push('/login?next=/settings/account');
+                return;
+            }
+            setNotification({
+                isOpen: true,
+                type: 'error',
+                title: 'Update Error',
+                message: 'Error updating buyer information. Please try again.'
+            });
+        } finally {
+            setIsSavingBuyerInfo(false);
+        }
+    };
+
+    const handleToggleUseInfoPopulate = async (newValue) => {
+        if (!user) return;
+        
+        setUseBuyerInfoForSurvey(newValue);
+
+        try {
+            const { error } = await supabase
+                .from('profiles')
+                .update({
+                    use_info_populate: newValue,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', user.id);
+
+            if (error) {
+                if (isRefreshTokenError(error)) {
+                    console.error('Invalid refresh token detected, redirecting to login...');
+                    router.push('/login?next=/settings/account');
+                    return;
+                }
+                // Revert on error
+                setUseBuyerInfoForSurvey(!newValue);
+                throw error;
+            }
+        } catch (error) {
+            console.error('Error updating use_info_populate:', error);
+            if (isRefreshTokenError(error)) {
+                console.error('Invalid refresh token detected, redirecting to login...');
+                router.push('/login?next=/settings/account');
+                return;
+            }
+            setNotification({
+                isOpen: true,
+                type: 'error',
+                title: 'Update Error',
+                message: 'Error updating preference. Please try again.'
+            });
+        }
     };
 
     // Address editing functions
@@ -1520,69 +1620,18 @@ export default function AccountSettingsPage() {
                                     <div className="flex gap-3 justify-end pt-4">
                                         <button
                                             onClick={handleCancelEditBuyerInfo}
-                                            className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                                            disabled={isSavingBuyerInfo}
+                                            className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                                         >
                                             Cancel
                                         </button>
-                                    </div>
-                                    
-                                    {/* Toggle for using buyer info in survey */}
-                                    <div className="pt-4 mt-4 border-t border-gray-200">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-gray-700">Use this information to prepopulate survey</span>
-                                            <motion.button
-                                                onClick={() => setUseBuyerInfoForSurvey(!useBuyerInfoForSurvey)}
-                                                className={`relative inline-flex items-center h-6 rounded-full w-14 focus:outline-none active:outline-none ${
-                                                    useBuyerInfoForSurvey 
-                                                        ? 'bg-green-500' 
-                                                        : 'bg-red-500'
-                                                }`}
-                                                animate={{
-                                                    backgroundColor: useBuyerInfoForSurvey ? '#10b981' : '#ef4444'
-                                                }}
-                                                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                            >
-                                                {/* NO text - shows on right when handle is on left (off state) */}
-                                                <AnimatePresence>
-                                                    {!useBuyerInfoForSurvey && (
-                                                        <motion.span
-                                                            key="no"
-                                                            initial={{ opacity: 0, x: -5 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            exit={{ opacity: 0, x: 5 }}
-                                                            transition={{ duration: 0.2 }}
-                                                            className="absolute right-0 pr-1.5 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
-                                                        >
-                                                            NO
-                                                        </motion.span>
-                                                    )}
-                                                </AnimatePresence>
-                                                {/* YES text - shows on left when handle is on right (on state) */}
-                                                <AnimatePresence>
-                                                    {useBuyerInfoForSurvey && (
-                                                        <motion.span
-                                                            key="yes"
-                                                            initial={{ opacity: 0, x: 5 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            exit={{ opacity: 0, x: -5 }}
-                                                            transition={{ duration: 0.2 }}
-                                                            className="absolute left-0 pl-1.5 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
-                                                        >
-                                                            YES
-                                                        </motion.span>
-                                                    )}
-                                                </AnimatePresence>
-                                                {/* White circle handle */}
-                                                <motion.span
-                                                    className="absolute h-5 w-5 rounded-full bg-white shadow-md"
-                                                    animate={{
-                                                        left: useBuyerInfoForSurvey ? 'auto' : '0.125rem',
-                                                        right: useBuyerInfoForSurvey ? '0.125rem' : 'auto'
-                                                    }}
-                                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                                />
-                                            </motion.button>
-                                        </div>
+                                        <button
+                                            onClick={handleSaveBuyerInfo}
+                                            disabled={isSavingBuyerInfo}
+                                            className="px-4 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                        >
+                                            {isSavingBuyerInfo ? 'Saving...' : 'Save'}
+                                        </button>
                                     </div>
                                 </div>
                             ) : (
@@ -1619,23 +1668,25 @@ export default function AccountSettingsPage() {
                                             </span>
                                         </div>
                                     </div>
-                                    
-                                    {/* Toggle for using buyer info in survey */}
-                                    <div className="pt-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-sm font-medium text-gray-700">Use this information to prepopulate survey</span>
-                                            <motion.button
-                                                onClick={() => setUseBuyerInfoForSurvey(!useBuyerInfoForSurvey)}
-                                                className={`relative inline-flex items-center h-6 rounded-full w-14 focus:outline-none active:outline-none ${
-                                                    useBuyerInfoForSurvey 
-                                                        ? 'bg-green-500' 
-                                                        : 'bg-red-500'
-                                                }`}
-                                                animate={{
-                                                    backgroundColor: useBuyerInfoForSurvey ? '#10b981' : '#ef4444'
-                                                }}
-                                                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                            >
+                                </div>
+                            )}
+                            
+                            {/* Toggle for using buyer info in survey - always visible */}
+                            <div className="pt-4 mt-4 border-t border-gray-200">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-sm font-medium text-gray-700">Use this information to prepopulate survey</span>
+                                    <motion.button
+                                        onClick={() => handleToggleUseInfoPopulate(!useBuyerInfoForSurvey)}
+                                        className={`relative inline-flex items-center h-6 rounded-full w-14 focus:outline-none active:outline-none ${
+                                            useBuyerInfoForSurvey 
+                                                ? 'bg-green-500' 
+                                                : 'bg-red-500'
+                                        }`}
+                                        animate={{
+                                            backgroundColor: useBuyerInfoForSurvey ? '#10b981' : '#ef4444'
+                                        }}
+                                        transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                    >
                                                 {/* NO text - shows on right when handle is on left (off state) */}
                                                 <AnimatePresence>
                                                     {!useBuyerInfoForSurvey && (
@@ -1645,7 +1696,7 @@ export default function AccountSettingsPage() {
                                                             animate={{ opacity: 1, x: 0 }}
                                                             exit={{ opacity: 0, x: 5 }}
                                                             transition={{ duration: 0.2 }}
-                                                            className="absolute right-0 pr-2.5 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
+                                                            className="absolute right-0 pr-3 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
                                                         >
                                                             No
                                                         </motion.span>
@@ -1668,32 +1719,30 @@ export default function AccountSettingsPage() {
                                                 </AnimatePresence>
                                                 {/* White circle handle */}
                                                 <motion.span
-                                                    className="absolute h-5 w-5 rounded-full bg-white shadow-md"
+                                                    className="absolute h-4.5 w-4.5 rounded-full bg-white shadow-md"
                                                     animate={{
-                                                        left: useBuyerInfoForSurvey ? 'auto' : '0.125rem',
-                                                        right: useBuyerInfoForSurvey ? '0.125rem' : 'auto'
+                                                        left: useBuyerInfoForSurvey ? 'auto' : '0.225rem',
+                                                        right: useBuyerInfoForSurvey ? '0.155rem' : 'auto'
                                                     }}
                                                     transition={{ duration: 0.3, ease: 'easeInOut' }}
                                                 />
                                             </motion.button>
                                         </div>
                                     </div>
-                                </div>
-                            )}
                         </div>
+                    </div>
                     </div>
                 </div>
 
                 {/* Save Button */}
                 <div className="flex justify-end">
-                        <button
-                            onClick={handleSave}
-                            disabled={isSaving}
-                            className="bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            {isSaving ? 'Saving...' : 'Save Changes'}
-                        </button>
-                    </div>
+                    <button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isSaving ? 'Saving...' : 'Save Changes'}
+                    </button>
                 </div>
             </div>
 
