@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Phone, MapPin, Edit2, Plus, MoreVertical, Clock } from 'lucide-react';
 import EditEmailModal from '@/components/EditEmailModal';
 import NotificationModal from '@/components/NotificationModal';
@@ -20,7 +20,6 @@ export default function AccountSettingsPage() {
         firstName: '',
         lastName: '',
         buyerType: '',
-        isPPR: '',
         isAustralianResident: '',
         isFirstHomeBuyer: '',
         hasPensionCard: ''
@@ -41,6 +40,8 @@ export default function AccountSettingsPage() {
     const [isEditingAddress, setIsEditingAddress] = useState(false);
     const [addressData, setAddressData] = useState('');
     const [isSavingAddress, setIsSavingAddress] = useState(false);
+    const [isEditingBuyerInfo, setIsEditingBuyerInfo] = useState(false);
+    const [useBuyerInfoForSurvey, setUseBuyerInfoForSurvey] = useState(true);
     const [isManualEntry, setIsManualEntry] = useState(false);
     const [manualAddress, setManualAddress] = useState({
         address: '',
@@ -355,7 +356,6 @@ export default function AccountSettingsPage() {
                     firstName: profile.first_name || '',
                     lastName: profile.last_name || '',
                     buyerType: profile.buyer_type || '',
-                    isPPR: profile.is_ppr || '',
                     isAustralianResident: profile.is_australian_resident || '',
                     isFirstHomeBuyer: profile.is_first_home_buyer || '',
                     hasPensionCard: profile.has_pension_card || ''
@@ -414,7 +414,6 @@ export default function AccountSettingsPage() {
                     first_name: formData.firstName,
                     last_name: formData.lastName,
                     buyer_type: formData.buyerType,
-                    is_ppr: formData.isPPR,
                     is_australian_resident: formData.isAustralianResident,
                     is_first_home_buyer: formData.isFirstHomeBuyer,
                     has_pension_card: formData.hasPensionCard,
@@ -461,6 +460,14 @@ export default function AccountSettingsPage() {
     const updateFormData = (field, value) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
+
+    // Auto-select "No" for pensioner card when Australian Citizen is "no"
+    useEffect(() => {
+        if (formData.isAustralianResident === 'no') {
+            setFormData(prev => ({ ...prev, hasPensionCard: 'no' }));
+        }
+    }, [formData.isAustralianResident]);
+
 
     const handleEditEmail = async (newEmail, password) => {
         if (!user) return;
@@ -661,6 +668,40 @@ export default function AccountSettingsPage() {
             return `${formData.firstName} ${formData.lastName}`.trim() || 'Your name';
         }
         return 'Your name';
+    };
+
+    // Buyer Information display helpers
+    const getBuyerTypeDisplay = () => {
+        if (formData.buyerType === 'owner-occupier') return 'Owner-Occupier';
+        if (formData.buyerType === 'investor') return 'Investor';
+        return 'Not set';
+    };
+
+
+    const getAustralianResidentDisplay = () => {
+        if (formData.isAustralianResident === 'yes') return 'Yes';
+        if (formData.isAustralianResident === 'no') return 'No';
+        return 'Not set';
+    };
+
+    const getFirstHomeBuyerDisplay = () => {
+        if (formData.isFirstHomeBuyer === 'yes') return 'Yes';
+        if (formData.isFirstHomeBuyer === 'no') return 'No';
+        return 'Not set';
+    };
+
+    const getPensionCardDisplay = () => {
+        if (formData.hasPensionCard === 'yes') return 'Yes';
+        if (formData.hasPensionCard === 'no') return 'No';
+        return 'Not set';
+    };
+
+    const handleStartEditBuyerInfo = () => {
+        setIsEditingBuyerInfo(true);
+    };
+
+    const handleCancelEditBuyerInfo = () => {
+        setIsEditingBuyerInfo(false);
     };
 
     // Address editing functions
@@ -960,7 +1001,7 @@ export default function AccountSettingsPage() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Left Column: Profile + Buyer Questions */}
+                    {/* Left Column: Profile + Email + Phone + Address */}
                     <div className="space-y-6">
                         {/* Profile Section */}
                         <div className="bg-base-100 rounded-lg shadow-lg p-6">
@@ -1039,155 +1080,6 @@ export default function AccountSettingsPage() {
                             )}
                         </div>
 
-                        {/* Buyer Questions Section */}
-                        <div className="bg-base-100 rounded-lg shadow-lg p-6">
-                            <h2 className="text-xl font-bold text-gray-900 mb-6">Buyer Information</h2>
-                            <div className="space-y-6">
-                                {/* Owner/Investor */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                                        Are you an Owner or Investor?
-                                    </label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {[
-                                            { value: 'owner-occupier', label: 'Owner-Occupier', description: 'I will live in this property' },
-                                            { value: 'investor', label: 'Investor', description: 'I will rent this property out' }
-                                        ].map((option) => (
-                                            <button
-                                                key={option.value}
-                                                onClick={() => updateFormData('buyerType', option.value)}
-                                                className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
-                                                    formData.buyerType === option.value
-                                                        ? 'border-primary bg-primary/10 text-primary'
-                                                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                                }`}
-                                            >
-                                                <div className="font-medium mb-1">{option.label}</div>
-                                                <div className="text-xs text-gray-500">{option.description}</div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* PPR */}
-                                {formData.buyerType && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-3">
-                                            Will you live in this property? (PPR)
-                                        </label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {[
-                                                { value: 'yes', label: 'Yes', description: 'This will be my main home' },
-                                                { value: 'no', label: 'No', description: 'This will not be my main home' }
-                                            ].map((option) => {
-                                                const isDisabled = formData.buyerType === 'investor' && option.value === 'yes';
-                                                return (
-                                                    <button
-                                                        key={option.value}
-                                                        onClick={() => !isDisabled && updateFormData('isPPR', option.value)}
-                                                        disabled={isDisabled}
-                                                        className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
-                                                            isDisabled
-                                                                ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
-                                                                : formData.isPPR === option.value
-                                                                    ? 'border-primary bg-primary/10 text-primary'
-                                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                                        }`}
-                                                    >
-                                                        <div className="font-medium mb-1">{option.label}</div>
-                                                        <div className="text-xs text-gray-500">{option.description}</div>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Citizen */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                                        Australian citizen or permanent resident?
-                                    </label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {[
-                                            { value: 'yes', label: 'Yes', description: 'Australian citizen or permanent resident' },
-                                            { value: 'no', label: 'No', description: 'Foreign buyer' }
-                                        ].map((option) => (
-                                            <button
-                                                key={option.value}
-                                                onClick={() => updateFormData('isAustralianResident', option.value)}
-                                                className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
-                                                    formData.isAustralianResident === option.value
-                                                        ? 'border-primary bg-primary/10 text-primary'
-                                                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                                }`}
-                                            >
-                                                <div className="font-medium mb-1">{option.label}</div>
-                                                <div className="text-xs text-gray-500">{option.description}</div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* First Home Buyer */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-3">
-                                        First home buyer?
-                                    </label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {[
-                                            { value: 'yes', label: 'Yes', description: 'This is my first home purchase' },
-                                            { value: 'no', label: 'No', description: 'I have owned property before' }
-                                        ].map((option) => (
-                                            <button
-                                                key={option.value}
-                                                onClick={() => updateFormData('isFirstHomeBuyer', option.value)}
-                                                className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
-                                                    formData.isFirstHomeBuyer === option.value
-                                                        ? 'border-primary bg-primary/10 text-primary'
-                                                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                                }`}
-                                            >
-                                                <div className="font-medium mb-1">{option.label}</div>
-                                                <div className="text-xs text-gray-500">{option.description}</div>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                {/* Pensioner */}
-                                {formData.isAustralianResident === 'yes' && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-3">
-                                            Do you have a pensioner concession card?
-                                        </label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {[
-                                                { value: 'yes', label: 'Yes', description: 'I have a pensioner concession card' },
-                                                { value: 'no', label: 'No', description: 'I do not have a pensioner concession card' }
-                                            ].map((option) => (
-                                                <button
-                                                    key={option.value}
-                                                    onClick={() => updateFormData('hasPensionCard', option.value)}
-                                                    className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
-                                                        formData.hasPensionCard === option.value
-                                                            ? 'border-primary bg-primary/10 text-primary'
-                                                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                                    }`}
-                                                >
-                                                    <div className="font-medium mb-1">{option.label}</div>
-                                                    <div className="text-xs text-gray-500">{option.description}</div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Right Column: Email, Phone, Address */}
-                    <div className="space-y-6">
                         {/* Email Section */}
                         <div className="bg-base-100 rounded-lg shadow-lg p-6">
                             <div className="flex justify-between items-center mb-4">
@@ -1493,6 +1385,299 @@ export default function AccountSettingsPage() {
                                             </div>
                                         );
                                     })()}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Right Column: Buyer Information */}
+                    <div className="space-y-6">
+                        {/* Buyer Questions Section */}
+                        <div className="bg-base-100 rounded-lg shadow-lg p-6">
+                            <div className="flex justify-between items-center mb-4">
+                                <h2 className="text-xl font-bold text-gray-900">Buyer Information</h2>
+                                {!isEditingBuyerInfo && (
+                                    <button 
+                                        onClick={handleStartEditBuyerInfo}
+                                        className="text-primary hover:text-primary-focus text-sm font-medium cursor-pointer"
+                                    >
+                                        Edit
+                                    </button>
+                                )}
+                            </div>
+                            {isEditingBuyerInfo ? (
+                                <div className="space-y-6">
+                                    {/* Owner/Investor */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                                            Are you an Owner or Investor?
+                                        </label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {[
+                                                { value: 'owner-occupier', label: 'Owner-Occupier', description: 'I will live in this property' },
+                                                { value: 'investor', label: 'Investor', description: 'I will rent this property out' }
+                                            ].map((option) => (
+                                                <button
+                                                    key={option.value}
+                                                    onClick={() => updateFormData('buyerType', option.value)}
+                                                    className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
+                                                        formData.buyerType === option.value
+                                                            ? 'border-primary bg-primary/10 text-primary'
+                                                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                    }`}
+                                                >
+                                                    <div className="font-medium mb-1">{option.label}</div>
+                                                    <div className="text-xs text-gray-500">{option.description}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Citizen */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                                            Australian citizen or permanent resident?
+                                        </label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {[
+                                                { value: 'yes', label: 'Yes', description: 'Australian citizen or permanent resident' },
+                                                { value: 'no', label: 'No', description: 'Foreign buyer' }
+                                            ].map((option) => (
+                                                <button
+                                                    key={option.value}
+                                                    onClick={() => updateFormData('isAustralianResident', option.value)}
+                                                    className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
+                                                        formData.isAustralianResident === option.value
+                                                            ? 'border-primary bg-primary/10 text-primary'
+                                                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                    }`}
+                                                >
+                                                    <div className="font-medium mb-1">{option.label}</div>
+                                                    <div className="text-xs text-gray-500">{option.description}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* First Home Buyer */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                                            First home buyer?
+                                        </label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {[
+                                                { value: 'yes', label: 'Yes', description: 'This is my first home purchase' },
+                                                { value: 'no', label: 'No', description: 'I have owned property before' }
+                                            ].map((option) => (
+                                                <button
+                                                    key={option.value}
+                                                    onClick={() => updateFormData('isFirstHomeBuyer', option.value)}
+                                                    className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
+                                                        formData.isFirstHomeBuyer === option.value
+                                                            ? 'border-primary bg-primary/10 text-primary'
+                                                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                    }`}
+                                                >
+                                                    <div className="font-medium mb-1">{option.label}</div>
+                                                    <div className="text-xs text-gray-500">{option.description}</div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Pensioner */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                                            Do you have a pensioner concession card?
+                                        </label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {[
+                                                { value: 'yes', label: 'Yes', description: 'I have a pensioner concession card' },
+                                                { value: 'no', label: 'No', description: 'I do not have a pensioner concession card' }
+                                            ].map((option) => {
+                                                const isDisabled = formData.isAustralianResident === 'no' && option.value === 'yes';
+                                                return (
+                                                    <button
+                                                        key={option.value}
+                                                        onClick={() => !isDisabled && updateFormData('hasPensionCard', option.value)}
+                                                        disabled={isDisabled}
+                                                        className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
+                                                            isDisabled
+                                                                ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
+                                                                : formData.hasPensionCard === option.value
+                                                                    ? 'border-primary bg-primary/10 text-primary'
+                                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                        }`}
+                                                    >
+                                                        <div className="font-medium mb-1">{option.label}</div>
+                                                        <div className="text-xs text-gray-500">{option.description}</div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3 justify-end pt-4">
+                                        <button
+                                            onClick={handleCancelEditBuyerInfo}
+                                            className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                    
+                                    {/* Toggle for using buyer info in survey */}
+                                    <div className="pt-4 mt-4 border-t border-gray-200">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-gray-700">Use this information to prepopulate survey</span>
+                                            <motion.button
+                                                onClick={() => setUseBuyerInfoForSurvey(!useBuyerInfoForSurvey)}
+                                                className={`relative inline-flex items-center h-6 rounded-full w-14 focus:outline-none active:outline-none ${
+                                                    useBuyerInfoForSurvey 
+                                                        ? 'bg-green-500' 
+                                                        : 'bg-red-500'
+                                                }`}
+                                                animate={{
+                                                    backgroundColor: useBuyerInfoForSurvey ? '#10b981' : '#ef4444'
+                                                }}
+                                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                            >
+                                                {/* NO text - shows on right when handle is on left (off state) */}
+                                                <AnimatePresence>
+                                                    {!useBuyerInfoForSurvey && (
+                                                        <motion.span
+                                                            key="no"
+                                                            initial={{ opacity: 0, x: -5 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            exit={{ opacity: 0, x: 5 }}
+                                                            transition={{ duration: 0.2 }}
+                                                            className="absolute right-0 pr-1.5 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
+                                                        >
+                                                            NO
+                                                        </motion.span>
+                                                    )}
+                                                </AnimatePresence>
+                                                {/* YES text - shows on left when handle is on right (on state) */}
+                                                <AnimatePresence>
+                                                    {useBuyerInfoForSurvey && (
+                                                        <motion.span
+                                                            key="yes"
+                                                            initial={{ opacity: 0, x: 5 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            exit={{ opacity: 0, x: -5 }}
+                                                            transition={{ duration: 0.2 }}
+                                                            className="absolute left-0 pl-1.5 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
+                                                        >
+                                                            YES
+                                                        </motion.span>
+                                                    )}
+                                                </AnimatePresence>
+                                                {/* White circle handle */}
+                                                <motion.span
+                                                    className="absolute h-5 w-5 rounded-full bg-white shadow-md"
+                                                    animate={{
+                                                        left: useBuyerInfoForSurvey ? 'auto' : '0.125rem',
+                                                        right: useBuyerInfoForSurvey ? '0.125rem' : 'auto'
+                                                    }}
+                                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                                />
+                                            </motion.button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm text-gray-500">Owner or Investor</span>
+                                            <span className={`text-gray-900 ${getBuyerTypeDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
+                                                {getBuyerTypeDisplay()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm text-gray-500">Australian citizen or permanent resident?</span>
+                                            <span className={`text-gray-900 ${getAustralianResidentDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
+                                                {getAustralianResidentDisplay()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm text-gray-500">First home buyer?</span>
+                                            <span className={`text-gray-900 ${getFirstHomeBuyerDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
+                                                {getFirstHomeBuyerDisplay()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                        <div className="flex flex-col">
+                                            <span className="text-sm text-gray-500">Pensioner concession card?</span>
+                                            <span className={`text-gray-900 ${getPensionCardDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
+                                                {getPensionCardDisplay()}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    
+                                    {/* Toggle for using buyer info in survey */}
+                                    <div className="pt-3">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm font-medium text-gray-700">Use this information to prepopulate survey</span>
+                                            <motion.button
+                                                onClick={() => setUseBuyerInfoForSurvey(!useBuyerInfoForSurvey)}
+                                                className={`relative inline-flex items-center h-6 rounded-full w-14 focus:outline-none active:outline-none ${
+                                                    useBuyerInfoForSurvey 
+                                                        ? 'bg-green-500' 
+                                                        : 'bg-red-500'
+                                                }`}
+                                                animate={{
+                                                    backgroundColor: useBuyerInfoForSurvey ? '#10b981' : '#ef4444'
+                                                }}
+                                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                            >
+                                                {/* NO text - shows on right when handle is on left (off state) */}
+                                                <AnimatePresence>
+                                                    {!useBuyerInfoForSurvey && (
+                                                        <motion.span
+                                                            key="no"
+                                                            initial={{ opacity: 0, x: -5 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            exit={{ opacity: 0, x: 5 }}
+                                                            transition={{ duration: 0.2 }}
+                                                            className="absolute right-0 pr-2.5 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
+                                                        >
+                                                            No
+                                                        </motion.span>
+                                                    )}
+                                                </AnimatePresence>
+                                                {/* YES text - shows on left when handle is on right (on state) */}
+                                                <AnimatePresence>
+                                                    {useBuyerInfoForSurvey && (
+                                                        <motion.span
+                                                            key="yes"
+                                                            initial={{ opacity: 0, x: 5 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            exit={{ opacity: 0, x: -5 }}
+                                                            transition={{ duration: 0.2 }}
+                                                            className="absolute left-0 pl-2.5 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
+                                                        >
+                                                            Yes
+                                                        </motion.span>
+                                                    )}
+                                                </AnimatePresence>
+                                                {/* White circle handle */}
+                                                <motion.span
+                                                    className="absolute h-5 w-5 rounded-full bg-white shadow-md"
+                                                    animate={{
+                                                        left: useBuyerInfoForSurvey ? 'auto' : '0.125rem',
+                                                        right: useBuyerInfoForSurvey ? '0.125rem' : 'auto'
+                                                    }}
+                                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                                />
+                                            </motion.button>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
