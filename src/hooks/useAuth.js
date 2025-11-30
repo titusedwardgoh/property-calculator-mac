@@ -19,12 +19,15 @@ function isRefreshTokenError(error) {
 // Helper function to handle invalid refresh token
 async function handleInvalidRefreshToken(supabase, router) {
   try {
-    // Clear the session
+    // Clear the session silently - don't log errors for expected token expiration
     await supabase.auth.signOut();
     // Redirect to login
     router.push('/login');
   } catch (err) {
-    console.error('Error during logout:', err);
+    // Only log if it's not a refresh token error (which is expected)
+    if (!isRefreshTokenError(err)) {
+      console.error('Error during logout:', err);
+    }
     // Force redirect even if logout fails
     router.push('/login');
   }
@@ -38,12 +41,13 @@ export function useAuth() {
   const supabase = createClient();
 
   useEffect(() => {
-    // Get initial session
+    // Get initial session - wrap in try/catch to handle any errors
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         // Check if it's an invalid refresh token error
+        // This commonly happens when refresh token expires after inactivity
         if (isRefreshTokenError(error)) {
-          console.error('Invalid refresh token detected, clearing session...');
+          // Silently handle - this is expected behavior after token expiration
           handleInvalidRefreshToken(supabase, router);
           return;
         }
@@ -53,33 +57,55 @@ export function useAuth() {
       }
       setUser(session?.user ?? null);
       setLoading(false);
+    }).catch((err) => {
+      // Catch any unhandled errors during session retrieval
+      if (isRefreshTokenError(err)) {
+        handleInvalidRefreshToken(supabase, router);
+        return;
+      }
+      setError(err);
+      setLoading(false);
     });
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Check for token refresh errors
-      if (event === 'TOKEN_REFRESHED' && !session) {
-        // Token refresh failed, check for errors
-        const { error: sessionError } = await supabase.auth.getSession();
-        if (sessionError && isRefreshTokenError(sessionError)) {
-          console.error('Invalid refresh token detected in auth state change, clearing session...');
+      try {
+        // Check for token refresh errors - Supabase automatically refreshes tokens
+        // If refresh fails, we'll get a TOKEN_REFRESHED event with no session or an error
+        if (event === 'TOKEN_REFRESHED') {
+          if (!session) {
+            // Token refresh failed, check for errors
+            const { error: sessionError } = await supabase.auth.getSession();
+            if (sessionError && isRefreshTokenError(sessionError)) {
+              // Silently handle expired refresh token - this is expected after long inactivity
+              handleInvalidRefreshToken(supabase, router);
+              return;
+            }
+          }
+        }
+        
+        // Handle SIGNED_OUT event which might indicate invalid token
+        if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+        
+        setUser(session?.user ?? null);
+        setLoading(false);
+        setError(null);
+      } catch (err) {
+        // Catch any errors during auth state change
+        if (isRefreshTokenError(err)) {
           handleInvalidRefreshToken(supabase, router);
           return;
         }
-      }
-      
-      // Handle SIGNED_OUT event which might indicate invalid token
-      if (event === 'SIGNED_OUT') {
-        setUser(null);
+        // For other errors, still update state
         setLoading(false);
-        return;
+        setError(err);
       }
-      
-      setUser(session?.user ?? null);
-      setLoading(false);
-      setError(null);
     });
 
     return () => subscription.unsubscribe();
