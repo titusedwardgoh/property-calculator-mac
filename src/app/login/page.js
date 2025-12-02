@@ -26,19 +26,28 @@ function LoginPageContent() {
     setLoading(true);
 
     try {
-      // Use client-side Supabase directly - it handles cookies automatically
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Use server-side API route for login to ensure cookies are properly set
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include', // Important: include cookies in request
       });
 
-      if (error) {
-        setError(error.message || 'Login failed');
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        setError(result.error || 'Login failed');
         setLoading(false);
         return;
       }
 
-      // Session is automatically set by Supabase client
+      // Wait a moment for cookies to be fully set, then redirect
+      // This ensures the server-side dashboard page can read the session
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       // Use window.location for full page reload to ensure auth state updates
       window.location.href = nextUrl;
     } catch (err) {

@@ -104,11 +104,11 @@ function CalculatorPageContent() {
         } else if (!shouldResume) {
             // When NOT resuming, always start fresh
             // Reset form data and show welcome page
-            const hasFormData = formData.propertyPrice || 
-                               formData.propertyAddress || 
-                               formData.selectedState || 
-                               formData.buyerType;
-            
+        const hasFormData = formData.propertyPrice || 
+                           formData.propertyAddress || 
+                           formData.selectedState || 
+                           formData.buyerType;
+        
             // If there's existing form data, reset it (user clicked "Start New Survey")
             if (hasFormData) {
                 formData.resetForm();

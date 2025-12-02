@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Mail, Phone, MapPin, Edit2, Plus, MoreVertical, Clock } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Edit2, Plus, MoreVertical, Clock, Trash2, X, Upload } from 'lucide-react';
 import EditEmailModal from '@/components/EditEmailModal';
 import NotificationModal from '@/components/NotificationModal';
 import PhoneInput from 'react-phone-number-input';
@@ -60,6 +60,11 @@ export default function AccountSettingsPage() {
     const scriptLoadingRef = useRef(false);
     const scriptLoadedRef = useRef(false);
     const [notification, setNotification] = useState({ isOpen: false, type: 'success', title: '', message: '' });
+    const [profilePictureUrl, setProfilePictureUrl] = useState(null);
+    const [isUploadingPicture, setIsUploadingPicture] = useState(false);
+    const [isProfilePictureModalOpen, setIsProfilePictureModalOpen] = useState(false);
+    const [isDeletingPicture, setIsDeletingPicture] = useState(false);
+    const fileInputRef = useRef(null);
 
     // Add global error handler for unhandled Supabase auth errors
     useEffect(() => {
@@ -387,6 +392,13 @@ export default function AccountSettingsPage() {
                 // Load phone and address if stored
                 if (profile.phone_number) setPhoneNumber(profile.phone_number);
                 if (profile.address) setAddress(profile.address);
+                
+                // Load profile picture URL if stored
+                if (profile.profile_picture_url) {
+                    setProfilePictureUrl(profile.profile_picture_url);
+                } else {
+                    setProfilePictureUrl(null);
+                }
             } else if (!error) {
                 // No profile found but no error - initialize with user email
                 setEmail(user.email || '');
@@ -403,6 +415,214 @@ export default function AccountSettingsPage() {
             if (user?.email) {
                 setEmail(user.email);
             }
+        }
+    };
+
+    const handleProfilePictureUpload = async (file) => {
+        if (!user || !file) return;
+        
+        setIsUploadingPicture(true);
+        
+        try {
+            // Validate file type
+            const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
+            if (!validTypes.includes(file.type)) {
+                setNotification({
+                    isOpen: true,
+                    type: 'error',
+                    title: 'Invalid File Type',
+                    message: 'Please upload a valid image file (JPEG, PNG, GIF, WebP, or SVG).'
+                });
+                setIsUploadingPicture(false);
+                return;
+            }
+            
+            // Validate file size (max 5MB)
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            if (file.size > maxSize) {
+                setNotification({
+                    isOpen: true,
+                    type: 'error',
+                    title: 'File Too Large',
+                    message: 'Please upload an image smaller than 5MB.'
+                });
+                setIsUploadingPicture(false);
+                return;
+            }
+            
+            // Generate unique filename: user-id-timestamp.extension
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+            
+            // Delete old profile picture if it exists
+            if (profilePictureUrl) {
+                try {
+                    // Extract filename from URL
+                    const oldFileName = profilePictureUrl.split('/').pop().split('?')[0];
+                    await supabase.storage
+                        .from('profile-pictures')
+                        .remove([oldFileName]);
+                } catch (error) {
+                    console.error('Error deleting old profile picture:', error);
+                    // Continue with upload even if deletion fails
+                }
+            }
+            
+            // Upload new file to Supabase Storage
+            const { data: uploadData, error: uploadError } = await supabase.storage
+                .from('profile-pictures')
+                .upload(filePath, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+            
+            if (uploadError) {
+                if (isRefreshTokenError(uploadError)) {
+                    console.error('Invalid refresh token detected, redirecting to login...');
+                    router.push('/login?next=/settings/account');
+                    return;
+                }
+                throw uploadError;
+            }
+            
+            // Get public URL
+            const { data: urlData } = supabase.storage
+                .from('profile-pictures')
+                .getPublicUrl(filePath);
+            
+            const publicUrl = urlData.publicUrl;
+            
+            // Save URL to profiles table
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({
+                    profile_picture_url: publicUrl,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', user.id);
+            
+            if (updateError) {
+                if (isRefreshTokenError(updateError)) {
+                    console.error('Invalid refresh token detected, redirecting to login...');
+                    router.push('/login?next=/settings/account');
+                    return;
+                }
+                throw updateError;
+            }
+            
+            // Update state
+            setProfilePictureUrl(publicUrl);
+            setIsProfilePictureModalOpen(false);
+            
+            setNotification({
+                isOpen: true,
+                type: 'success',
+                title: 'Profile Picture Updated',
+                message: 'Your profile picture has been updated successfully!'
+            });
+        } catch (error) {
+            console.error('Error uploading profile picture:', error);
+            if (isRefreshTokenError(error)) {
+                console.error('Invalid refresh token detected, redirecting to login...');
+                router.push('/login?next=/settings/account');
+                return;
+            }
+            setNotification({
+                isOpen: true,
+                type: 'error',
+                title: 'Upload Error',
+                message: 'Error uploading profile picture. Please try again.'
+            });
+        } finally {
+            setIsUploadingPicture(false);
+        }
+    };
+
+    const handleFileInputChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            handleProfilePictureUpload(file);
+        }
+        // Reset input so same file can be selected again
+        e.target.value = '';
+    };
+
+    const handleEditProfilePicture = () => {
+        setIsProfilePictureModalOpen(true);
+    };
+
+    const handleUploadNewPhoto = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleDeleteProfilePicture = async () => {
+        if (!user || !profilePictureUrl) return;
+        
+        setIsDeletingPicture(true);
+        
+        try {
+            // Extract filename from URL
+            const urlParts = profilePictureUrl.split('/');
+            const fileName = urlParts[urlParts.length - 1].split('?')[0];
+            
+            // Delete file from storage
+            const { error: deleteError } = await supabase.storage
+                .from('profile-pictures')
+                .remove([fileName]);
+            
+            if (deleteError) {
+                if (isRefreshTokenError(deleteError)) {
+                    console.error('Invalid refresh token detected, redirecting to login...');
+                    router.push('/login?next=/settings/account');
+                    return;
+                }
+                throw deleteError;
+            }
+            
+            // Remove URL from profiles table
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({
+                    profile_picture_url: null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', user.id);
+            
+            if (updateError) {
+                if (isRefreshTokenError(updateError)) {
+                    console.error('Invalid refresh token detected, redirecting to login...');
+                    router.push('/login?next=/settings/account');
+                    return;
+                }
+                throw updateError;
+            }
+            
+            // Update state
+            setProfilePictureUrl(null);
+            setIsProfilePictureModalOpen(false);
+            
+            setNotification({
+                isOpen: true,
+                type: 'success',
+                title: 'Profile Picture Removed',
+                message: 'Your profile picture has been removed successfully!'
+            });
+        } catch (error) {
+            console.error('Error deleting profile picture:', error);
+            if (isRefreshTokenError(error)) {
+                console.error('Invalid refresh token detected, redirecting to login...');
+                router.push('/login?next=/settings/account');
+                return;
+            }
+            setNotification({
+                isOpen: true,
+                type: 'error',
+                title: 'Delete Error',
+                message: 'Error deleting profile picture. Please try again.'
+            });
+        } finally {
+            setIsDeletingPicture(false);
         }
     };
 
@@ -1104,19 +1324,51 @@ export default function AccountSettingsPage() {
                     {/* Left Column: Profile + Email + Phone + Address */}
                     <div className="space-y-6">
                         {/* Profile Section */}
-                        <div className="bg-base-100 rounded-lg shadow-lg p-6">
-                            <h2 className="text-xl font-bold text-gray-900 mb-4">Profile</h2>
-                            <div className="flex flex-col items-center mb-4">
-                                <div className="relative mb-4">
-                                    <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                                        <User className="w-10 h-10 text-primary" />
-                                    </div>
-                                    <button className="absolute bottom-0 right-0 p-2 bg-primary rounded-full text-secondary hover:bg-primary-focus transition-colors">
-                                        <Edit2 className="w-4 h-4" />
-                                    </button>
-                                </div>
+                        <div className="bg-base-100 rounded-lg shadow-lg overflow-hidden relative">
+                            {/* Top Half - Different Background Color (from midpoint of profile pic upwards) */}
+                            <div className="bg-accent px-6 pt-6 pb-12">
+                                <h2 className="text-xl font-bold text-gray-900 mb-4">Profile</h2>
                             </div>
                             
+                            {/* Profile Picture - Positioned on top of background */}
+                            <div className="flex flex-col items-center -mt-12 relative z-10">
+                                <div className="relative">
+                                    {profilePictureUrl ? (
+                                        <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-md">
+                                            <img 
+                                                src={profilePictureUrl} 
+                                                alt="Profile" 
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                                            <User className="w-10 h-10 text-primary" />
+                                        </div>
+                                    )}
+                                    <button 
+                                        onClick={handleEditProfilePicture}
+                                        disabled={isUploadingPicture}
+                                        className="absolute cursor-pointer bottom-0 right-0 p-2 bg-primary rounded-full text-secondary hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isUploadingPicture ? (
+                                            <Clock className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <Edit2 className="w-4 h-4 " />
+                                        )}
+                                    </button>
+                                </div>
+                                <input
+                                    ref={fileInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                                    onChange={handleFileInputChange}
+                                    className="hidden"
+                                />
+                            </div>
+                            
+                            {/* Bottom Half - Name Section */}
+                            <div className="px-6 pb-6 pt-4">
                             {!isEditingName ? (
                                 <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
                                     <div className="flex items-center gap-3">
@@ -1178,6 +1430,7 @@ export default function AccountSettingsPage() {
                                     </div>
                                 </div>
                             )}
+                            </div>
                         </div>
 
                         {/* Email Section */}
@@ -1520,7 +1773,7 @@ export default function AccountSettingsPage() {
                                                 <button
                                                     key={option.value}
                                                     onClick={() => updateFormData('buyerType', option.value)}
-                                                    className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
+                                                    className={`py-3 px-4 cursor-pointer rounded-lg border-2 text-left transition-colors ${
                                                         formData.buyerType === option.value
                                                             ? 'border-primary bg-primary/10 text-primary'
                                                             : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -1546,7 +1799,7 @@ export default function AccountSettingsPage() {
                                                 <button
                                                     key={option.value}
                                                     onClick={() => updateFormData('isAustralianResident', option.value)}
-                                                    className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
+                                                    className={`py-3 px-4 cursor-pointer rounded-lg border-2 text-left transition-colors ${
                                                         formData.isAustralianResident === option.value
                                                             ? 'border-primary bg-primary/10 text-primary'
                                                             : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -1572,7 +1825,7 @@ export default function AccountSettingsPage() {
                                                 <button
                                                     key={option.value}
                                                     onClick={() => updateFormData('isFirstHomeBuyer', option.value)}
-                                                    className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
+                                                    className={`py-3 px-4 cursor-pointer rounded-lg border-2 text-left transition-colors ${
                                                         formData.isFirstHomeBuyer === option.value
                                                             ? 'border-primary bg-primary/10 text-primary'
                                                             : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -1601,7 +1854,7 @@ export default function AccountSettingsPage() {
                                                         key={option.value}
                                                         onClick={() => !isDisabled && updateFormData('hasPensionCard', option.value)}
                                                         disabled={isDisabled}
-                                                        className={`py-3 px-4 rounded-lg border-2 text-left transition-colors ${
+                                                        className={`py-3 px-4 cursor-pointer rounded-lg border-2 text-left transition-colors ${
                                                             isDisabled
                                                                 ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
                                                                 : formData.hasPensionCard === option.value
@@ -1677,7 +1930,7 @@ export default function AccountSettingsPage() {
                                     <span className="text-sm font-medium text-gray-700">Use this information to prepopulate survey</span>
                                     <motion.button
                                         onClick={() => handleToggleUseInfoPopulate(!useBuyerInfoForSurvey)}
-                                        className={`relative inline-flex items-center h-6 rounded-full w-14 focus:outline-none active:outline-none ${
+                                        className={`relative inline-flex items-center h-6 cursor-pointer rounded-full w-14 focus:outline-none active:outline-none ${
                                             useBuyerInfoForSurvey 
                                                 ? 'bg-green-500' 
                                                 : 'bg-red-500'
@@ -1733,17 +1986,6 @@ export default function AccountSettingsPage() {
                     </div>
                     </div>
                 </div>
-
-                {/* Save Button */}
-                <div className="flex justify-end">
-                    <button
-                        onClick={handleSave}
-                        disabled={isSaving}
-                        className="bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isSaving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                </div>
             </div>
 
             {/* Email Edit Modal */}
@@ -1762,6 +2004,97 @@ export default function AccountSettingsPage() {
                 title={notification.title}
                 message={notification.message}
             />
+
+            {/* Profile Picture Modal */}
+            <AnimatePresence>
+                {isProfilePictureModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <h2 className="text-xl font-bold text-gray-900">Profile Picture</h2>
+                                <button
+                                    onClick={() => setIsProfilePictureModalOpen(false)}
+                                    className="text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"
+                                    disabled={isUploadingPicture || isDeletingPicture}
+                                >
+                                    <X className="w-5 h-5 cursor-pointer" />
+                                </button>
+                            </div>
+
+                            {/* Current Picture Display */}
+                            <div className="flex flex-col items-center mb-6">
+                                {profilePictureUrl ? (
+                                    <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-200 shadow-lg mb-4">
+                                        <img 
+                                            src={profilePictureUrl} 
+                                            alt="Profile" 
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center mb-4 border-4 border-gray-200">
+                                        <User className="w-16 h-16 text-primary" />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={handleUploadNewPhoto}
+                                    disabled={isUploadingPicture || isDeletingPicture}
+                                    className="w-full cursor-pointer px-4 py-3 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+                                >
+                                    {isUploadingPicture ? (
+                                        <>
+                                            <Clock className="w-5 h-5 animate-spin" />
+                                            Uploading...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Upload className="w-5 h-5" />
+                                            Upload New Photo
+                                        </>
+                                    )}
+                                </button>
+
+                                {profilePictureUrl && (
+                                    <button
+                                        onClick={handleDeleteProfilePicture}
+                                        disabled={isUploadingPicture || isDeletingPicture}
+                                        className="w-full cursor-pointer px-4 py-3 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium"
+                                    >
+                                        {isDeletingPicture ? (
+                                            <>
+                                                <Clock className="w-5 h-5 animate-spin" />
+                                                Deleting...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Trash2 className="w-5 h-5" />
+                                                Remove Photo
+                                            </>
+                                        )}
+                                    </button>
+                                )}
+
+                                <button
+                                    onClick={() => setIsProfilePictureModalOpen(false)}
+                                    disabled={isUploadingPicture || isDeletingPicture}
+                                    className="w-full cursor-pointer px-4 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

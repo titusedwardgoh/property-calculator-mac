@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 
 export async function POST(request) {
   try {
-    const { email, password } = await request.json()
+    const { email, password, next } = await request.json()
 
     if (!email || !password) {
       return NextResponse.json(
@@ -26,6 +26,7 @@ export async function POST(request) {
       )
     }
 
+    // Return success response - cookies are set by Supabase server client
     return NextResponse.json({
       success: true,
       user: data.user,

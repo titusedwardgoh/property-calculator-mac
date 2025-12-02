@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useIdleTimeout } from '@/hooks/useIdleTimeout';
-import { useWindowCloseLogout } from '@/hooks/useWindowCloseLogout';
 import { createClient } from '@/lib/supabase/client';
 import IdleWarningModal from './IdleWarningModal';
 
@@ -40,8 +39,7 @@ export default function AuthSessionManager() {
     handleLogoutNow
   );
 
-  // Use window close logout hook
-  useWindowCloseLogout(user);
+  // Window close logout is disabled - we only log out after inactivity (2 hours)
 
   // Handle stay logged in from modal
   const handleModalStayLoggedIn = () => {

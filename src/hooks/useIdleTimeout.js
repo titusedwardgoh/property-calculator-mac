@@ -139,7 +139,8 @@ export function useIdleTimeout(user, onWarning, onLogout) {
     // Track page visibility (when tab becomes visible again)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        // Check if user has been away for too long
+        // When tab becomes visible again, check if user has been inactive for the full timeout
+        // Only log out if they've been inactive for the ENTIRE timeout period
         const timeSinceLastActivity = Date.now() - lastActivityRef.current;
         if (timeSinceLastActivity >= IDLE_TIMEOUT) {
           // User has been away for the full timeout period, log them out
@@ -148,8 +149,12 @@ export function useIdleTimeout(user, onWarning, onLogout) {
           });
         } else {
           // Reset timer if they haven't been away too long
+          // This allows users to switch tabs/websites and come back without being logged out
           resetIdleTimer();
         }
+      } else {
+        // Tab is hidden - don't do anything, let the idle timeout handle it
+        // The timer will continue running and log out if they're inactive for 2 hours
       }
     };
     

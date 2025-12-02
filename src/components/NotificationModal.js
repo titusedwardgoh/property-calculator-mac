@@ -70,7 +70,7 @@ export default function NotificationModal({ isOpen, onClose, type = 'success', t
                                     </div>
                                     <button
                                         onClick={onClose}
-                                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                                        className="text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"
                                         aria-label="Close"
                                     >
                                         <X className="w-6 h-6" />
@@ -87,7 +87,7 @@ export default function NotificationModal({ isOpen, onClose, type = 'success', t
                                 {/* Footer Button */}
                                 <button
                                     onClick={onClose}
-                                    className="w-full bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
+                                    className="w-full bg-primary cursor-pointer hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
                                 >
                                     OK
                                 </button>

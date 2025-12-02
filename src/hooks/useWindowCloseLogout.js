@@ -11,36 +11,14 @@ export function useWindowCloseLogout(user) {
     if (!user) return; // Only track for authenticated users
 
     const handleBeforeUnload = async (e) => {
-      // Attempt to log out when window is closing
-      if (!hasLoggedOutRef.current) {
-        hasLoggedOutRef.current = true;
-        
-        // Use sendBeacon for reliable logout request during page unload
-        // sendBeacon is more reliable than fetch during beforeunload
-        const logoutUrl = '/api/auth/logout';
-        const blob = new Blob([JSON.stringify({})], { type: 'application/json' });
-        
-        if (navigator.sendBeacon) {
-          // Use sendBeacon if available (most reliable)
-          navigator.sendBeacon(logoutUrl, blob);
-        } else {
-          // Fallback to synchronous fetch (less reliable but better than nothing)
-          fetch(logoutUrl, {
-            method: 'POST',
-            body: JSON.stringify({}),
-            headers: { 'Content-Type': 'application/json' },
-            keepalive: true, // Keep request alive even after page unloads
-          }).catch(() => {
-            // Ignore errors - page is unloading anyway
-          });
-        }
-
-        // Also try to sign out from Supabase client-side
-        // This may not complete, but it's worth trying
-        supabase.auth.signOut().catch(() => {
-          // Ignore errors during unload
-        });
-      }
+      // Only log out on actual window/tab close, not on navigation or refresh
+      // Check if this is a navigation within the same site by checking if it's a same-origin navigation
+      // We can't reliably detect this, so we'll disable auto-logout on beforeunload
+      // The idle timeout will handle logout after inactivity instead
+      
+      // DISABLED: Don't log out on navigation/refresh
+      // This was causing users to be logged out when refreshing or navigating between pages
+      return;
     };
 
     const handleVisibilityChange = async () => {

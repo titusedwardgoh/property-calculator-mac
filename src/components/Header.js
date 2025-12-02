@@ -125,26 +125,44 @@ export default function Header() {
             </div>
             
             <div className="flex items-center">
-              {/* Auth buttons */}
-              <div className="flex items-center gap-3 mr-4">
+              {/* Auth buttons - desktop only */}
+              <div className="hidden md:flex items-center gap-3 mr-4">
                 {loading ? (
                   // Show nothing while loading
                   null
-                ) : (
-                  // Always show Login and Sign Up on public pages (even when logged in)
+                ) : user ? (
+                  // Show Account and Logout when logged in
                   <>
                     <Link
-                      href="/login"
-                      className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors"
+                      href="/dashboard"
+                      className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors flex items-center gap-2"
                     >
-                      Log In
+                      <User className="w-4 h-4" />
+                      Account
                     </Link>
-                    <Link
-                      href="/signup"
-                      className="px-3 py-2 text-sm font-medium text-secondary bg-primary rounded-full hover:bg-primary/90 transition-colors"
+                    <button
+                      onClick={handleLogout}
+                      className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2 cursor-pointer"
                     >
-                      Sign Up
-                    </Link>
+                      <LogOut className="w-4 h-4" />
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  // Show Login and Sign Up when not logged in
+                  <>
+                     <Link
+                       href="/login"
+                       className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors"
+                     >
+                       Log In
+                     </Link>
+                     <Link
+                       href="/signup"
+                       className="px-3 py-2 text-sm font-medium text-secondary bg-primary rounded-full hover:bg-primary/90 transition-colors"
+                     >
+                       Sign Up
+                     </Link>
                   </>
                 )}
               </div>
@@ -244,29 +262,61 @@ export default function Header() {
                     </li>
                     {!loading && (
                       <>
-                        {/* Always show Login and Sign Up on public pages (even when logged in) */}
-                        <li>
-                          <Link
-                            href="/login"
-                            onClick={closeMenu}
-                            className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200"
-                          >
-                            Log In
-                          </Link>
-                        </li>
-                        <li>
-                          <Link
-                            href="/signup"
-                            onClick={closeMenu}
-                            className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200"
-                          >
-                            Sign Up
-                          </Link>
-                        </li>
+                        {user ? (
+                          // Show Account when logged in (Logout is at bottom)
+                          <li>
+                            <Link
+                              href="/dashboard"
+                              onClick={closeMenu}
+                              className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200 flex items-center gap-2"
+                            >
+                              
+                              Account
+                            </Link>
+                          </li>
+                        ) : (
+                          // Show Login and Sign Up when not logged in
+                          <>
+                            <li>
+                              <Link
+                                href="/login"
+                                onClick={closeMenu}
+                                className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200"
+                              >
+                                Log In
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
+                                href="/signup"
+                                onClick={closeMenu}
+                                className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200"
+                              >
+                                Sign Up
+                              </Link>
+                            </li>
+                          </>
+                        )}
                       </>
                     )}
                   </ul>
                 </nav>
+                
+                {/* Logout at bottom - matches dashboard header style */}
+                {!loading && user && (
+                  <div className="px-6 py-4 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        closeMenu();
+                        handleLogout();
+                      }}
+                      className="w-full text-left block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors flex items-center gap-2"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      Logout
+                    </button>
+                  </div>
+                )}
               </div>
             </motion.div>
           </>
