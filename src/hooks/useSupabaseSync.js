@@ -17,6 +17,14 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
   
   const saveTimeoutRef = useRef(null)
   const isInitialMountRef = useRef(true)
+  const isSavingRef = useRef(false) // Track if a save is currently in progress
+  // Use a ref to track the latest propertyId to avoid stale closure issues
+  const propertyIdRef = useRef(propertyId)
+  
+  // Update ref whenever propertyId changes
+  useEffect(() => {
+    propertyIdRef.current = propertyId
+  }, [propertyId])
   
   // Generate session ID once on mount (persists for this survey attempt)
   const [sessionId] = useState(() => getSessionId())
@@ -248,9 +256,37 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
 
   // Save data to Supabase via API route
   const saveToSupabase = useCallback(async (data, userSaved = false) => {
+    // Prevent concurrent saves
+    if (isSavingRef.current) {
+      console.log('Save already in progress, skipping')
+      return
+    }
+
     try {
+      isSavingRef.current = true
+
       if (!sessionId || !deviceId) {
         console.log('No session/device ID available, skipping save')
+        isSavingRef.current = false
+        return
+      }
+
+      // Skip saving if there's no meaningful data (prevents empty records on initial load)
+      // Only save if user has entered at least one meaningful field
+      const hasMeaningfulData = !!(
+        data.propertyAddress ||
+        data.propertyPrice ||
+        data.selectedState ||
+        data.buyerType ||
+        data.needsLoan ||
+        data.loanDeposit ||
+        data.councilRates
+      )
+
+      // If no meaningful data and not explicitly saved by user, skip the save
+      if (!hasMeaningfulData && !userSaved) {
+        console.log('No meaningful data to save, skipping')
+        isSavingRef.current = false
         return
       }
 
@@ -271,12 +307,15 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
         ...grantConcessionInfo
       }
 
+      // Use ref to get the latest propertyId (avoids stale closure issues)
+      const currentPropertyId = propertyIdRef.current
+
       const requestData = {
         action: 'save',
         sessionId,
         deviceId,
         userId: userId || null, // Use Supabase user ID from session
-        propertyId,
+        propertyId: currentPropertyId,
         userSaved: userSaved, // Set to true when user explicitly saves
         data: {
           propertyPrice: data.propertyPrice,
@@ -307,16 +346,20 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
         throw new Error(result.error || 'Failed to save')
       }
 
-      if (result.propertyId && result.propertyId !== propertyId) {
+      if (result.propertyId && result.propertyId !== currentPropertyId) {
         setPropertyId(result.propertyId)
+        // Update ref immediately so subsequent saves use the new propertyId
+        propertyIdRef.current = result.propertyId
       }
 
       console.log('✅ Form data saved via API:', result.message)
     } catch (error) {
       console.error('❌ Error saving to Supabase:', error)
       // Don't throw error - allow form to continue working offline
+    } finally {
+      isSavingRef.current = false
     }
-  }, [sessionId, deviceId, propertyId, setPropertyId, organizeFormDataIntoSections, calculateCompletionPercentage, getCurrentSection, calculateGrantAndConcessionInfo])
+  }, [sessionId, deviceId, setPropertyId, organizeFormDataIntoSections, calculateCompletionPercentage, getCurrentSection, calculateGrantAndConcessionInfo])
 
   // Load existing data from Supabase via API route
   const loadFromSupabase = useCallback(async () => {

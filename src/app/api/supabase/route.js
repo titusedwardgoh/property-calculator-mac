@@ -43,7 +43,7 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
     // Verify user ID from session if provided
     let verifiedUserId = null
     if (userId) {
-      const serverClient = createServerClient()
+      const serverClient = await createServerClient()
       const { data: { user }, error } = await serverClient.auth.getUser()
       
       if (error || !user || user.id !== userId) {
@@ -255,7 +255,7 @@ async function loadUserProperties(userId) {
     }
 
     // Verify user ID from session
-    const serverClient = createServerClient()
+    const serverClient = await createServerClient()
     const { data: { user }, error: authError } = await serverClient.auth.getUser()
     
     if (authError || !user || user.id !== userId) {
@@ -290,7 +290,7 @@ async function loadPropertyById(propertyId, userId) {
 
     // Verify user ID from session if provided
     if (userId) {
-      const serverClient = createServerClient()
+      const serverClient = await createServerClient()
       const { data: { user }, error: authError } = await serverClient.auth.getUser()
       
       if (authError || !user || user.id !== userId) {
