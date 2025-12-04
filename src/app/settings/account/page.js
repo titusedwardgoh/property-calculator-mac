@@ -65,6 +65,7 @@ export default function AccountSettingsPage() {
     const [isProfilePictureModalOpen, setIsProfilePictureModalOpen] = useState(false);
     const [isDeletingPicture, setIsDeletingPicture] = useState(false);
     const fileInputRef = useRef(null);
+    const [isDataLoading, setIsDataLoading] = useState(true);
 
     // Add global error handler for unhandled Supabase auth errors
     useEffect(() => {
@@ -340,6 +341,7 @@ export default function AccountSettingsPage() {
     const loadUserData = async () => {
         if (!user) return;
         
+        setIsDataLoading(true);
         try {
             // Load from profiles table
             const { data: profile, error } = await supabase
@@ -415,6 +417,8 @@ export default function AccountSettingsPage() {
             if (user?.email) {
                 setEmail(user.email);
             }
+        } finally {
+            setIsDataLoading(false);
         }
     };
 
@@ -1301,7 +1305,7 @@ export default function AccountSettingsPage() {
         }
     };
 
-    if (loading) {
+    if (loading || isDataLoading) {
         return (
             <div className="min-h-screen bg-base-200 flex items-center justify-center">
                 <div className="text-center">
@@ -1324,7 +1328,12 @@ export default function AccountSettingsPage() {
                     {/* Left Column: Profile + Email + Phone + Address */}
                     <div className="space-y-6">
                         {/* Profile Section */}
-                        <div className="bg-base-100 rounded-lg shadow-lg overflow-hidden relative">
+                        <motion.div
+                            initial={{ opacity: 0, y: 24 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+                            className="bg-base-100 rounded-lg shadow-lg overflow-hidden relative"
+                        >
                             {/* Top Half - Different Background Color (from midpoint of profile pic upwards) */}
                             <div className="bg-accent px-6 pt-6 pb-12">
                                 <h2 className="text-xl font-bold text-gray-900 mb-4">Profile</h2>
@@ -1431,10 +1440,15 @@ export default function AccountSettingsPage() {
                                 </div>
                             )}
                             </div>
-                        </div>
+                        </motion.div>
 
                         {/* Email Section */}
-                        <div className="bg-base-100 rounded-lg shadow-lg p-6">
+                        <motion.div
+                            initial={{ opacity: 0, y: 24 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+                            className="bg-base-100 rounded-lg shadow-lg p-6"
+                        >
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-xl font-bold text-gray-900">Email</h2>
                             </div>
@@ -1459,10 +1473,15 @@ export default function AccountSettingsPage() {
                                     </button>
                                 </div>
                             </div>
-                        </div>
+                        </motion.div>
 
                         {/* Phone Section */}
-                        <div className="bg-base-100 rounded-lg shadow-lg p-6">
+                        <motion.div
+                            initial={{ opacity: 0, y: 24 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+                            className="bg-base-100 rounded-lg shadow-lg p-6"
+                        >
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-xl font-bold text-gray-900">Phone number</h2>
                             </div>
@@ -1530,10 +1549,15 @@ export default function AccountSettingsPage() {
                                     })()}
                                 </div>
                             )}
-                        </div>
+                        </motion.div>
 
                         {/* Address Section */}
-                        <div className="bg-base-100 rounded-lg shadow-lg p-6">
+                        <motion.div
+                            initial={{ opacity: 0, y: 24 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
+                            className="bg-base-100 rounded-lg shadow-lg p-6"
+                        >
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-xl font-bold text-gray-900">Address</h2>
                             </div>
@@ -1740,13 +1764,18 @@ export default function AccountSettingsPage() {
                                     })()}
                                 </div>
                             )}
-                        </div>
+                        </motion.div>
                     </div>
 
                     {/* Right Column: Buyer Information */}
                     <div className="space-y-6">
                         {/* Buyer Questions Section */}
-                        <div className="bg-base-100 rounded-lg shadow-lg p-6">
+                        <motion.div
+                            initial={{ opacity: 0, y: 24 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
+                            className="bg-base-100 rounded-lg shadow-lg p-6"
+                        >
                             <div className="flex justify-between items-center mb-4">
                                 <h2 className="text-xl font-bold text-gray-900">Buyer Information</h2>
                                 {!isEditingBuyerInfo && (
@@ -1982,7 +2011,7 @@ export default function AccountSettingsPage() {
                                             </motion.button>
                                         </div>
                                     </div>
-                        </div>
+                        </motion.div>
                     </div>
                     </div>
                 </div>

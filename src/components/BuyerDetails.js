@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useFormNavigation from './shared/FormNavigation.js';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { useStateSelector } from '../states/useStateSelector.js';
+import { useAuth } from '../hooks/useAuth';
+import { createClient } from '../lib/supabase/client';
 
 import { useFormStore } from '../stores/formStore';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
@@ -16,6 +18,9 @@ export default function BuyerDetails() {
   const [direction, setDirection] = useState('forward'); // 'forward' or 'backward'
   const [isInitialEntry, setIsInitialEntry] = useState(true); // Track if we're on initial entry from PropertyDetails
   const totalSteps = formData.isACT ? 10 : 7; // Add extra steps for ACT income, property ownership, and dependants questions
+  const { user } = useAuth();
+  const supabase = createClient();
+  const hasPopulatedFromProfile = useRef(false); // Track if we've already populated from profile
   
   // Get state-specific functions when state is selected
   const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW');
@@ -67,6 +72,100 @@ export default function BuyerDetails() {
       updateFormData('isPPR', 'no');
     }
   }, [formData.buyerType, formData.isPPR, updateFormData]);
+
+  // Auto-populate buyer details from user profile when buyer details section is reached
+  useEffect(() => {
+    // Only populate when:
+    // 1. User is logged in
+    // 2. Property details are complete (user has reached buyer details)
+    // 3. We haven't already populated from profile
+    if (!user || !formData.propertyDetailsComplete || hasPopulatedFromProfile.current) {
+      return;
+    }
+
+    const populateFromProfile = async () => {
+      try {
+        // Fetch user profile
+        const { data: profile, error } = await supabase
+          .from('profiles')
+          .select('use_info_populate, owner_investor, australian_citizen, first_home_buyer, pensioner')
+          .eq('id', user.id)
+          .maybeSingle();
+
+        // Handle errors (only log actual errors, not missing profiles)
+        if (error) {
+          // Check if error is empty (no keys) - this happens when maybeSingle() finds no rows
+          const errorKeys = Object.keys(error);
+          const isEmptyError = errorKeys.length === 0;
+          
+          // If error is empty, it means no profile exists - this is expected, don't log
+          if (isEmptyError) {
+            hasPopulatedFromProfile.current = true;
+            return;
+          }
+          
+          // Check if it's a "not found" error code
+          const isNotFoundError = 
+            error.code === 'PGRST116' || 
+            error.code === 'PGRST301' ||
+            (error.message && (
+              error.message.includes('JSON object requested, multiple (or no) rows returned') ||
+              error.message.includes('No rows returned')
+            ));
+          
+          // Only log if it's a real error (not a "not found" scenario)
+          if (!isNotFoundError) {
+            console.error('Error fetching profile:', error);
+          }
+          // Silently handle "not found" cases - this is expected behavior
+          hasPopulatedFromProfile.current = true; // Mark as checked to avoid retrying
+          return;
+        }
+
+        // If no profile exists, silently return
+        if (!profile) {
+          hasPopulatedFromProfile.current = true;
+          return;
+        }
+
+        // Check if use_info_populate is true
+        if (profile.use_info_populate !== true) {
+          hasPopulatedFromProfile.current = true; // Mark as checked even if toggle is off
+          return;
+        }
+
+        // Populate fields only if they're currently empty
+        // Map profile fields to form fields
+        if (!formData.buyerType && profile.owner_investor) {
+          // Profile stores 'owner-occupier' or 'investor', which matches form values
+          updateFormData('buyerType', profile.owner_investor);
+        }
+
+        if (!formData.isAustralianResident && profile.australian_citizen) {
+          // Profile stores 'yes' or 'no', which matches form values
+          updateFormData('isAustralianResident', profile.australian_citizen);
+        }
+
+        if (!formData.isFirstHomeBuyer && profile.first_home_buyer) {
+          // Profile stores 'yes' or 'no', which matches form values
+          updateFormData('isFirstHomeBuyer', profile.first_home_buyer);
+        }
+
+        if (!formData.hasPensionCard && profile.pensioner) {
+          // Profile stores 'yes' or 'no', which matches form values
+          updateFormData('hasPensionCard', profile.pensioner);
+        }
+
+        hasPopulatedFromProfile.current = true;
+        console.log('✅ Buyer details populated from profile');
+      } catch (error) {
+        console.error('Error populating buyer details from profile:', error);
+        hasPopulatedFromProfile.current = true; // Mark as checked even on error to avoid retrying
+      }
+    };
+
+    populateFromProfile();
+  }, [user, formData.propertyDetailsComplete, formData.buyerType, formData.isAustralianResident, formData.isFirstHomeBuyer, formData.hasPensionCard, updateFormData, supabase]);
 
   const nextStep = () => {
     // Mark that we've moved past the initial entry once we leave Q1
