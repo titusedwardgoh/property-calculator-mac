@@ -204,7 +204,7 @@ export default function Header() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={closeMenu}
-              className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden"
+              className="fixed top-[73px] left-0 right-0 bottom-0 bg-black bg-opacity-50 z-[200] md:hidden"
             />
             
             {/* Menu drawer */}
@@ -213,23 +213,9 @@ export default function Header() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'tween', duration: 0.3 }}
-              className="fixed top-0 right-0 bottom-0 left-0 bg-base-100 shadow-xl z-50 md:hidden"
+              className="fixed top-[73px] right-0 bottom-0 left-0 bg-base-100 shadow-xl z-[200] md:hidden"
             >
-              <div className="flex flex-col h-full">
-                {/* Menu header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-lg font-bold text-base">Menu</h2>
-                  <button
-                    onClick={closeMenu}
-                    className="focus:outline-none"
-                    aria-label="Close menu"
-                  >
-                    <svg className="w-6 h-6 text-base" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
+              <div className="flex flex-col h-full pt-4">
                 {/* Menu items */}
                 <nav className="flex-1 px-6 py-4">
                   <ul className="space-y-0">
