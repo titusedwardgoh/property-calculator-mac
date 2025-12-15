@@ -256,14 +256,32 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
 
   // Save data to Supabase via API route
   const saveToSupabase = useCallback(async (data, userSaved = false) => {
-    // Prevent concurrent saves
+    // For manual saves, wait for any in-progress auto-save to complete
+    // For auto-saves, skip if a save is already in progress
     if (isSavingRef.current) {
-      console.log('Save already in progress, skipping')
-      return
+      if (userSaved) {
+        // Manual save: wait for current save to finish, then proceed
+        console.log('⏳ Manual save requested, waiting for current save to complete...')
+        // Wait up to 2 seconds for the save to complete
+        let waitCount = 0
+        while (isSavingRef.current && waitCount < 20) {
+          await new Promise(resolve => setTimeout(resolve, 100))
+          waitCount++
+        }
+        if (isSavingRef.current) {
+          console.warn('⚠️ Save still in progress after wait, proceeding with manual save')
+          isSavingRef.current = false // Force allow manual save
+        }
+      } else {
+        // Auto-save: skip if save is in progress
+        console.log('Save already in progress, skipping auto-save')
+        return
+      }
     }
 
     try {
       isSavingRef.current = true
+      console.log(userSaved ? '💾 Manual save starting...' : '💾 Auto-save starting...')
 
       if (!sessionId || !deviceId) {
         console.log('No session/device ID available, skipping save')
@@ -352,7 +370,7 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
         propertyIdRef.current = result.propertyId
       }
 
-      console.log('✅ Form data saved via API:', result.message)
+      console.log(userSaved ? '✅ Manual save completed:' : '✅ Auto-save completed:', result.message)
     } catch (error) {
       console.error('❌ Error saving to Supabase:', error)
       // Don't throw error - allow form to continue working offline

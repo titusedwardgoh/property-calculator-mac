@@ -67,6 +67,14 @@ function CalculatorPageContent() {
             .then(result => {
                 if (result.success && result.data) {
                     const record = result.data;
+                    console.log('📥 Resume response:', result);
+                    console.log('📋 Loaded record:', {
+                        id: record.id,
+                        is_active: record.is_active,
+                        parent_id: record.parent_id,
+                        user_saved: record.user_saved,
+                        message: result.message
+                    });
                     setPropertyId(record.id);
                     
                     // Merge all sections back into form data

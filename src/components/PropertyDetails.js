@@ -736,7 +736,7 @@ export default function PropertyDetails() {
       case 5:
         return formData.propertyType && formData.propertyType.trim() !== '';
       case 6:
-        return formData.propertyPrice && formData.propertyPrice.trim() !== '';
+        return formData.propertyPrice && String(formData.propertyPrice).trim() !== '';
       default:
         return false;
     }

@@ -71,20 +71,20 @@ export default function DashboardContent({ userEmail, handleLogout }) {
     setShowDeleteModal(false);
     
     try {
-      // Delete from Supabase
+      // Update user_saved to false instead of deleting
       const { error } = await supabase
         .from('properties')
-        .delete()
+        .update({ user_saved: false })
         .eq('id', propertyToDelete)
         .eq('user_id', user.id);
 
       if (error) throw error;
 
-      // Remove from local state
+      // Remove from local state (it won't show on dashboard anymore)
       setSurveys(surveys.filter(s => s.id !== propertyToDelete));
     } catch (error) {
-      console.error('Error deleting survey:', error);
-      alert('Failed to delete survey. Please try again.');
+      console.error('Error updating survey:', error);
+      alert('Failed to update survey. Please try again.');
     } finally {
       setDeletingId(null);
       setPropertyToDelete(null);
@@ -325,10 +325,10 @@ export default function DashboardContent({ userEmail, handleLogout }) {
                 {/* Middle Text Section */}
                 <div className="px-8 py-6">
                   <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                    Delete survey?
+                    Remove survey?
                   </h3>
                   <p className="text-gray-600 text-base">
-                    This action cannot be undone. Are you sure you want to delete this survey?
+                    This survey will be removed from your dashboard. The data will be kept in the system.
                   </p>
                 </div>
                 
