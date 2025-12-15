@@ -1,5 +1,6 @@
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
+import { v4 as uuidv4 } from 'uuid'
 
 // Server-side Supabase client with service role key (for database operations)
 const supabaseUrl = process.env.SUPABASE_URL

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import UpfrontCosts from '../../components/UpfrontCosts';
@@ -24,9 +24,10 @@ function CalculatorPageContent() {
     const propertyId = formData.propertyId;
     const setPropertyId = formData.setPropertyId;
     const setIsResumingSurvey = formData.setIsResumingSurvey;
-    const { user } = useAuth();
+    const { user, loading: authLoading } = useAuth();
     const searchParams = useSearchParams();
     const [isLoadingResume, setIsLoadingResume] = useState(false);
+    const hasResumedRef = useRef(false);
     
     // Initialize Supabase sync
     // Auto-save to database is ALWAYS enabled (for both logged-in and anonymous users)
@@ -47,9 +48,19 @@ function CalculatorPageContent() {
         const resumePropertyId = sessionStorage.getItem('resumePropertyId');
         const shouldResume = searchParams.get('resume') === 'true' && resumePropertyId;
         
-        if (shouldResume && !isLoadingResume) {
+        // Wait for auth to finish loading before attempting resume
+        if (authLoading) {
+            return;
+        }
+        
+        // Prevent multiple resume attempts
+        if (shouldResume && !isLoadingResume && !hasResumedRef.current) {
+            hasResumedRef.current = true;
             setIsLoadingResume(true);
             setIsResumingSurvey(true);
+            
+            // Immediately hide welcome page while loading
+            updateFormData('showWelcomePage', false);
             
             // Load the property data
             fetch('/api/supabase', {
@@ -60,72 +71,101 @@ function CalculatorPageContent() {
                 body: JSON.stringify({
                     action: 'loadPropertyById',
                     propertyId: resumePropertyId,
-                    userId: user?.id,
+                    userId: user?.id, // Will be undefined if not logged in, server will get from session
                 }),
             })
             .then(res => res.json())
             .then(result => {
+                console.log('📥 Resume API response:', result);
                 if (result.success && result.data) {
                     const record = result.data;
-                    console.log('📥 Resume response:', result);
-                    console.log('📋 Loaded record:', {
+                    console.log('📋 Loaded record data:', {
                         id: record.id,
                         is_active: record.is_active,
                         parent_id: record.parent_id,
                         user_saved: record.user_saved,
-                        message: result.message
-                    });
-                    setPropertyId(record.id);
-                    
-                    // Merge all sections back into form data
-                    const allSections = {
-                        ...record.property_details,
-                        ...record.buyer_details,
-                        ...record.loan_details,
-                        ...record.seller_questions,
-                        ...record.calculated_values,
+                        hasPropertyDetails: !!record.property_details,
+                        hasBuyerDetails: !!record.buyer_details,
                         propertyPrice: record.property_price,
                         propertyAddress: record.property_address,
-                        selectedState: record.selected_state,
-                    };
+                        message: result.message
+                    });
                     
-                    // Update form data with loaded values
-                    Object.entries(allSections).forEach(([key, value]) => {
-                        if (value !== null && value !== undefined) {
-                            updateFormData(key, value);
+                    setPropertyId(record.id);
+                    
+                    // First, set the top-level fields
+                    if (record.property_price !== null && record.property_price !== undefined) {
+                        updateFormData('propertyPrice', record.property_price);
+                    }
+                    if (record.property_address) {
+                        updateFormData('propertyAddress', record.property_address);
+                    }
+                    if (record.selected_state) {
+                        updateFormData('selectedState', record.selected_state);
+                    }
+                    
+                    // Then merge all sections back into form data
+                    // Handle nested objects properly
+                    const sectionsToMerge = [
+                        { data: record.property_details, name: 'property_details' },
+                        { data: record.buyer_details, name: 'buyer_details' },
+                        { data: record.loan_details, name: 'loan_details' },
+                        { data: record.seller_questions, name: 'seller_questions' },
+                        { data: record.calculated_values, name: 'calculated_values' }
+                    ];
+                    
+                    sectionsToMerge.forEach(({ data, name }) => {
+                        if (data && typeof data === 'object') {
+                            Object.entries(data).forEach(([key, value]) => {
+                                if (value !== null && value !== undefined) {
+                                    updateFormData(key, value);
+                                }
+                            });
                         }
                     });
                     
-                    // Skip welcome page when resuming
+                    // Ensure welcome page is hidden
                     updateFormData('showWelcomePage', false);
+                    
+                    console.log('✅ Form data updated from resume');
                     
                     // Clear resume flag from sessionStorage
                     sessionStorage.removeItem('resumePropertyId');
+                } else {
+                    console.error('❌ Resume failed - no data in response:', result);
+                    // If resume fails, show welcome page
+                    updateFormData('showWelcomePage', true);
+                    hasResumedRef.current = false; // Allow retry
                 }
             })
             .catch(error => {
                 console.error('Error loading survey to resume:', error);
+                // If error, show welcome page
+                updateFormData('showWelcomePage', true);
+                hasResumedRef.current = false; // Allow retry
             })
             .finally(() => {
                 setIsLoadingResume(false);
             });
         } else if (!shouldResume) {
-            // When NOT resuming, always start fresh
-            // Reset form data and show welcome page
-        const hasFormData = formData.propertyPrice || 
-                           formData.propertyAddress || 
-                           formData.selectedState || 
-                           formData.buyerType;
-        
-            // If there's existing form data, reset it (user clicked "Start New Survey")
-            if (hasFormData) {
-                formData.resetForm();
-            }
+            // Reset ref when not resuming (allows resume again if user navigates back)
+            hasResumedRef.current = false;
             
-            // Always show welcome page for fresh starts
-            updateFormData('showWelcomePage', true);
+            // When NOT resuming, only show welcome page if there's no form data
+            // Don't reset if we're just navigating (might have unsaved data)
+            // Only run this check once on initial mount when not resuming
+            const hasFormData = formData.propertyPrice || 
+                               formData.propertyAddress || 
+                               formData.selectedState || 
+                               formData.buyerType;
+        
+            // Only show welcome page if there's no form data and we haven't already set it
+            // This prevents showing welcome page when user has unsaved changes or is resuming
+            if (!hasFormData) {
+                updateFormData('showWelcomePage', true);
+            }
         }
-    }, []); // Only run on mount
+    }, [searchParams, authLoading, user?.id, isLoadingResume, setIsResumingSurvey, updateFormData]); // Removed formData to prevent infinite loop
     
     const showWelcomePage = formData.showWelcomePage;
     const propertyDetailsComplete = formData.propertyDetailsComplete;
@@ -199,8 +239,15 @@ function CalculatorPageContent() {
             
             {/* Simplified header overlay - always shown on calculator route */}
             <SurveyHeaderOverlay />
-            {showWelcomePage ? (
+            {showWelcomePage && !isLoadingResume ? (
                 <WelcomePage />
+            ) : isLoadingResume ? (
+                <div className="flex items-center justify-center min-h-screen">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading your survey...</p>
+                    </div>
+                </div>
             ) : (
                 <main className="container mx-auto px-4 py-4 lg:py-10 max-w-7xl">
                 {/* Progress Bars - above questions on larger screens */}
