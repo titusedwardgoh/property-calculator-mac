@@ -417,6 +417,34 @@ export default function SellerQuestions() {
   }, [currentStep, formData.propertyType, formData.selectedState, formData.propertyPrice, updateFormData]);
 
   // Use shared navigation hook
+  // Auto-advance on resume: skip through questions that already have answers
+  useEffect(() => {
+    if (formData.isResumingSurvey && !formData.sellerQuestionsComplete) {
+      if (isCurrentStepValid()) {
+        // If current step has an answer, automatically advance to next step
+        const timer = setTimeout(() => {
+          if (currentStep < totalSteps) {
+            nextStep();
+          } else {
+            // Reached the end, mark as complete
+            updateFormData('sellerQuestionsComplete', true);
+            // Stop resuming after 200ms delay
+            setTimeout(() => {
+              formData.setIsResumingSurvey(false);
+            }, 200);
+          }
+        }, 300); // Small delay to allow UI to render
+        
+        return () => clearTimeout(timer);
+      } else {
+        // Hit a question without an answer - stop resuming after 200ms delay
+        setTimeout(() => {
+          formData.setIsResumingSurvey(false);
+        }, 200);
+      }
+    }
+  }, [formData.isResumingSurvey, formData.sellerQuestionsComplete, currentStep, isCurrentStepValid, nextStep, totalSteps, updateFormData]);
+
   useFormNavigation({
     currentStep,
     totalSteps,

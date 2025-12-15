@@ -744,6 +744,30 @@ export default function PropertyDetails() {
 
 
 
+  // Auto-advance on resume: skip through questions that already have answers
+  useEffect(() => {
+    if (formData.isResumingSurvey && !isComplete) {
+      if (isCurrentStepValid()) {
+        // If current step has an answer, automatically advance to next step
+        const timer = setTimeout(() => {
+          if (currentStep < totalSteps) {
+            nextStep();
+          } else {
+            // Reached the end, mark as complete
+            goToBuyerDetails();
+          }
+        }, 300); // Small delay to allow UI to render
+        
+        return () => clearTimeout(timer);
+      } else {
+        // Hit a question without an answer - stop resuming after 200ms delay
+        setTimeout(() => {
+          formData.setIsResumingSurvey(false);
+        }, 200);
+      }
+    }
+  }, [formData.isResumingSurvey, currentStep, isComplete, isCurrentStepValid, nextStep, goToBuyerDetails, totalSteps, updateFormData]);
+
   // Use shared navigation hook
   useFormNavigation({
     currentStep,

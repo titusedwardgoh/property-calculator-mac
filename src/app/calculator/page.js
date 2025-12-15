@@ -239,6 +239,17 @@ function CalculatorPageContent() {
             
             {/* Simplified header overlay - always shown on calculator route */}
             <SurveyHeaderOverlay />
+            
+            {/* Loading overlay during resume auto-advance */}
+            {formData.isResumingSurvey && (
+                <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading your survey...</p>
+                    </div>
+                </div>
+            )}
+            
             {showWelcomePage && !isLoadingResume ? (
                 <WelcomePage />
             ) : isLoadingResume ? (
