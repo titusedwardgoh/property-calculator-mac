@@ -5,9 +5,11 @@ import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { X, AlertTriangle } from 'lucide-react';
+import EndOfSurveyPrompt from './EndOfSurveyPrompt';
 
-export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard, onLinkToAccount, propertyAddress }) {
+export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard, onLinkToAccount, propertyAddress, onReturningToDashboard, allFormsComplete }) {
   const [showWarning, setShowWarning] = useState(false);
+  const [showEndOfSurveyPrompt, setShowEndOfSurveyPrompt] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState(null);
   const router = useRouter();
   const pathname = usePathname();
@@ -15,6 +17,9 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
   
   // Only show warning if user is logged in AND property address is set
   const shouldShowWarning = hasUnsavedChanges && user && propertyAddress && propertyAddress.trim() !== '';
+  
+  // Show end-of-survey prompt if survey is complete (for both logged in and anonymous users)
+  const shouldShowEndOfSurveyPrompt = allFormsComplete;
 
   useEffect(() => {
     if (!shouldShowWarning) return;
@@ -35,6 +40,12 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
 
   // Function to check navigation (called from parent component)
   const checkNavigation = (url) => {
+    // If survey is complete, show end-of-survey prompt instead of regular warning
+    if (shouldShowEndOfSurveyPrompt && url !== pathname) {
+      setPendingNavigation(url);
+      setShowEndOfSurveyPrompt(true);
+      return false; // Prevent navigation
+    }
     if (shouldShowWarning && url !== pathname) {
       setPendingNavigation(url);
       setShowWarning(true);
@@ -46,14 +57,17 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
   // Expose checkNavigation to parent via window (hacky but works)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      window.__navigationWarning = { checkNavigation, hasUnsavedChanges: shouldShowWarning };
+      window.__navigationWarning = { 
+        checkNavigation, 
+        hasUnsavedChanges: shouldShowWarning || shouldShowEndOfSurveyPrompt 
+      };
     }
     return () => {
       if (typeof window !== 'undefined') {
         delete window.__navigationWarning;
       }
     };
-  }, [shouldShowWarning, pathname]);
+  }, [shouldShowWarning, shouldShowEndOfSurveyPrompt, pathname]);
 
   const handleConfirm = async () => {
     setShowWarning(false);
@@ -61,11 +75,19 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
       await onSave();
     }
     if (pendingNavigation) {
+      // Check if navigating to dashboard
+      if (pendingNavigation === '/dashboard' && onReturningToDashboard) {
+        onReturningToDashboard();
+      }
       router.push(pendingNavigation);
       setPendingNavigation(null);
     } else {
       // If no pending navigation, navigate to dashboard if logged in, home if not
       const targetUrl = user ? '/dashboard' : '/';
+      if (user && onReturningToDashboard) {
+        // Show overlay when returning to dashboard
+        onReturningToDashboard();
+      }
       router.push(targetUrl);
     }
   };
@@ -76,11 +98,19 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
       onDiscard();
     }
     if (pendingNavigation) {
+      // Check if navigating to dashboard
+      if (pendingNavigation === '/dashboard' && onReturningToDashboard) {
+        onReturningToDashboard();
+      }
       router.push(pendingNavigation);
       setPendingNavigation(null);
     } else {
       // If no pending navigation, navigate to dashboard if logged in, home if not
       const targetUrl = user ? '/dashboard' : '/';
+      if (user && onReturningToDashboard) {
+        // Show overlay when returning to dashboard
+        onReturningToDashboard();
+      }
       router.push(targetUrl);
     }
   };
@@ -90,9 +120,67 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
     setPendingNavigation(null);
   };
 
+  const handleEndOfSurveySave = async () => {
+    setShowEndOfSurveyPrompt(false);
+    if (onSave) {
+      await onSave(true); // Set user_saved = true
+    }
+    if (pendingNavigation) {
+      // Check if navigating to dashboard
+      if (pendingNavigation === '/dashboard' && onReturningToDashboard) {
+        onReturningToDashboard();
+      }
+      router.push(pendingNavigation);
+      setPendingNavigation(null);
+    } else {
+      // If no pending navigation, navigate to dashboard if logged in, home if not
+      const targetUrl = user ? '/dashboard' : '/';
+      if (user && onReturningToDashboard) {
+        // Show overlay when returning to dashboard
+        onReturningToDashboard();
+      }
+      router.push(targetUrl);
+    }
+  };
+
+  const handleEndOfSurveyDismiss = () => {
+    setShowEndOfSurveyPrompt(false);
+    if (onDiscard) {
+      onDiscard();
+    }
+    if (pendingNavigation) {
+      // Check if navigating to dashboard
+      if (pendingNavigation === '/dashboard' && onReturningToDashboard) {
+        onReturningToDashboard();
+      }
+      router.push(pendingNavigation);
+      setPendingNavigation(null);
+    } else {
+      // If no pending navigation, navigate to dashboard if logged in, home if not
+      const targetUrl = user ? '/dashboard' : '/';
+      if (user && onReturningToDashboard) {
+        // Show overlay when returning to dashboard
+        onReturningToDashboard();
+      }
+      router.push(targetUrl);
+    }
+  };
+
   return (
-    <AnimatePresence>
-      {showWarning && (
+    <>
+      {/* End of Survey Prompt - shown when user tries to navigate away after completion */}
+      {showEndOfSurveyPrompt && (
+        <EndOfSurveyPrompt
+          show={showEndOfSurveyPrompt}
+          onSave={handleEndOfSurveySave}
+          onDismiss={handleEndOfSurveyDismiss}
+          onLinkToAccount={onLinkToAccount}
+          onReturningToDashboard={onReturningToDashboard}
+        />
+      )}
+      
+      <AnimatePresence>
+        {showWarning && (
         <>
           {/* Backdrop */}
           <motion.div
@@ -164,6 +252,7 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
         </>
       )}
     </AnimatePresence>
+    </>
   );
 }
 

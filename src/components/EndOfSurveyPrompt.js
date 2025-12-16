@@ -6,25 +6,22 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { CheckCircle, X, Save, UserPlus, LogIn } from 'lucide-react';
 
-export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount }) {
-  const [showPrompt, setShowPrompt] = useState(true);
+export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount, show = true, onReturningToDashboard }) {
+  const [showPrompt, setShowPrompt] = useState(show);
   const [isSaving, setIsSaving] = useState(false);
+  const [initialUser, setInitialUser] = useState(null);
   const router = useRouter();
   const { user } = useAuth();
 
-  // Listen for auth changes (when user logs in or creates account)
+  // Track initial user state on mount
   useEffect(() => {
-    if (user && !isSaving) {
-      // User just logged in/created account - link the record to their account
-      if (onLinkToAccount) {
-        onLinkToAccount(user.id);
-      }
-      // Save will automatically link to user's account
-      if (onSave) {
-        handleSave();
-      }
-    }
-  }, [user]);
+    setInitialUser(user);
+  }, []);
+
+  // Update showPrompt when show prop changes
+  useEffect(() => {
+    setShowPrompt(show);
+  }, [show]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -34,6 +31,10 @@ export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount }
       }
       setShowPrompt(false);
       if (user) {
+        // Show overlay when returning to dashboard
+        if (onReturningToDashboard) {
+          onReturningToDashboard();
+        }
         // Redirect to dashboard to see saved survey
         router.push('/dashboard');
       }
@@ -43,6 +44,21 @@ export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount }
     }
   };
 
+  // Listen for auth changes (when user logs in or creates account AFTER prompt appears)
+  useEffect(() => {
+    // Only auto-save if user logged in AFTER prompt appeared (initialUser was null)
+    if (user && !isSaving && initialUser === null && showPrompt) {
+      // User just logged in/created account - link the record to their account
+      if (onLinkToAccount) {
+        onLinkToAccount(user.id);
+      }
+      // Save will automatically link to user's account
+      if (onSave) {
+        handleSave();
+      }
+    }
+  }, [user, initialUser, isSaving, showPrompt, onLinkToAccount, onSave]);
+
   const handleDismiss = () => {
     setShowPrompt(false);
     if (onDismiss) {
@@ -50,6 +66,10 @@ export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount }
     }
     // Navigate to dashboard if logged in, home if not
     const targetUrl = user ? '/dashboard' : '/';
+    if (user && onReturningToDashboard) {
+      // Show overlay when returning to dashboard
+      onReturningToDashboard();
+    }
     router.push(targetUrl);
   };
 

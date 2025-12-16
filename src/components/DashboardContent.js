@@ -249,7 +249,7 @@ export default function DashboardContent({ userEmail, handleLogout }) {
                             ) : (
                               <button
                                 onClick={() => handleResume(survey.id)}
-                                className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-focus text-secondary rounded-full transition-all hover:shadow-lg"
+                                className="flex cursor-pointer items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-focus text-secondary rounded-full transition-all hover:shadow-lg"
                               >
                                 <Play className="w-4 h-4" />
                                 Resume
@@ -258,7 +258,7 @@ export default function DashboardContent({ userEmail, handleLogout }) {
                             <button
                               onClick={(e) => handleDeleteClick(survey.id, e)}
                               disabled={deletingId === survey.id}
-                              className="flex items-center gap-2 px-4 py-2 bg-error/10 text-error rounded-full hover:bg-error/20 transition-colors disabled:opacity-50"
+                              className="flex cursor-pointer items-center gap-2 px-4 py-2 bg-error/10 text-error rounded-full hover:bg-error/20 transition-colors disabled:opacity-50"
                             >
                               {deletingId === survey.id ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />

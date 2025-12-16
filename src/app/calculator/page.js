@@ -27,6 +27,7 @@ function CalculatorPageContent() {
     const { user, loading: authLoading } = useAuth();
     const searchParams = useSearchParams();
     const [isLoadingResume, setIsLoadingResume] = useState(false);
+    const [isReturningToDashboard, setIsReturningToDashboard] = useState(false);
     const hasResumedRef = useRef(false);
     
     // Initialize Supabase sync
@@ -222,20 +223,20 @@ function CalculatorPageContent() {
             {/* Only show if logged in AND property address is set */}
             <NavigationWarning
                 hasUnsavedChanges={hasUnsavedChanges()}
+                allFormsComplete={formData.allFormsComplete}
                 onSave={() => handleSave(true)} // Set user_saved = true when user clicks SAVE
                 onDiscard={handleDiscard}
                 onLinkToAccount={handleLinkToAccount}
                 propertyAddress={formData.propertyAddress}
+                onReturningToDashboard={() => {
+                    setIsReturningToDashboard(true);
+                    setTimeout(() => {
+                        setIsReturningToDashboard(false);
+                    }, 2000);
+                }}
             />
             
-            {/* End of survey save prompt */}
-            {formData.allFormsComplete && (
-                <EndOfSurveyPrompt
-                    onSave={handleSave}
-                    onDismiss={handleEndOfSurveyDismiss}
-                    onLinkToAccount={handleLinkToAccount}
-                />
-            )}
+            {/* End of survey save prompt - now handled by NavigationWarning when user tries to navigate */}
             
             {/* Simplified header overlay - always shown on calculator route */}
             <SurveyHeaderOverlay />
@@ -246,6 +247,16 @@ function CalculatorPageContent() {
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
                         <p className="text-gray-600">Loading your survey...</p>
+                    </div>
+                </div>
+            )}
+            
+            {/* Loading overlay when returning to dashboard */}
+            {isReturningToDashboard && (
+                <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                        <p className="text-gray-600">Returning to dashboard...</p>
                     </div>
                 </div>
             )}
