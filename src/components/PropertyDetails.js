@@ -54,6 +54,18 @@ export default function PropertyDetails() {
     };
   }, [typingTimeout]); // Only run once on mount
   
+  // Initialize local state from form data when resuming
+  // This ensures hasValidAddress is set correctly when propertyAddress exists
+  // Only set hasValidAddress if we're resuming a survey, otherwise clear it for fresh surveys
+  useEffect(() => {
+    if (formData.isResumingSurvey && formData.propertyAddress && formData.propertyAddress.trim() !== '') {
+      setHasValidAddress(true);
+    } else if (!formData.isResumingSurvey) {
+      // Clear hasValidAddress when starting a fresh survey
+      setHasValidAddress(false);
+    }
+  }, [formData.propertyAddress, formData.isResumingSurvey]);
+  
   // Calculate the display step number (what the user sees)
   const getDisplayStep = () => {
     if (formData.selectedState === 'WA') {
@@ -726,7 +738,8 @@ export default function PropertyDetails() {
   const isCurrentStepValid = () => {
     switch (currentStep) {
       case 1:
-        return hasValidAddress || (isManualEntry && validateManualAddress());
+        // Check both local state and form data to handle resume scenarios
+        return hasValidAddress || (isManualEntry && validateManualAddress()) || (formData.propertyAddress && formData.propertyAddress.trim() !== '');
       case 2:
         return formData.selectedState && formData.selectedState.trim() !== '';
       case 3:

@@ -76,7 +76,7 @@ export default function SurveyHeaderOverlay() {
                     {/* Close button - right side */}
                     <button
                         onClick={handleClose}
-                        className="focus:outline-none p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        className="focus:outline-none cursor-pointer p-2 hover:bg-gray-100 rounded-full transition-colors"
                         aria-label="Close survey"
                     >
                         <svg 

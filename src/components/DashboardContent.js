@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, Play, Eye, Trash2, FileText, Loader2 } from 'lucide-react';
+import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { useFormStore } from '@/stores/formStore';
@@ -288,64 +288,55 @@ export default function DashboardContent({ userEmail, handleLogout }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={handleDeleteCancel}
-              className="fixed inset-0 bg-blue-900/30 z-50"
+              className="fixed inset-0 bg-black/50 z-[200]"
             />
             
-            {/* Modal - Styled like the save/quit popup */}
+            {/* Modal */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+              className="fixed inset-0 z-[200] flex items-center justify-center p-4"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
-                {/* Top Illustration Section */}
-                <div className="bg-pink-50 px-8 pt-8 pb-6">
-                  <div className="flex items-end justify-center gap-2 mb-4">
-                    {/* Hand holding block */}
-                    <div className="relative">
-                      <div className="w-8 h-8 bg-yellow-400 rounded transform rotate-12"></div>
-                      <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-white rounded-full"></div>
+                {/* Header */}
+                <div className="bg-primary/10 px-8 pt-8 pb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-2xl font-bold text-gray-900">Delete saved survey?</h3>
                     </div>
-                    {/* Building blocks structure */}
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="w-6 h-6 bg-red-500 rounded-t-full"></div>
-                      <div className="w-8 h-4 bg-blue-500 rounded"></div>
-                      <div className="w-6 h-4 bg-yellow-400 rounded"></div>
-                      <div className="w-10 h-3 bg-red-500 rounded"></div>
-                      <div className="flex gap-1">
-                        <div className="w-3 h-3 bg-blue-500 rounded"></div>
-                        <div className="w-3 h-3 bg-yellow-400 rounded"></div>
-                      </div>
-                    </div>
+                    <button
+                      onClick={handleDeleteCancel}
+                      className="text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"
+                      aria-label="Close"
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
                   </div>
                 </div>
                 
-                {/* Middle Text Section */}
+                {/* Content */}
                 <div className="px-8 py-6">
-                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
-                    Remove survey?
-                  </h3>
-                  <p className="text-gray-600 text-base">
-                    This survey will be removed from your dashboard. The data will be kept in the system.
+                  <p className="text-gray-600 text-base mb-6">
+                    This survey will be removed from your dashboard.
                   </p>
-                </div>
-                
-                {/* Bottom Action Buttons */}
-                <div className="px-8 pb-8 flex gap-3">
-                  <button
-                    onClick={handleDeleteCancel}
-                    className="flex-1 border-2 border-blue-500 text-blue-600 bg-white hover:bg-blue-50 px-6 py-3 rounded-full font-medium transition-all duration-200"
-                  >
-                    CANCEL
-                  </button>
-                  <button
-                    onClick={handleDeleteConfirm}
-                    className="flex-1 bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-                  >
-                    DELETE
-                  </button>
+                  
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handleDeleteCancel}
+                      className="flex-1 cursor-pointer border-2 border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-6 py-3 rounded-full font-medium transition-all duration-200"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleDeleteConfirm}
+                      className="flex-1 cursor-pointer bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>

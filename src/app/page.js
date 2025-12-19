@@ -51,7 +51,7 @@ export default function HomePage() {
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={handleGetStarted}
-                            className="bg-primary hover:bg-primary-focus text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg w-full sm:w-auto"
+                            className="bg-primary cursor-pointer hover:bg-primary-focus text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg w-full sm:w-auto"
                         >
                             Start Free Calculator
                         </motion.button>
@@ -84,7 +84,7 @@ export default function HomePage() {
                                     className="w-full h-auto object-contain"
                                 />
                             </div>
-                        </motion.div>
+                        </motion.div>   
 
                         <motion.div
                             initial={{ opacity: 0, x: 40 }}
@@ -106,7 +106,7 @@ export default function HomePage() {
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleGetStarted}
-                                className="bg-primary hover:bg-primary-focus text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg inline-flex items-center gap-2"
+                                className="bg-primary hover:bg-primary-focus cursor-pointer text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg inline-flex items-center gap-2"
                             >
                                 Start Free Calculator
                                 <span aria-hidden="true">→</span>
@@ -351,16 +351,18 @@ export default function HomePage() {
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                                 onClick={handleGetStarted}
-                                className="bg-primary hover:bg-primary-focus text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg w-full sm:w-auto"
+                                className="bg-primary cursor-pointer hover:bg-primary-focus text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg w-full sm:w-auto"
                             >
                                 Start Free Calculator
                             </motion.button>
-                            <Link
-                                href="/login"
-                                className="px-8 py-4 rounded-full font-medium text-lg border-2 border-primary text-primary hover:bg-primary/10 transition-all duration-200 w-full sm:w-auto text-center"
+                            <motion.button
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => router.push('/login')}
+                                className="px-20 py-4 rounded-full font-medium text-lg border-2 border-primary text-primary cursor-pointer hover:bg-base-100/30 transition-all duration-200 w-full sm:w-auto"
                             >
-                                Create Account
-                            </Link>
+                                Log In
+                            </motion.button>
                         </div>
                     </motion.div>
                 </div>

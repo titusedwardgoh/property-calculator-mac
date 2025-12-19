@@ -163,6 +163,10 @@ function CalculatorPageContent() {
             // Only show welcome page if there's no form data and we haven't already set it
             // This prevents showing welcome page when user has unsaved changes or is resuming
             if (!hasFormData) {
+                // Ensure address is cleared when starting fresh survey
+                if (formData.propertyAddress) {
+                    updateFormData('propertyAddress', '');
+                }
                 updateFormData('showWelcomePage', true);
             }
         }
