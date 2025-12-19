@@ -229,7 +229,7 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
                     onClick={handleDiscard}
                     className="flex-1 cursor-pointer border-2 border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-6 py-3 rounded-full font-medium transition-all duration-200"
                   >
-                    Dont't Save
+                    Don&apos;t Save
                   </button>
                   <button
                     onClick={handleConfirm} 
