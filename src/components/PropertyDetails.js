@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
@@ -8,6 +8,7 @@ import { useFormStore } from '../stores/formStore';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
+import { calculateGlobalProgress } from '../lib/progressCalculation';
 
 export default function PropertyDetails() {
   const formData = useFormStore();
@@ -534,6 +535,19 @@ export default function PropertyDetails() {
       return () => clearTimeout(timer);
     }
   }, [isManualEntry, currentStep]);
+
+  // Progress calculation - AFTER all Google Maps useEffects to prevent interference
+  // Memoized with step-based dependencies only (NOT propertyAddress or other typed fields)
+  const progressPercentage = useMemo(() => {
+    return calculateGlobalProgress(formData, {})
+  }, [
+    // Use currentStep (local state)
+    currentStep,
+    formData.propertyDetailsComplete,
+    formData.selectedState,
+    formData.propertyType,
+    // NOT: formData.propertyAddress, autocompleteRef, etc.
+  ])
 
   // Watch for property category changes and reset property type if needed
   useEffect(() => {
@@ -1294,7 +1308,7 @@ export default function PropertyDetails() {
             animate={{ opacity: 1, scaleY: 1 }}
             transition={{ duration: 0.5, delay: 0.4 }}
             className="bg-primary h-1 transition-all duration-300 origin-top"
-            style={{ width: `${isComplete ? 100 : ((getDisplayStep() - 1) / getDisplayTotalSteps()) * 100}%` }}
+            style={{ width: `${progressPercentage}%` }}
           ></motion.div>
         </motion.div>
         

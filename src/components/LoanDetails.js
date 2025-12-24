@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useFormNavigation from './shared/FormNavigation.js';
 import { useFormStore } from '../stores/formStore';
@@ -7,6 +7,7 @@ import { useStateSelector } from '../states/useStateSelector.js';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
+import { calculateGlobalProgress } from '../lib/progressCalculation';
 
 export default function LoanDetails() {
   const formData = useFormStore();
@@ -268,6 +269,21 @@ export default function LoanDetails() {
       }
     }
   }, [formData.isResumingSurvey, formData.loanDetailsComplete, currentStep, isCurrentStepValid, nextStep, totalSteps, updateFormData]);
+
+  // Progress calculation - memoized with step-based dependencies only
+  const progressPercentage = useMemo(() => {
+    return calculateGlobalProgress(formData, {})
+  }, [
+    // Step numbers
+    currentStep,
+    formData.loanDetailsActiveStep,
+    // Completion flags
+    formData.loanDetailsComplete,
+    // Branching decisions
+    formData.needsLoan,
+    formData.selectedState,
+    // NOT: typed fields
+  ])
 
   // Use shared navigation hook
   useFormNavigation({
@@ -760,7 +776,7 @@ export default function LoanDetails() {
         <div className="block md:hidden w-full bg-gray-100 h-1 mb-4">
           <div 
             className="bg-primary h-1 transition-all duration-300"
-            style={{ width: `${formData.loanDetailsComplete ? 100 : ((currentStep - 1) / totalSteps) * 100}%` }}
+            style={{ width: `${progressPercentage}%` }}
           ></div>
         </div>
         

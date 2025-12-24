@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { getSessionId, getDeviceId, getSupabaseUserId } from '../lib/sessionManager'
 import { useStateSelector } from '../states/useStateSelector'
+import { calculateGlobalProgress } from '../lib/progressCalculation'
 
 /**
  * Hook to sync form data with Supabase
@@ -33,32 +34,12 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
   // Get state-specific functions once at component level
   const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW')
 
-  // Calculate completion percentage based on filled fields
-  const calculateCompletionPercentage = useCallback((data) => {
-    const sections = [
-      'property_details',
-      'buyer_details', 
-      'loan_details',
-      'seller_questions'
-    ]
-    
-    let totalFields = 0
-    let filledFields = 0
-    
-    sections.forEach(section => {
-      const sectionData = data[section] || {}
-      const sectionFields = Object.keys(sectionData)
-      totalFields += sectionFields.length
-      
-      sectionFields.forEach(field => {
-        const value = sectionData[field]
-        if (value !== null && value !== undefined && value !== '') {
-          filledFields++
-        }
-      })
-    })
-    
-    return totalFields > 0 ? Math.round((filledFields / totalFields) * 100) : 0
+  // Calculate completion percentage based on required fields for current path
+  // Uses dynamic denominator that excludes skipped fields
+  const calculateCompletionPercentage = useCallback((formData) => {
+    // Note: getSuggestedLoanDecision is not available in this context,
+    // so we pass undefined - the calculation will handle it gracefully
+    return calculateGlobalProgress(formData, {})
   }, [])
 
   // Determine current section based on form state
@@ -312,7 +293,8 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
       const userId = await getSupabaseUserId()
 
       const sections = organizeFormDataIntoSections(data)
-      const completionPercentage = calculateCompletionPercentage(sections)
+      // Use global progress calculation with full formData to account for branching
+      const completionPercentage = calculateCompletionPercentage(data)
       const currentSection = getCurrentSection(data)
       const completionStatus = completionPercentage === 100 ? 'complete' : 'in_progress'
       

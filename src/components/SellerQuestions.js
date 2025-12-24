@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useFormNavigation from './shared/FormNavigation.js';
 import { useFormStore } from '../stores/formStore';
@@ -6,6 +6,7 @@ import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
+import { calculateGlobalProgress } from '../lib/progressCalculation';
 
 export default function SellerQuestions() {
   const formData = useFormStore();
@@ -445,6 +446,21 @@ export default function SellerQuestions() {
     }
   }, [formData.isResumingSurvey, formData.sellerQuestionsComplete, currentStep, isCurrentStepValid, nextStep, totalSteps, updateFormData]);
 
+  // Progress calculation - memoized with step-based dependencies only
+  const progressPercentage = useMemo(() => {
+    return calculateGlobalProgress(formData, {})
+  }, [
+    // Step numbers
+    currentStep,
+    formData.sellerQuestionsActiveStep,
+    // Completion flags
+    formData.sellerQuestionsComplete,
+    // Branching decisions
+    formData.selectedState,
+    formData.propertyType,
+    // NOT: typed fields
+  ])
+
   useFormNavigation({
     currentStep,
     totalSteps,
@@ -821,7 +837,7 @@ export default function SellerQuestions() {
         <div className="block md:hidden w-full bg-gray-100 h-1 mb-4">
           <div 
             className="bg-primary h-1 transition-all duration-300"
-            style={{ width: `${localCompletionState ? 100 : ((getActualStepPosition() - 1) / getActualStepsShown()) * 100}%` }}
+            style={{ width: `${progressPercentage}%` }}
           ></div>
         </div>
         

@@ -512,33 +512,52 @@ function CalculatorPageContent() {
                                         transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
                                         className="fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-base-100 md:bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:mt-8 md:px-6 md:pb-8 lg:mt-15 xl:mt-30"
                                     >
-                                        <div className="flex flex-col sm:flex-row gap-3 justify-center mx-auto mt-4">
-                                            <motion.button
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                                onClick={() => {
-                                                    formData.updateFormData('allFormsComplete', false);
-                                                    formData.updateFormData('showSummary', false);
-                                                    formData.updateFormData('sellerQuestionsComplete', false);
-                                                    // Set the active step to the last step of SellerQuestions
-                                                    formData.updateFormData('sellerQuestionsActiveStep', 8);
-                                                }}
-                                                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
-                                            >
-                                                ← Back to Seller Questions
-                                            </motion.button>
+                                        <div className="flex flex-col gap-3 justify-center mx-auto mt-4">
+                                            <div className="flex flex-col sm:flex-row gap-3 justify-center sm:inline-flex">
+                                                <motion.button
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={() => {
+                                                        formData.updateFormData('allFormsComplete', false);
+                                                        formData.updateFormData('showSummary', false);
+                                                        formData.updateFormData('sellerQuestionsComplete', false);
+                                                        // Set the active step to the last step of SellerQuestions
+                                                        formData.updateFormData('sellerQuestionsActiveStep', 8);
+                                                    }}
+                                                    className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
+                                                >
+                                                    ← Back to Seller Questions
+                                                </motion.button>
+                                                
+                                                <motion.button
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={() => {
+                                                        // Reset the entire form
+                                                        formData.resetForm();
+                                                    }}
+                                                    className="bg-gray-500 hover:bg-gray-600 px-6 py-3 rounded-full border border-gray-500 hover:border-gray-600 font-medium text-white hover:shadow-sm flex-shrink-0 cursor-pointer"
+                                                >
+                                                    Start New Survey
+                                                </motion.button>
+                                            </div>
                                             
-                                            <motion.button
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                                onClick={() => {
-                                                    // Reset the entire form
-                                                    formData.resetForm();
-                                                }}
-                                                className="bg-gray-500 hover:bg-gray-600 px-6 py-3 rounded-full border border-gray-500 hover:border-gray-600 font-medium text-white hover:shadow-sm flex-shrink-0 cursor-pointer"
-                                            >
-                                                Start Over
-                                            </motion.button>
+                                            <div className="flex flex-col sm:flex-row gap-3 justify-center sm:inline-flex">
+                                                <motion.button
+                                                    whileHover={{ scale: 1.05 }}
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={() => {
+                                                        // Trigger navigation warning by attempting to navigate
+                                                        const targetUrl = user ? '/dashboard' : '/';
+                                                        if (typeof window !== 'undefined' && window.__navigationWarning) {
+                                                            window.__navigationWarning.checkNavigation(targetUrl);
+                                                        }
+                                                    }}
+                                                    className="bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-full font-medium hover:shadow-sm flex-shrink-0 cursor-pointer w-full md:max-w-sm sm:w-full"
+                                                >
+                                                    Exit Survey
+                                                </motion.button>
+                                            </div>
                                         </div>
                                     </motion.div>
                                 </motion.div>
