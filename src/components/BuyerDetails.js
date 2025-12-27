@@ -37,6 +37,17 @@ export default function BuyerDetails() {
     }
   };
 
+  // Initialize currentStep from buyerDetailsActiveStep when resuming
+  useEffect(() => {
+    if (formData.isResumingSurvey && formData.buyerDetailsActiveStep && formData.buyerDetailsActiveStep !== currentStep) {
+      setCurrentStep(formData.buyerDetailsActiveStep);
+      // Ensure we're not in completion state when resuming
+      if (formData.buyerDetailsComplete) {
+        updateFormData('buyerDetailsComplete', false);
+      }
+    }
+  }, [formData.isResumingSurvey, formData.buyerDetailsActiveStep]);
+
   // Watch for buyerDetailsCurrentStep flag from SellerQuestions or LoanDetails
   useEffect(() => {
     if (formData.buyerDetailsCurrentStep) {
@@ -292,11 +303,23 @@ export default function BuyerDetails() {
     }
   };
 
-  // Auto-advance on resume: skip through questions that already have answers
+  // Auto-advance on resume: only advance through steps that were already confirmed (user clicked Next)
+  // Stop at the step where user left off, even if it has a pre-filled value
   useEffect(() => {
-    if (formData.isResumingSurvey && !formData.buyerDetailsComplete) {
-      if (isCurrentStepValid()) {
-        // If current step has an answer, automatically advance to next step
+    if (formData.isResumingSurvey) {
+      // If section is already complete, stop resuming immediately
+      if (formData.buyerDetailsComplete) {
+        setTimeout(() => {
+          formData.setIsResumingSurvey(false);
+        }, 200);
+        return;
+      }
+      
+      const activeStep = formData.buyerDetailsActiveStep || 1;
+      
+      // Only auto-advance through steps that were already confirmed (before active step)
+      if (currentStep < activeStep && isCurrentStepValid()) {
+        // Auto-advance through confirmed steps
         const timer = setTimeout(() => {
           if (currentStep < totalSteps) {
             nextStep();
@@ -307,6 +330,12 @@ export default function BuyerDetails() {
         }, 300); // Small delay to allow UI to render
         
         return () => clearTimeout(timer);
+      } else if (currentStep === activeStep) {
+        // Stop at the step where user left off - show it even if pre-filled
+        // User must manually click Next to confirm pre-filled values
+        setTimeout(() => {
+          formData.setIsResumingSurvey(false);
+        }, 200);
       } else {
         // Hit a question without an answer - stop resuming after 200ms delay
         setTimeout(() => {
@@ -314,7 +343,7 @@ export default function BuyerDetails() {
         }, 200);
       }
     }
-  }, [formData.isResumingSurvey, formData.buyerDetailsComplete, currentStep, isCurrentStepValid, nextStep, totalSteps, updateFormData]);
+  }, [formData.isResumingSurvey, formData.buyerDetailsComplete, formData.buyerDetailsActiveStep, currentStep, isCurrentStepValid, nextStep, totalSteps, updateFormData]);
 
   // Use shared navigation hook
   useFormNavigation({

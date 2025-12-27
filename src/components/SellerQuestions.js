@@ -368,12 +368,16 @@ export default function SellerQuestions() {
     }
   }, [currentStep, formData.councilRates, formData.waterRates, formData.constructionStarted, formData.dutiableValue, formData.bodyCorp, formData.landTransferFee, formData.legalFees, formData.buildingAndPestInspection, formData.propertyType, formData.selectedState]);
 
-  // Initialize currentStep from store when component mounts
+  // Initialize currentStep from sellerQuestionsActiveStep when resuming
   useEffect(() => {
-    if (formData.sellerQuestionsActiveStep && formData.sellerQuestionsActiveStep > 0) {
+    if (formData.isResumingSurvey && formData.sellerQuestionsActiveStep && formData.sellerQuestionsActiveStep > 0 && formData.sellerQuestionsActiveStep !== currentStep) {
       setCurrentStep(formData.sellerQuestionsActiveStep);
+      // Ensure we're not in completion state when resuming
+      if (formData.sellerQuestionsComplete) {
+        updateFormData('sellerQuestionsComplete', false);
     }
-  }, [formData.sellerQuestionsActiveStep]);
+    }
+  }, [formData.isResumingSurvey, formData.sellerQuestionsActiveStep]);
 
   // Set localCompletionState when sellerQuestionsComplete becomes true
   useEffect(() => {
@@ -418,11 +422,23 @@ export default function SellerQuestions() {
   }, [currentStep, formData.propertyType, formData.selectedState, formData.propertyPrice, updateFormData]);
 
   // Use shared navigation hook
-  // Auto-advance on resume: skip through questions that already have answers
+  // Auto-advance on resume: only advance through steps that were already confirmed (user clicked Next)
+  // Stop at the step where user left off, even if it has a pre-filled value
   useEffect(() => {
-    if (formData.isResumingSurvey && !formData.sellerQuestionsComplete) {
-      if (isCurrentStepValid()) {
-        // If current step has an answer, automatically advance to next step
+    if (formData.isResumingSurvey) {
+      // If section is already complete or all forms are complete, stop resuming immediately
+      if (formData.sellerQuestionsComplete || formData.allFormsComplete) {
+        setTimeout(() => {
+          formData.setIsResumingSurvey(false);
+        }, 200);
+        return;
+      }
+      
+      const activeStep = formData.sellerQuestionsActiveStep || 1;
+      
+      // Only auto-advance through steps that were already confirmed (before active step)
+      if (currentStep < activeStep && isCurrentStepValid()) {
+        // Auto-advance through confirmed steps
         const timer = setTimeout(() => {
           if (currentStep < totalSteps) {
             nextStep();
@@ -437,6 +453,12 @@ export default function SellerQuestions() {
         }, 300); // Small delay to allow UI to render
         
         return () => clearTimeout(timer);
+      } else if (currentStep === activeStep) {
+        // Stop at the step where user left off - show it even if pre-filled
+        // User must manually click Next to confirm pre-filled values
+        setTimeout(() => {
+          formData.setIsResumingSurvey(false);
+        }, 200);
       } else {
         // Hit a question without an answer - stop resuming after 200ms delay
         setTimeout(() => {
@@ -444,7 +466,7 @@ export default function SellerQuestions() {
         }, 200);
       }
     }
-  }, [formData.isResumingSurvey, formData.sellerQuestionsComplete, currentStep, isCurrentStepValid, nextStep, totalSteps, updateFormData]);
+  }, [formData.isResumingSurvey, formData.sellerQuestionsComplete, formData.allFormsComplete, formData.sellerQuestionsActiveStep, currentStep, isCurrentStepValid, nextStep, totalSteps, updateFormData]);
 
   // Progress calculation - memoized with step-based dependencies only
   const progressPercentage = useMemo(() => {

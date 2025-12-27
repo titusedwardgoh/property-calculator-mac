@@ -340,10 +340,32 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
         body: JSON.stringify(requestData)
       })
 
-      const result = await response.json()
-
+      // Check if response is OK before parsing
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to save')
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // Response is not JSON or empty - use status-based message
+        }
+        throw new Error(errorMessage)
+      }
+
+      // Parse JSON response with error handling
+      let result
+      try {
+        const contentType = response.headers.get('content-type')
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Response is not JSON')
+        }
+        result = await response.json()
+      } catch (error) {
+        if (error instanceof SyntaxError) {
+          console.error('JSON parse error - empty or invalid response:', error)
+          throw new Error('Server returned invalid or empty response')
+        }
+        throw error
       }
 
       if (result.propertyId && result.propertyId !== currentPropertyId) {
@@ -381,10 +403,32 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
         })
       })
 
-      const result = await response.json()
-
+      // Check if response is OK before parsing
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to load')
+        let errorMessage = `HTTP ${response.status}: ${response.statusText}`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // Response is not JSON or empty - use status-based message
+        }
+        throw new Error(errorMessage)
+      }
+
+      // Parse JSON response with error handling
+      let result
+      try {
+        const contentType = response.headers.get('content-type')
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Response is not JSON')
+        }
+        result = await response.json()
+      } catch (error) {
+        if (error instanceof SyntaxError) {
+          console.error('JSON parse error - empty or invalid response:', error)
+          throw new Error('Server returned invalid or empty response')
+        }
+        throw error
       }
 
       if (result.data) {

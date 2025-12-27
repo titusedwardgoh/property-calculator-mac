@@ -241,7 +241,7 @@ export default function DashboardContent({ userEmail, handleLogout }) {
                             {isComplete ? (
                               <button
                                 onClick={() => handleResume(survey.id)}
-                                className="flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors"
+                                className="flex cursor-pointer items-center gap-2 px-7 py-2 bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors"
                               >
                                 <Eye className="w-4 h-4" />
                                 View

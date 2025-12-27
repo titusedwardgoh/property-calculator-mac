@@ -66,6 +66,23 @@ export default function PropertyDetails() {
       setHasValidAddress(false);
     }
   }, [formData.propertyAddress, formData.isResumingSurvey]);
+
+  // Initialize currentStep from propertyDetailsActiveStep when resuming
+  useEffect(() => {
+    if (formData.isResumingSurvey && formData.propertyDetailsActiveStep && formData.propertyDetailsActiveStep !== currentStep) {
+      // Validate the step based on current state selection
+      let validStep = formData.propertyDetailsActiveStep;
+      
+      // If the saved step doesn't exist for current state, adjust it
+      if (formData.selectedState !== 'WA' && validStep === 3) {
+        // Non-WA states skip step 3, so if we're trying to go to step 3, go to step 4 instead
+        validStep = 4;
+      }
+      
+      setCurrentStep(validStep);
+      setIsComplete(false);
+    }
+  }, [formData.isResumingSurvey, formData.propertyDetailsActiveStep, formData.selectedState]);
   
   // Calculate the display step number (what the user sees)
   const getDisplayStep = () => {
@@ -771,11 +788,23 @@ export default function PropertyDetails() {
 
 
 
-  // Auto-advance on resume: skip through questions that already have answers
+  // Auto-advance on resume: only advance through steps that were already confirmed (user clicked Next)
+  // Stop at the step where user left off, even if it has a pre-filled value
   useEffect(() => {
-    if (formData.isResumingSurvey && !isComplete) {
-      if (isCurrentStepValid()) {
-        // If current step has an answer, automatically advance to next step
+    if (formData.isResumingSurvey) {
+      // If section is already complete, stop resuming immediately
+      if (isComplete || formData.propertyDetailsComplete) {
+        setTimeout(() => {
+          formData.setIsResumingSurvey(false);
+        }, 200);
+        return;
+      }
+      
+      const activeStep = formData.propertyDetailsActiveStep || 1;
+      
+      // Only auto-advance through steps that were already confirmed (before active step)
+      if (currentStep < activeStep && isCurrentStepValid()) {
+        // Auto-advance through confirmed steps
         const timer = setTimeout(() => {
           if (currentStep < totalSteps) {
             nextStep();
@@ -786,6 +815,12 @@ export default function PropertyDetails() {
         }, 300); // Small delay to allow UI to render
         
         return () => clearTimeout(timer);
+      } else if (currentStep === activeStep) {
+        // Stop at the step where user left off - show it even if pre-filled
+        // User must manually click Next to confirm pre-filled values
+        setTimeout(() => {
+          formData.setIsResumingSurvey(false);
+        }, 200);
       } else {
         // Hit a question without an answer - stop resuming after 200ms delay
         setTimeout(() => {
@@ -793,7 +828,7 @@ export default function PropertyDetails() {
         }, 200);
       }
     }
-  }, [formData.isResumingSurvey, currentStep, isComplete, isCurrentStepValid, nextStep, goToBuyerDetails, totalSteps, updateFormData]);
+  }, [formData.isResumingSurvey, formData.propertyDetailsActiveStep, formData.propertyDetailsComplete, currentStep, isComplete, isCurrentStepValid, nextStep, goToBuyerDetails, totalSteps, updateFormData]);
 
   // Use shared navigation hook
   useFormNavigation({

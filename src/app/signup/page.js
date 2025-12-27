@@ -56,6 +56,37 @@ function SignupPageContent() {
         return;
       }
 
+      // Wait a moment for cookies to be fully set
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Check if there's a property to link after auth
+      const linkPropertyId = sessionStorage.getItem('linkPropertyIdAfterAuth');
+      if (linkPropertyId) {
+        // Link the property to the user's account
+        try {
+          const linkResponse = await fetch('/api/supabase', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'linkPropertyToUser',
+              propertyId: linkPropertyId
+            })
+          });
+          
+          const linkResult = await linkResponse.json();
+          if (linkResponse.ok) {
+            console.log('✅ Property linked to account:', linkResult.message);
+            sessionStorage.removeItem('linkPropertyIdAfterAuth');
+          } else {
+            console.error('Error linking property:', linkResult.error);
+          }
+        } catch (error) {
+          console.error('Error linking property to account:', error);
+        }
+      }
+      
       // Redirect to dashboard or specified next URL on success
       router.push(nextUrl);
     } catch (err) {

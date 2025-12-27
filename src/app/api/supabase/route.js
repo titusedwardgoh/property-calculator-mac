@@ -30,6 +30,8 @@ export async function POST(request) {
         return await loadUserProperties(userId)
       case 'loadPropertyById':
         return await loadPropertyById(propertyId, userId)
+      case 'linkPropertyToUser':
+        return await linkPropertyToUser(propertyId)
       default:
         return Response.json({ error: 'Invalid action' }, { status: 400 })
     }
@@ -129,7 +131,7 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
       user_saved: userSaved === true
     }
 
-    // Path 1: User NOT Signed In - INSERT on completion with is_active = FALSE
+    // Path 1: User NOT Signed In - Manual Save (INSERT on completion with is_active = FALSE)
     if (!verifiedUserId && userSaved === true) {
       recordData.is_active = false
       recordData.parent_id = null
@@ -148,6 +150,60 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
         propertyId: newRecord.id,
         message: 'Property saved (anonymous)' 
       })
+    }
+
+    // Path 1.5: User NOT Signed In - Auto-save/Background Save
+    // Allow anonymous users to auto-save (create/update records with user_id = null)
+    if (!verifiedUserId && userSaved === false) {
+      recordData.is_active = false // Always FALSE for auto-saves
+      
+      if (propertyId) {
+        // Update existing anonymous record
+        const { data: currentRecord } = await supabase
+          .from('properties')
+          .select('id, user_id, is_active')
+          .eq('id', propertyId)
+          .maybeSingle()
+
+        if (currentRecord && currentRecord.user_id === null) {
+          // This is an anonymous record - safe to update
+          // Don't modify parent_id, root_id, or is_active - keep them as-is
+          const { data: updatedRecord, error } = await supabase
+            .from('properties')
+            .update(recordData)
+            .eq('id', propertyId)
+            .select()
+            .maybeSingle()
+
+          if (error) throw error
+
+          if (updatedRecord) {
+            return Response.json({ 
+              success: true, 
+              propertyId: updatedRecord.id,
+              message: 'Draft auto-saved (anonymous)' 
+            })
+          }
+        }
+      } else {
+        // Create new anonymous draft (first auto-save)
+        recordData.parent_id = null
+        recordData.root_id = null
+        
+        const { data: newRecord, error } = await supabase
+          .from('properties')
+          .insert(recordData)
+          .select()
+          .maybeSingle()
+
+        if (error) throw error
+
+        return Response.json({ 
+          success: true, 
+          propertyId: newRecord.id,
+          message: 'Draft created (anonymous)' 
+        })
+      }
     }
 
     // Path 2: User IS Signed In - Auto-save/Background Save
@@ -423,6 +479,107 @@ async function loadUserProperties(userId) {
     })
   } catch (error) {
     console.error('Load user properties error:', error)
+    return Response.json({ error: error.message }, { status: 500 })
+  }
+}
+
+async function linkPropertyToUser(propertyId) {
+  try {
+    if (!propertyId) {
+      return Response.json({ error: 'Property ID is required' }, { status: 400 })
+    }
+
+    // Get user from session
+    const serverClient = await createServerClient()
+    const { data: { user }, error: authError } = await serverClient.auth.getUser()
+    
+    if (authError || !user) {
+      return Response.json({ error: 'Unauthorized - must be logged in' }, { status: 401 })
+    }
+
+    // Check if profile exists in profiles table
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', user.id)
+      .maybeSingle()
+    
+    if (profileError) {
+      console.error('Error checking profile:', profileError)
+      return Response.json({ error: 'Error verifying user profile' }, { status: 500 })
+    }
+
+    if (!profile) {
+      // Profile doesn't exist yet - try to create it
+      try {
+        const { error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            email: user.email || null
+          })
+        
+        if (createError) {
+          console.error('Error creating profile:', createError)
+          return Response.json({ error: 'Error creating user profile' }, { status: 500 })
+        }
+      } catch (err) {
+        console.error('Exception creating profile:', err)
+        return Response.json({ error: 'Error creating user profile' }, { status: 500 })
+      }
+    }
+
+    // Fetch the property record to verify it exists and is anonymous
+    const { data: propertyRecord, error: fetchError } = await supabase
+      .from('properties')
+      .select('id, user_id')
+      .eq('id', propertyId)
+      .maybeSingle()
+
+    if (fetchError) {
+      console.error('Error fetching property:', fetchError)
+      return Response.json({ error: 'Error fetching property record' }, { status: 500 })
+    }
+
+    if (!propertyRecord) {
+      return Response.json({ error: 'Property not found' }, { status: 404 })
+    }
+
+    // Only link if the property doesn't already have a user_id (is anonymous)
+    if (propertyRecord.user_id !== null) {
+      // Property already has a user - check if it's the same user
+      if (propertyRecord.user_id === user.id) {
+        return Response.json({ 
+          success: true, 
+          message: 'Property already linked to your account' 
+        })
+      } else {
+        return Response.json({ error: 'Property belongs to another user' }, { status: 403 })
+      }
+    }
+
+    // Update the property record's user_id, set is_active to true, and user_saved to true
+    // This makes it visible in the user's dashboard
+    const { error: updateError } = await supabase
+      .from('properties')
+      .update({ 
+        user_id: user.id,
+        is_active: true,
+        user_saved: true
+      })
+      .eq('id', propertyId)
+
+    if (updateError) {
+      console.error('Error linking property to user:', updateError)
+      return Response.json({ error: 'Error linking property to account' }, { status: 500 })
+    }
+
+    return Response.json({ 
+      success: true, 
+      message: 'Property linked to your account successfully' 
+    })
+  } catch (error) {
+    console.error('Link property to user error:', error)
     return Response.json({ error: error.message }, { status: 500 })
   }
 }

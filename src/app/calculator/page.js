@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from 'react';
+import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import UpfrontCosts from '../../components/UpfrontCosts';
@@ -172,6 +172,65 @@ function CalculatorPageContent() {
         }
     }, [searchParams, authLoading, user?.id, isLoadingResume, setIsResumingSurvey, updateFormData]); // Removed formData to prevent infinite loop
     
+    // Safety check: Stop resuming if all forms are complete
+    useEffect(() => {
+      if (formData.isResumingSurvey && formData.allFormsComplete) {
+        setTimeout(() => {
+          formData.setIsResumingSurvey(false);
+        }, 200);
+      }
+    }, [formData.isResumingSurvey, formData.allFormsComplete]);
+    
+    // Define handleLinkToAccount before useEffect that uses it
+    const handleLinkToAccount = useCallback(async (userId) => {
+        // When anonymous user logs in/creates account, link existing record to their account
+        const linkPropertyId = typeof window !== 'undefined' ? sessionStorage.getItem('linkPropertyIdAfterAuth') : null;
+        const targetPropertyId = linkPropertyId || propertyId;
+        
+        if (targetPropertyId) {
+            try {
+                const response = await fetch('/api/supabase', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'linkPropertyToUser',
+                        propertyId: targetPropertyId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    console.error('Error linking property to account:', result.error);
+                    return;
+                }
+
+                console.log('✅ Property linked to account:', result.message);
+                
+                // If we linked a property that wasn't the current one, reload the page to get the updated data
+                if (linkPropertyId && linkPropertyId !== propertyId) {
+                    window.location.reload();
+                }
+            } catch (error) {
+                console.error('❌ Error linking property to account:', error);
+            }
+        }
+    }, [propertyId]);
+    
+    // Check if user just logged in and needs to link a property
+    useEffect(() => {
+      if (typeof window === 'undefined') return;
+      
+      const linkPropertyId = sessionStorage.getItem('linkPropertyIdAfterAuth');
+      if (linkPropertyId && user) {
+        // User logged in and there's a property to link - link it via API
+        handleLinkToAccount(user.id);
+        sessionStorage.removeItem('linkPropertyIdAfterAuth');
+      }
+    }, [user, handleLinkToAccount]);
+    
     const showWelcomePage = formData.showWelcomePage;
     const propertyDetailsComplete = formData.propertyDetailsComplete;
     const buyerDetailsComplete = formData.buyerDetailsComplete;
@@ -203,14 +262,6 @@ function CalculatorPageContent() {
         await saveToSupabase(userSaved);
     };
 
-    const handleLinkToAccount = async (userId) => {
-        // When anonymous user logs in/creates account, link existing record to their account
-        // Just trigger a save - saveToSupabase will automatically set user_id from session
-        if (propertyId) {
-            await saveToSupabase();
-        }
-    };
-
     const handleDiscard = () => {
         // Clear form data when discarding
         formData.resetForm();
@@ -232,6 +283,7 @@ function CalculatorPageContent() {
                 onDiscard={handleDiscard}
                 onLinkToAccount={handleLinkToAccount}
                 propertyAddress={formData.propertyAddress}
+                propertyId={propertyId}
                 onReturningToDashboard={() => {
                     setIsReturningToDashboard(true);
                     setTimeout(() => {
