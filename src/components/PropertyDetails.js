@@ -38,6 +38,7 @@ export default function PropertyDetails() {
   const [typingTimeout, setTypingTimeout] = useState(null);
   const scriptLoadingRef = useRef(false);
   const scriptLoadedRef = useRef(false);
+  const placeChangedFiredRef = useRef(false); // Track if place_changed has fired
   
   // Clear propertyDetailsCurrentStep on mount to prevent interference with normal navigation
   useEffect(() => {
@@ -57,15 +58,14 @@ export default function PropertyDetails() {
   
   // Initialize local state from form data when resuming
   // This ensures hasValidAddress is set correctly when propertyAddress exists
-  // Only set hasValidAddress if we're resuming a survey, otherwise clear it for fresh surveys
   useEffect(() => {
     if (formData.isResumingSurvey && formData.propertyAddress && formData.propertyAddress.trim() !== '') {
+      // When resuming, set hasValidAddress to true if address exists
       setHasValidAddress(true);
-    } else if (!formData.isResumingSurvey) {
-      // Clear hasValidAddress when starting a fresh survey
-      setHasValidAddress(false);
     }
-  }, [formData.propertyAddress, formData.isResumingSurvey]);
+    // Don't clear hasValidAddress here - let place_changed and onChange handlers manage it
+    // This prevents the useEffect from interfering with Google Places validation
+  }, [formData.isResumingSurvey]); // Only depend on isResumingSurvey, not propertyAddress
 
   // Initialize currentStep from propertyDetailsActiveStep when resuming
   useEffect(() => {
@@ -271,11 +271,31 @@ export default function PropertyDetails() {
       });
 
       autocompleteRef.current.addListener('place_changed', () => {
+        console.log('🔵 place_changed event fired');
         const place = autocompleteRef.current.getPlace();
+        console.log('🔵 place object:', place);
         if (place.formatted_address) {
+          console.log('🔵 place.formatted_address:', place.formatted_address);
+          // Mark that place_changed has fired
+          placeChangedFiredRef.current = true;
+          console.log('🔵 Setting placeChangedFiredRef to true');
+          
+          // Use flushSync to ensure state update happens synchronously
+          // This ensures hasValidAddress is set immediately before any other state updates
+          flushSync(() => {
+            console.log('🔵 Setting hasValidAddress to true via flushSync');
+            setHasValidAddress(true);
+          });
+          console.log('🔵 hasValidAddress should now be true');
+          
           // Remove ", Australia" from the end of the address
           const cleanedAddress = place.formatted_address.replace(/, Australia$/, '');
           updateFormData('propertyAddress', cleanedAddress);
+          
+          // Reset flag after a short delay
+          setTimeout(() => {
+            placeChangedFiredRef.current = false;
+          }, 100);
           
           // Parse address components for display
           const addressComponents = place.address_components;
@@ -300,8 +320,7 @@ export default function PropertyDetails() {
             updateFormData('propertyStreetAddress', streetAddress);
             updateFormData('propertySuburbPostcode', suburbPostcode);
             
-            // Mark as having valid address
-            setHasValidAddress(true);
+            // hasValidAddress was already set to true at the start of this handler
             
             // Auto-detect state
             const stateComponent = addressComponents.find(component => 
@@ -769,8 +788,11 @@ export default function PropertyDetails() {
   const isCurrentStepValid = () => {
     switch (currentStep) {
       case 1:
-        // Check both local state and form data to handle resume scenarios
-        return hasValidAddress || (isManualEntry && validateManualAddress()) || (formData.propertyAddress && formData.propertyAddress.trim() !== '');
+        // For Google Places: require hasValidAddress to be true (set by place_changed event)
+        // For manual entry: use validateManualAddress (already working)
+        const isValid = hasValidAddress || (isManualEntry && validateManualAddress());
+        console.log('🟡 isCurrentStepValid check - hasValidAddress:', hasValidAddress, ', isManualEntry:', isManualEntry, ', validateManualAddress():', isManualEntry ? validateManualAddress() : 'N/A', ', result:', isValid);
+        return isValid;
       case 2:
         return formData.selectedState && formData.selectedState.trim() !== '';
       case 3:
@@ -879,8 +901,42 @@ export default function PropertyDetails() {
                         placeholder="Enter street address"
                         value={formData.propertyAddress || ''}
                         onChange={(e) => {
-                          updateFormData('propertyAddress', e.target.value);
-                          setHasValidAddress(false);
+                          const newValue = e.target.value;
+                          console.log('🟢 onChange fired - newValue:', newValue);
+                          console.log('🟢 placeChangedFiredRef.current:', placeChangedFiredRef.current);
+                          console.log('🟢 Current hasValidAddress:', hasValidAddress);
+                          
+                          // If place_changed just fired, don't reset - it's handling validation
+                          if (placeChangedFiredRef.current) {
+                            console.log('🟢 place_changed just fired, skipping onChange logic');
+                            updateFormData('propertyAddress', newValue);
+                            return;
+                          }
+                          
+                          // Check if value looks formatted (has commas) - Google Places addresses have commas
+                          const looksFormatted = newValue.includes(',') && newValue.trim().length > 10;
+                          console.log('🟢 looksFormatted:', looksFormatted, '(has comma:', newValue.includes(','), ', length:', newValue.trim().length, ')');
+                          
+                          if (looksFormatted) {
+                            // Value is formatted - set as valid immediately (Google Places selection)
+                            console.log('🟢 Value looks formatted, setting hasValidAddress to true');
+                            flushSync(() => {
+                              setHasValidAddress(true);
+                            });
+                            console.log('🟢 hasValidAddress set to true');
+                          } else if (newValue.length === 0) {
+                            // Field cleared - reset validation
+                            console.log('🟢 Field cleared, setting hasValidAddress to false');
+                            setHasValidAddress(false);
+                          } else if (!newValue.includes(',')) {
+                            // No commas and not empty - likely trash input, reset validation
+                            console.log('🟢 No commas detected, setting hasValidAddress to false (trash input)');
+                            setHasValidAddress(false);
+                          }
+                          // If value has commas but place_changed hasn't fired yet, don't reset
+                          // This handles the case where Google Places populates before place_changed fires
+                          
+                          updateFormData('propertyAddress', newValue);
                           
                           // Clear existing timeout
                           if (typingTimeout) {

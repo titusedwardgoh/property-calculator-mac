@@ -57,9 +57,17 @@ export function getRequiredFields(formData) {
   }
   
   // Loan Section - assume longest path by default (include loan fields unless explicitly opted out)
-  // Only exclude loan fields if needsLoan is explicitly and strictly equal to 'no'
-  // This ensures progress never decreases - when user selects "no", denominator shrinks and progress leaps forward
-  if (formData.needsLoan !== 'no') {
+  // Only exclude loan fields if:
+  // 1. needsLoan is explicitly and strictly equal to 'no' AND
+  // 2. The user has confirmed this decision (passed the loan question step)
+  // This prevents auto-suggested "no loan" from excluding fields before user confirms
+  const isACT = formData.selectedState === 'ACT'
+  const loanQuestionStep = isACT ? 10 : 7
+  const hasConfirmedLoanDecision = formData.buyerDetailsComplete || 
+                                   (formData.buyerDetailsActiveStep > loanQuestionStep)
+  
+  // Only exclude loan fields if user has confirmed they don't need a loan
+  if (formData.needsLoan !== 'no' || !hasConfirmedLoanDecision) {
     requiredFields.push('loanDeposit', 'loanType', 'loanTerm', 'loanRate', 'loanLMI', 'loanSettlementFees', 'loanEstablishmentFee')
   }
   
@@ -83,6 +91,161 @@ export function getRequiredFields(formData) {
   }
   
   return requiredFields
+}
+
+/**
+ * Get the step number for a buyer detail field
+ * @param {string} fieldKey - The field key
+ * @param {Object} formData - The form data
+ * @returns {number|null} The step number, or null if not a buyer detail field
+ */
+function getBuyerFieldStep(fieldKey, formData) {
+  const isACT = formData.selectedState === 'ACT'
+  
+  const stepMap = {
+    'buyerType': 1,
+    'isPPR': 2,
+    'isAustralianResident': 3,
+    'isFirstHomeBuyer': 4,
+  }
+  
+  if (isACT) {
+    stepMap['ownedPropertyLast5Years'] = 5
+    stepMap['hasPensionCard'] = 6
+    stepMap['income'] = 7
+    stepMap['dependants'] = 8
+    stepMap['savingsAmount'] = 9
+    stepMap['needsLoan'] = 10
+  } else {
+    stepMap['hasPensionCard'] = 5
+    stepMap['savingsAmount'] = 6
+    stepMap['needsLoan'] = 7
+  }
+  
+  return stepMap[fieldKey] || null
+}
+
+/**
+ * Check if a buyer detail field has been passed by the user
+ * @param {string} fieldKey - The field key
+ * @param {Object} formData - The form data
+ * @returns {boolean} True if the user has passed this question
+ */
+function isBuyerFieldPastStep(fieldKey, formData) {
+  // If buyer details are complete, all fields are considered passed
+  if (formData.buyerDetailsComplete) {
+    return true
+  }
+  
+  const fieldStep = getBuyerFieldStep(fieldKey, formData)
+  if (fieldStep === null) {
+    return true // Not a buyer detail field, count normally
+  }
+  
+  // Check if user has moved past this step
+  const activeStep = formData.buyerDetailsActiveStep || 1
+  return activeStep > fieldStep
+}
+
+/**
+ * Get the step number (internal case) for a seller question field
+ * @param {string} fieldKey - The field key
+ * @param {Object} formData - The form data
+ * @returns {number|null} The step number, or null if not a seller question field or not shown
+ */
+function getSellerFieldStep(fieldKey, formData) {
+  const shouldShowConstructionQuestions = formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land'
+  const isHouseAndLand = formData.propertyType === 'house-and-land'
+  const isOffThePlanVIC = formData.propertyType === 'off-the-plan' && formData.selectedState === 'VIC'
+  
+  const stepMap = {
+    'councilRates': 1,
+    'waterRates': 2,
+    'bodyCorp': 5,
+    'landTransferFee': 6,
+    'legalFees': 7,
+    'buildingAndPestInspection': 8,
+  }
+  
+  // Construction questions are only shown for off-the-plan or house-and-land
+  if (shouldShowConstructionQuestions) {
+    stepMap['constructionStarted'] = 3
+    
+    // Dutiable value is shown for house-and-land OR (off-the-plan AND VIC)
+    if (isHouseAndLand || isOffThePlanVIC) {
+      stepMap['dutiableValue'] = 4
+    }
+  }
+  
+  return stepMap[fieldKey] || null
+}
+
+/**
+ * Check if a seller question field has been passed by the user
+ * @param {string} fieldKey - The field key
+ * @param {Object} formData - The form data
+ * @returns {boolean} True if the user has passed this question
+ */
+function isSellerFieldPastStep(fieldKey, formData) {
+  // If seller questions are complete, all fields are considered passed
+  if (formData.sellerQuestionsComplete) {
+    return true
+  }
+  
+  const fieldStep = getSellerFieldStep(fieldKey, formData)
+  if (fieldStep === null) {
+    return true // Not a seller question field, count normally
+  }
+  
+  // Check if user has moved past this step
+  const activeStep = formData.sellerQuestionsActiveStep || 1
+  return activeStep > fieldStep
+}
+
+/**
+ * Get the step number for a property detail field
+ * @param {string} fieldKey - The field key
+ * @param {Object} formData - The form data
+ * @returns {number|null} The step number, or null if not a property detail field
+ */
+function getPropertyFieldStep(fieldKey, formData) {
+  const stepMap = {
+    'propertyAddress': 1,
+    'selectedState': 2,
+    'propertyCategory': 4,
+    'propertyType': 5,
+    'propertyPrice': 6,
+  }
+  
+  // WA-specific fields are on step 3
+  if (formData.selectedState === 'WA') {
+    stepMap['isWA'] = 3
+    stepMap['isWAMetro'] = 3
+  }
+  
+  return stepMap[fieldKey] || null
+}
+
+/**
+ * Check if a property detail field has been passed by the user
+ * @param {string} fieldKey - The field key
+ * @param {Object} formData - The form data
+ * @returns {boolean} True if the user has passed this question
+ */
+function isPropertyFieldPastStep(fieldKey, formData) {
+  // If property details are complete, all fields are considered passed
+  if (formData.propertyDetailsComplete) {
+    return true
+  }
+  
+  const fieldStep = getPropertyFieldStep(fieldKey, formData)
+  if (fieldStep === null) {
+    return true // Not a property detail field, count normally
+  }
+  
+  // Check if user has moved past this step
+  const activeStep = formData.propertyDetailsActiveStep || 1
+  return activeStep > fieldStep
 }
 
 /**
@@ -120,10 +283,32 @@ export function calculateGlobalProgress(formData, options = {}) {
         }
       }
     } else {
-      // Normal field check
+      // Check if this is a property detail, buyer detail, or seller question field that needs step validation
+      const isPropertyField = getPropertyFieldStep(fieldKey, formData) !== null
+      const isBuyerField = getBuyerFieldStep(fieldKey, formData) !== null
+      const isSellerField = getSellerFieldStep(fieldKey, formData) !== null
       const value = formData[fieldKey]
+      
       if (isFieldAnswered(value)) {
-        answeredCount++
+        // For property detail fields, only count if user has passed that step
+        if (isPropertyField) {
+          if (isPropertyFieldPastStep(fieldKey, formData)) {
+            answeredCount++
+          }
+        } else if (isBuyerField) {
+          // For buyer detail fields, only count if user has passed that step
+          if (isBuyerFieldPastStep(fieldKey, formData)) {
+            answeredCount++
+          }
+        } else if (isSellerField) {
+          // For seller question fields, only count if user has passed that step
+          if (isSellerFieldPastStep(fieldKey, formData)) {
+            answeredCount++
+          }
+        } else {
+          // Normal field check (not a property detail, buyer detail, or seller question field)
+          answeredCount++
+        }
       }
     }
   })

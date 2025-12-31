@@ -566,30 +566,30 @@ function CalculatorPageContent() {
                                     >
                                         <div className="flex flex-col gap-3 justify-center mx-auto mt-4">
                                             <div className="flex flex-col sm:flex-row gap-3 justify-center sm:inline-flex">
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => {
-                                                        formData.updateFormData('allFormsComplete', false);
-                                                        formData.updateFormData('showSummary', false);
-                                                        formData.updateFormData('sellerQuestionsComplete', false);
-                                                        // Set the active step to the last step of SellerQuestions
-                                                        formData.updateFormData('sellerQuestionsActiveStep', 8);
-                                                    }}
-                                                    className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
-                                                >
-                                                    ← Back to Seller Questions
-                                                </motion.button>
-                                                
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => {
-                                                        // Reset the entire form
-                                                        formData.resetForm();
-                                                    }}
-                                                    className="bg-gray-500 hover:bg-gray-600 px-6 py-3 rounded-full border border-gray-500 hover:border-gray-600 font-medium text-white hover:shadow-sm flex-shrink-0 cursor-pointer"
-                                                >
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => {
+                                                    formData.updateFormData('allFormsComplete', false);
+                                                    formData.updateFormData('showSummary', false);
+                                                    formData.updateFormData('sellerQuestionsComplete', false);
+                                                    // Set the active step to the last step of SellerQuestions
+                                                    formData.updateFormData('sellerQuestionsActiveStep', 8);
+                                                }}
+                                                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
+                                            >
+                                                ← Back to Seller Questions
+                                            </motion.button>
+                                            
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => {
+                                                    // Reset the entire form
+                                                    formData.resetForm();
+                                                }}
+                                                className="bg-gray-500 hover:bg-gray-600 px-6 py-3 rounded-full border border-gray-500 hover:border-gray-600 font-medium text-white hover:shadow-sm flex-shrink-0 cursor-pointer"
+                                            >
                                                     Start New Survey
                                                 </motion.button>
                                             </div>
@@ -608,7 +608,7 @@ function CalculatorPageContent() {
                                                     className="bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-full font-medium hover:shadow-sm flex-shrink-0 cursor-pointer w-full md:max-w-sm sm:w-full"
                                                 >
                                                     Exit Survey
-                                                </motion.button>
+                                            </motion.button>
                                             </div>
                                         </div>
                                     </motion.div>
