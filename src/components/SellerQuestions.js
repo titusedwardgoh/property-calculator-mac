@@ -372,10 +372,7 @@ export default function SellerQuestions() {
   useEffect(() => {
     if (formData.isResumingSurvey && formData.sellerQuestionsActiveStep && formData.sellerQuestionsActiveStep > 0 && formData.sellerQuestionsActiveStep !== currentStep) {
       setCurrentStep(formData.sellerQuestionsActiveStep);
-      // Ensure we're not in completion state when resuming
-      if (formData.sellerQuestionsComplete) {
-        updateFormData('sellerQuestionsComplete', false);
-    }
+      // Don't reset sellerQuestionsComplete here - let auto-advance useEffect handle it
     }
   }, [formData.isResumingSurvey, formData.sellerQuestionsActiveStep]);
 
@@ -426,8 +423,12 @@ export default function SellerQuestions() {
   // Stop at the step where user left off, even if it has a pre-filled value
   useEffect(() => {
     if (formData.isResumingSurvey) {
-      // If section is already complete or all forms are complete, stop resuming immediately
+      // If section is already complete, advance to final completion page
       if (formData.sellerQuestionsComplete || formData.allFormsComplete) {
+        // Set all forms complete to show summary page
+        updateFormData('allFormsComplete', true);
+        updateFormData('showSummary', true);
+        // Stop resuming - we're at the final page
         setTimeout(() => {
           formData.setIsResumingSurvey(false);
         }, 200);

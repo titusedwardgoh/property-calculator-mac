@@ -39,14 +39,25 @@ export default function BuyerDetails() {
 
   // Initialize currentStep from buyerDetailsActiveStep when resuming
   useEffect(() => {
-    if (formData.isResumingSurvey && formData.buyerDetailsActiveStep && formData.buyerDetailsActiveStep !== currentStep) {
-      setCurrentStep(formData.buyerDetailsActiveStep);
-      // Ensure we're not in completion state when resuming
-      if (formData.buyerDetailsComplete) {
-        updateFormData('buyerDetailsComplete', false);
+    if (formData.isResumingSurvey) {
+      // If PropertyDetails is complete but user hasn't started BuyerDetails (activeStep is 1 or not set)
+      // ensure we start at step 1
+      if (formData.propertyDetailsComplete && !formData.buyerDetailsComplete && 
+          (!formData.buyerDetailsActiveStep || formData.buyerDetailsActiveStep === 1)) {
+        setCurrentStep(1);
+        updateFormData('buyerDetailsActiveStep', 1);
+        // Stop resuming immediately since we're starting fresh in BuyerDetails
+        setTimeout(() => {
+          formData.setIsResumingSurvey(false);
+        }, 200);
+        return;
+      } else if (formData.buyerDetailsActiveStep && formData.buyerDetailsActiveStep !== currentStep) {
+        // User has progress in BuyerDetails - resume at their saved step
+        setCurrentStep(formData.buyerDetailsActiveStep);
       }
+      // Don't reset buyerDetailsComplete here - let auto-advance useEffect handle it
     }
-  }, [formData.isResumingSurvey, formData.buyerDetailsActiveStep]);
+  }, [formData.isResumingSurvey, formData.buyerDetailsActiveStep, formData.propertyDetailsComplete, formData.buyerDetailsComplete, currentStep, updateFormData]);
 
   // Watch for buyerDetailsCurrentStep flag from SellerQuestions or LoanDetails
   useEffect(() => {
@@ -307,8 +318,29 @@ export default function BuyerDetails() {
   // Stop at the step where user left off, even if it has a pre-filled value
   useEffect(() => {
     if (formData.isResumingSurvey) {
-      // If section is already complete, stop resuming immediately
+      // If section is already complete, advance to next section based on needsLoan
       if (formData.buyerDetailsComplete) {
+        // Check needsLoan to determine next section
+        if (formData.needsLoan === 'yes') {
+          // Advance to LoanDetails
+          updateFormData('showLoanDetails', true);
+          // Only set loanDetailsActiveStep to 1 if it's not already set (user hasn't started LoanDetails yet)
+          // Don't overwrite existing progress in LoanDetails
+          if (!formData.loanDetailsActiveStep || formData.loanDetailsActiveStep === 1) {
+            updateFormData('loanDetailsActiveStep', 1);
+          }
+        } else {
+          // Advance to SellerQuestions
+          updateFormData('showSellerQuestions', true);
+          // Only set sellerQuestionsActiveStep to 1 if it's not already set (user hasn't started SellerQuestions yet)
+          // Don't overwrite existing progress in SellerQuestions
+          if (!formData.sellerQuestionsActiveStep || formData.sellerQuestionsActiveStep === 1) {
+            updateFormData('sellerQuestionsActiveStep', 1);
+          }
+        }
+        // Reset completion flag temporarily to allow transition
+        updateFormData('buyerDetailsComplete', false);
+        // Stop resuming in this component - next section will handle its own auto-advance
         setTimeout(() => {
           formData.setIsResumingSurvey(false);
         }, 200);
@@ -343,7 +375,7 @@ export default function BuyerDetails() {
         }, 200);
       }
     }
-  }, [formData.isResumingSurvey, formData.buyerDetailsComplete, formData.buyerDetailsActiveStep, currentStep, isCurrentStepValid, nextStep, totalSteps, updateFormData]);
+  }, [formData.isResumingSurvey, formData.buyerDetailsComplete, formData.needsLoan, formData.buyerDetailsActiveStep, currentStep, isCurrentStepValid, nextStep, totalSteps, updateFormData]);
 
   // Use shared navigation hook
   useFormNavigation({

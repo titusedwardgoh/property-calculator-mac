@@ -77,20 +77,22 @@ function CalculatorPageContent() {
             })
             .then(res => res.json())
             .then(result => {
-                console.log('📥 Resume API response:', result);
-                if (result.success && result.data) {
-                    const record = result.data;
-                    console.log('📋 Loaded record data:', {
-                        id: record.id,
-                        is_active: record.is_active,
-                        parent_id: record.parent_id,
-                        user_saved: record.user_saved,
-                        hasPropertyDetails: !!record.property_details,
-                        hasBuyerDetails: !!record.buyer_details,
-                        propertyPrice: record.property_price,
-                        propertyAddress: record.property_address,
-                        message: result.message
-                    });
+                    console.log('📥 Resume API response:', result);
+                    if (result.success && result.data) {
+                        const record = result.data;
+                        console.log('📋 Loaded record data:', {
+                            id: record.id,
+                            is_active: record.is_active,
+                            parent_id: record.parent_id,
+                            user_saved: record.user_saved,
+                            hasPropertyDetails: !!record.property_details,
+                            hasBuyerDetails: !!record.buyer_details,
+                            propertyPrice: record.property_price,
+                            propertyAddress: record.property_address,
+                            message: result.message
+                        });
+                        console.log('📋 Full property_details object:', record.property_details);
+                        console.log('📋 Full buyer_details object:', record.buyer_details);
                     
                     setPropertyId(record.id);
                     
@@ -115,6 +117,30 @@ function CalculatorPageContent() {
                         { data: record.calculated_values, name: 'calculated_values' }
                     ];
                     
+                    // Check completion status from the loaded record data BEFORE merging
+                    // This ensures we have the correct values before they get merged
+                    // For PropertyDetails, check both propertyDetailsComplete and propertyDetailsFormComplete
+                    // propertyDetailsFormComplete means they reached the completion page
+                    const propertyDetailsFormComplete = record.property_details?.propertyDetailsFormComplete || false;
+                    const propertyDetailsComplete = record.property_details?.propertyDetailsComplete || propertyDetailsFormComplete || false;
+                    // For BuyerDetails, check buyerDetailsComplete - if true, they completed the section
+                    const buyerDetailsComplete = record.buyer_details?.buyerDetailsComplete || false;
+                    const loanDetailsComplete = record.loan_details?.loanDetailsComplete || false;
+                    const sellerQuestionsComplete = record.seller_questions?.sellerQuestionsComplete || false;
+                    const needsLoan = record.buyer_details?.needsLoan || '';
+                    
+                    console.log('🔍 Resume completion status:', {
+                        propertyDetailsComplete,
+                        propertyDetailsFormComplete,
+                        buyerDetailsComplete,
+                        loanDetailsComplete,
+                        sellerQuestionsComplete,
+                        needsLoan
+                    });
+                    console.log('🔍 Raw property_details.propertyDetailsComplete:', record.property_details?.propertyDetailsComplete);
+                    console.log('🔍 Raw property_details.propertyDetailsFormComplete:', record.property_details?.propertyDetailsFormComplete);
+                    console.log('🔍 Raw buyer_details.buyerDetailsComplete:', record.buyer_details?.buyerDetailsComplete);
+                    
                     sectionsToMerge.forEach(({ data, name }) => {
                         if (data && typeof data === 'object') {
                             Object.entries(data).forEach(([key, value]) => {
@@ -127,6 +153,56 @@ function CalculatorPageContent() {
                     
                     // Ensure welcome page is hidden
                     updateFormData('showWelcomePage', false);
+                    
+                    // Handle transitions for completed sections on resume
+                    // Set completion flags and navigation flags immediately to ensure correct component rendering
+                    if (propertyDetailsComplete) {
+                        console.log('✅ PropertyDetails is complete, transitioning to BuyerDetails');
+                        updateFormData('propertyDetailsComplete', true);
+                        // Only set buyerDetailsActiveStep to 1 if it's not already set (user hasn't started BuyerDetails yet)
+                        const savedBuyerDetailsActiveStep = record.buyer_details?.buyerDetailsActiveStep;
+                        if (!savedBuyerDetailsActiveStep || savedBuyerDetailsActiveStep === 1) {
+                            updateFormData('buyerDetailsActiveStep', 1);
+                        }
+                    }
+                    if (buyerDetailsComplete) {
+                        console.log('✅ BuyerDetails is complete, transitioning to next section');
+                        updateFormData('buyerDetailsComplete', true);
+                        // Set navigation flags immediately based on needsLoan
+                        if (needsLoan === 'yes') {
+                            console.log('✅ Needs loan, transitioning to LoanDetails');
+                            updateFormData('showLoanDetails', true);
+                            // Only set loanDetailsActiveStep to 1 if it's not already set (user hasn't started LoanDetails yet)
+                            const savedLoanDetailsActiveStep = record.loan_details?.loanDetailsActiveStep;
+                            if (!savedLoanDetailsActiveStep || savedLoanDetailsActiveStep === 1) {
+                                updateFormData('loanDetailsActiveStep', 1);
+                            }
+                        } else {
+                            console.log('✅ No loan needed, transitioning to SellerQuestions');
+                            updateFormData('showSellerQuestions', true);
+                            // Only set sellerQuestionsActiveStep to 1 if it's not already set (user hasn't started SellerQuestions yet)
+                            const savedSellerQuestionsActiveStep = record.seller_questions?.sellerQuestionsActiveStep;
+                            if (!savedSellerQuestionsActiveStep || savedSellerQuestionsActiveStep === 1) {
+                                updateFormData('sellerQuestionsActiveStep', 1);
+                            }
+                        }
+                    }
+                    if (loanDetailsComplete) {
+                        console.log('✅ LoanDetails is complete, transitioning to SellerQuestions');
+                        updateFormData('loanDetailsComplete', true);
+                        updateFormData('showSellerQuestions', true);
+                        // Only set sellerQuestionsActiveStep to 1 if it's not already set (user hasn't started SellerQuestions yet)
+                        const savedSellerQuestionsActiveStep = record.seller_questions?.sellerQuestionsActiveStep;
+                        if (!savedSellerQuestionsActiveStep || savedSellerQuestionsActiveStep === 1) {
+                            updateFormData('sellerQuestionsActiveStep', 1);
+                        }
+                    }
+                    if (sellerQuestionsComplete) {
+                        console.log('✅ SellerQuestions is complete, showing final page');
+                        updateFormData('sellerQuestionsComplete', true);
+                        updateFormData('allFormsComplete', true);
+                        updateFormData('showSummary', true);
+                    }
                     
                     console.log('✅ Form data updated from resume');
                     

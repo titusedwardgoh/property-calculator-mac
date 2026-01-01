@@ -250,8 +250,18 @@ export default function LoanDetails() {
   // Stop at the step where user left off, even if it has a pre-filled value
   useEffect(() => {
     if (formData.isResumingSurvey) {
-      // If section is already complete, stop resuming immediately
+      // If section is already complete, advance to next section (SellerQuestions)
       if (formData.loanDetailsComplete) {
+        // Advance to SellerQuestions
+        updateFormData('showSellerQuestions', true);
+        // Only set sellerQuestionsActiveStep to 1 if it's not already set (user hasn't started SellerQuestions yet)
+        // Don't overwrite existing progress in SellerQuestions
+        if (!formData.sellerQuestionsActiveStep || formData.sellerQuestionsActiveStep === 1) {
+          updateFormData('sellerQuestionsActiveStep', 1);
+        }
+        // Reset completion flag temporarily to allow transition
+        updateFormData('loanDetailsComplete', false);
+        // Stop resuming in this component - SellerQuestions will handle its own auto-advance
         setTimeout(() => {
           formData.setIsResumingSurvey(false);
         }, 200);
@@ -328,10 +338,7 @@ export default function LoanDetails() {
   useEffect(() => {
     if (formData.isResumingSurvey && formData.loanDetailsActiveStep && formData.loanDetailsActiveStep !== currentStep) {
       setCurrentStep(formData.loanDetailsActiveStep);
-      // Ensure we're not in completion state when resuming
-      if (formData.loanDetailsComplete) {
-        updateFormData('loanDetailsComplete', false);
-      }
+      // Don't reset loanDetailsComplete here - let auto-advance useEffect handle it
     }
   }, [formData.isResumingSurvey, formData.loanDetailsActiveStep]);
 

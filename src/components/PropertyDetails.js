@@ -682,8 +682,12 @@ export default function PropertyDetails() {
       // Form is complete - calculate stamp duty
       calculateAndLogStampDuty();
       setIsComplete(true);
-      // Set a separate flag for UpfrontCosts (not the main navigation flag)
+      // Set form complete flag to show completion page
+      // propertyDetailsComplete will be set when user clicks Next on completion page (goToBuyerDetails)
+      // propertyDetailsFormComplete tracks that they reached the completion page (for resume logic)
       updateFormData('propertyDetailsFormComplete', true);
+      // DON'T set propertyDetailsComplete here - let it be set in goToBuyerDetails() when user clicks Next
+      // This ensures the completion page shows before transitioning to BuyerDetails
       // Reset the executing ref
       isExecutingRef.current = false;
       
@@ -814,8 +818,13 @@ export default function PropertyDetails() {
   // Stop at the step where user left off, even if it has a pre-filled value
   useEffect(() => {
     if (formData.isResumingSurvey) {
-      // If section is already complete, stop resuming immediately
+      // If section is already complete, ensure BuyerDetails starts at step 1
+      // Note: If PropertyDetails is complete, this component won't be rendered,
+      // so this logic only runs if user is resuming within PropertyDetails
       if (isComplete || formData.propertyDetailsComplete) {
+        // Ensure BuyerDetails starts at step 1 when transitioning
+        updateFormData('buyerDetailsActiveStep', 1);
+        // Stop resuming in this component - BuyerDetails will handle its own auto-advance
         setTimeout(() => {
           formData.setIsResumingSurvey(false);
         }, 200);
