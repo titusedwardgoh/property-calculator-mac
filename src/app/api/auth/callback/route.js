@@ -9,11 +9,14 @@ export async function GET(request) {
 
   if (code) {
     const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     
     if (!error) {
-      // If this is a password reset flow, redirect to reset-password page
-      if (type === 'recovery') {
+      // Check if this is a password reset flow
+      // Supabase might not preserve the type parameter, so we check the session or next parameter
+      const isRecovery = type === 'recovery' || next === '/reset-password'
+      
+      if (isRecovery) {
         const response = NextResponse.redirect(new URL('/reset-password?code=' + code, request.url))
         response.headers.set('Cache-Control', 'no-store, must-revalidate')
         return response

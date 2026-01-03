@@ -14,9 +14,11 @@ export async function POST(request) {
 
     const supabase = await createClient()
 
-    // Get the origin URL for the redirect
-    const origin = request.headers.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
-    const redirectTo = `${origin}/reset-password`
+    // Construct the redirect URL using the request URL to ensure it works in production
+    const requestUrl = new URL(request.url)
+    const origin = requestUrl.origin
+    // Use callback route pattern for better session handling
+    const redirectTo = `${origin}/api/auth/callback?next=/reset-password&type=recovery`
 
     // Send password reset email
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
