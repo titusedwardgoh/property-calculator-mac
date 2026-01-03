@@ -19,7 +19,7 @@ const supabase = createServiceClient(supabaseUrl, supabaseServiceKey, {
 
 export async function POST(request) {
   try {
-    const { action, sessionId, deviceId, userId, data, propertyId, userSaved } = await request.json()
+    const { action, sessionId, deviceId, userId, data, propertyId, userSaved, inspected } = await request.json()
 
     switch (action) {
       case 'save':
@@ -32,6 +32,8 @@ export async function POST(request) {
         return await loadPropertyById(propertyId, userId)
       case 'linkPropertyToUser':
         return await linkPropertyToUser(propertyId)
+      case 'updatePropertyInspected':
+        return await updatePropertyInspected(propertyId, inspected)
       default:
         return Response.json({ error: 'Invalid action' }, { status: 400 })
     }
@@ -703,6 +705,62 @@ async function loadPropertyById(propertyId, userId) {
     })
   } catch (error) {
     console.error('Load property by ID error:', error)
+    return Response.json({ error: error.message }, { status: 500 })
+  }
+}
+
+async function updatePropertyInspected(propertyId, inspected) {
+  try {
+    if (!propertyId) {
+      return Response.json({ error: 'Property ID is required' }, { status: 400 })
+    }
+
+    // Get user from session
+    const serverClient = await createServerClient()
+    const { data: { user }, error: authError } = await serverClient.auth.getUser()
+    
+    if (authError || !user) {
+      return Response.json({ error: 'Unauthorized - must be logged in' }, { status: 401 })
+    }
+
+    // Verify user owns the property
+    const { data: property, error: fetchError } = await supabase
+      .from('properties')
+      .select('user_id')
+      .eq('id', propertyId)
+      .maybeSingle()
+
+    if (fetchError) {
+      console.error('Error fetching property:', fetchError)
+      return Response.json({ error: 'Error fetching property' }, { status: 500 })
+    }
+
+    if (!property) {
+      return Response.json({ error: 'Property not found' }, { status: 404 })
+    }
+
+    if (property.user_id !== user.id) {
+      return Response.json({ error: 'Unauthorized - property does not belong to user' }, { status: 403 })
+    }
+
+    // Update the inspected status
+    const { error: updateError } = await supabase
+      .from('properties')
+      .update({ inspected: inspected === true })
+      .eq('id', propertyId)
+      .eq('user_id', user.id)
+
+    if (updateError) {
+      console.error('Error updating inspected status:', updateError)
+      return Response.json({ error: 'Failed to update inspected status' }, { status: 500 })
+    }
+
+    return Response.json({ 
+      success: true, 
+      message: 'Inspected status updated successfully' 
+    })
+  } catch (error) {
+    console.error('Update inspected error:', error)
     return Response.json({ error: error.message }, { status: 500 })
   }
 }

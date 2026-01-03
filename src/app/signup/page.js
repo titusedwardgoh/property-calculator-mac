@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -21,6 +21,23 @@ function SignupPageContent() {
 
   // Get the 'next' parameter from URL to know where to redirect after signup
   const nextUrl = searchParams.get('next') || '/dashboard';
+
+  // Check if user is already logged in and redirect to dashboard
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          // User is already logged in, redirect to dashboard or next URL
+          router.replace(nextUrl);
+        }
+      } catch (err) {
+        console.error('Error checking auth:', err);
+      }
+    };
+
+    checkAuth();
+  }, [router, nextUrl, supabase]);
 
   const handleSignup = async (e) => {
     e.preventDefault();

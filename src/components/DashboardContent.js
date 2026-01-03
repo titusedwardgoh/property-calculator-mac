@@ -96,6 +96,53 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
     setPropertyToDelete(null);
   };
 
+  const handleToggleInspected = async (propertyId, currentInspected) => {
+    if (!user) return;
+    
+    const newInspectedStatus = !currentInspected;
+    
+    // Optimistically update UI immediately
+    setSurveys(prevSurveys => 
+      prevSurveys.map(survey => 
+        survey.id === propertyId 
+          ? { ...survey, inspected: newInspectedStatus }
+          : survey
+      )
+    );
+
+    // Update database in the background
+    try {
+      const response = await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'updatePropertyInspected',
+          propertyId: propertyId,
+          inspected: newInspectedStatus,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || 'Failed to update inspected status');
+      }
+    } catch (error) {
+      console.error('Error updating inspected status:', error);
+      // Revert the optimistic update on error
+      setSurveys(prevSurveys => 
+        prevSurveys.map(survey => 
+          survey.id === propertyId 
+            ? { ...survey, inspected: currentInspected }
+            : survey
+        )
+      );
+      alert('Failed to update inspected status. Please try again.');
+    }
+  };
+
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown date';
     const date = new Date(dateString);
@@ -214,11 +261,11 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: index * 0.1 }}
-                        className="border border-base-300 rounded-xl p-6 hover:shadow-md transition-all"
+                        className="border border-secondary rounded-xl p-6 hover:shadow-md transition-all"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                           <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
+                            <div className="flex  items-center gap-3 mb-2">
                               <h3 className="text-lg font-semibold text-gray-900">
                                 {survey.property_address || `Survey ${index + 1}`}
                               </h3>
@@ -234,6 +281,65 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                                 <p>State: {survey.selected_state}</p>
                               )}
                               <p>Last updated: {formatDate(survey.updated_at)}</p>
+                              {/* Inspected Toggle */}
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="text-sm text-gray-600">Inspected:</span>
+                                <motion.button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleInspected(survey.id, survey.inspected || false);
+                                  }}
+                                  className={`relative inline-flex items-center h-6 cursor-pointer rounded-full w-14 focus:outline-none active:outline-none ${
+                                    survey.inspected 
+                                      ? 'bg-green-500' 
+                                      : 'bg-red-500'
+                                  }`}
+                                  animate={{
+                                    backgroundColor: survey.inspected ? '#10b981' : '#ef4444'
+                                  }}
+                                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                >
+                                  {/* NO text - shows on right when handle is on left (off state) */}
+                                  <AnimatePresence>
+                                    {!survey.inspected && (
+                                      <motion.span
+                                        key="no"
+                                        initial={{ opacity: 0, x: -5 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: 5 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="absolute right-0 pr-3 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
+                                      >
+                                        No
+                                      </motion.span>
+                                    )}
+                                  </AnimatePresence>
+                                  {/* YES text - shows on left when handle is on right (on state) */}
+                                  <AnimatePresence>
+                                    {survey.inspected && (
+                                      <motion.span
+                                        key="yes"
+                                        initial={{ opacity: 0, x: 5 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        exit={{ opacity: 0, x: -5 }}
+                                        transition={{ duration: 0.2 }}
+                                        className="absolute left-0 pl-2.5 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
+                                      >
+                                        Yes
+                                      </motion.span>
+                                    )}
+                                  </AnimatePresence>
+                                  {/* White circle handle */}
+                                  <motion.span
+                                    className="absolute h-4.5 w-4.5 rounded-full bg-white shadow-md"
+                                    animate={{
+                                      left: survey.inspected ? 'auto' : '0.225rem',
+                                      right: survey.inspected ? '0.155rem' : 'auto'
+                                    }}
+                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                  />
+                                </motion.button>
+                              </div>
                             </div>
                           </div>
                           
