@@ -10,7 +10,7 @@ import { createClient } from '@/lib/supabase/client';
 import { useFormStore } from '@/stores/formStore';
 import { resetSessionAndForm } from '@/lib/sessionManager';
 
-export default function DashboardContent({ userEmail, handleLogout }) {
+export default function DashboardContent({ userEmail, userName, handleLogout }) {
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
@@ -149,7 +149,7 @@ export default function DashboardContent({ userEmail, handleLogout }) {
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
               className="text-lg md:text-xl text-base-100 mb-8"
             >
-              Welcome back, {userEmail}
+              Welcome back, {userName || userEmail}
             </motion.p>
           </div>
         </section>
