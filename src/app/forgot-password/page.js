@@ -77,11 +77,11 @@ function ForgotPasswordPageContent() {
           >
             {success ? (
               <>
-                We've sent a password reset link to <strong>{email}</strong>
+                We&apos;ve sent a password reset link to <strong>{email}</strong>
               </>
             ) : (
               <>
-                No worries! Enter your email address and we'll send you a link to reset your password.
+                No worries! Enter your email address and we&apos;ll send you a link to reset your password.
               </>
             )}
           </motion.p>
@@ -92,7 +92,7 @@ function ForgotPasswordPageContent() {
             <div className="bg-success/20 border border-success rounded-lg p-4 flex items-center gap-3">
               <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
               <p className="text-sm text-success">
-                If an account exists with this email, you'll receive password reset instructions shortly.
+                If an account exists with this email, you&apos;ll receive password reset instructions shortly.
               </p>
             </div>
             <div className="text-center">
