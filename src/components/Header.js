@@ -38,7 +38,7 @@ export default function Header() {
   };
   
   // Define public pages where normal header should always show (even when logged in)
-  const publicPages = ['/', '/about', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup'];
+  const publicPages = ['/', '/about', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup', '/reset-password', '/forgot-password'];
   const isPublicPage = publicPages.includes(pathname);
   
   // Hide header only on calculator route (simplified overlay is shown instead)
@@ -130,8 +130,8 @@ export default function Header() {
                 {loading ? (
                   // Show nothing while loading
                   null
-                ) : user ? (
-                  // Show Account and Logout when logged in
+                ) : (user && pathname !== '/reset-password' && pathname !== '/forgot-password') ? (
+                  // Show Account and Logout when logged in (except on reset/forgot password pages)
                   <>
                     <Link
                       href="/dashboard"
@@ -149,14 +149,20 @@ export default function Header() {
                     </button>
                   </>
                 ) : (
-                  // Show Login and Sign Up when not logged in
+                  // Show Login and Sign Up when not logged in or on reset/forgot password pages
                   <>
                      <Link
-                       href="/login"
-                       className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors"
-                     >
-                       Log In
-                     </Link>
+                      href="/login"
+                      onClick={() => {
+                        // If on reset/forgot password page, set flag to prevent auto-login
+                        if (pathname === '/reset-password' || pathname === '/forgot-password') {
+                          sessionStorage.setItem('fromPasswordReset', 'true');
+                        }
+                      }}
+                      className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors"
+                    >
+                      Log In
+                    </Link>
                      <Link
                        href="/signup"
                        className="px-3 py-2 text-sm font-medium text-secondary bg-primary rounded-full hover:bg-primary/90 transition-colors"
@@ -248,8 +254,8 @@ export default function Header() {
                     </li>
                     {!loading && (
                       <>
-                        {user ? (
-                          // Show Account when logged in (Logout is at bottom)
+                        {(user && pathname !== '/reset-password' && pathname !== '/forgot-password') ? (
+                          // Show Account when logged in (Logout is at bottom), except on reset/forgot password pages
                           <li>
                             <Link
                               href="/dashboard"
@@ -261,12 +267,18 @@ export default function Header() {
                             </Link>
                           </li>
                         ) : (
-                          // Show Login and Sign Up when not logged in
+                          // Show Login and Sign Up when not logged in or on reset/forgot password pages
                           <>
                             <li>
                               <Link
                                 href="/login"
-                                onClick={closeMenu}
+                                onClick={(e) => {
+                                  closeMenu();
+                                  // If on reset/forgot password page, set flag to prevent auto-login
+                                  if (pathname === '/reset-password' || pathname === '/forgot-password') {
+                                    sessionStorage.setItem('fromPasswordReset', 'true');
+                                  }
+                                }}
                                 className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200"
                               >
                                 Log In
@@ -289,7 +301,7 @@ export default function Header() {
                 </nav>
                 
                 {/* Logout at bottom - matches dashboard header style */}
-                {!loading && user && (
+                {!loading && user && pathname !== '/reset-password' && pathname !== '/forgot-password' && (
                   <div className="px-6 py-4 border-t border-gray-200">
                     <button
                       onClick={() => {

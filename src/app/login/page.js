@@ -20,10 +20,39 @@ function LoginPageContent() {
   // Get the 'next' parameter from URL to know where to redirect after login
   const nextUrl = searchParams.get('next') || '/dashboard';
 
+  // Check for expired OTP error in URL hash (from Supabase redirect)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const hash = window.location.hash;
+    if (hash) {
+      const urlParams = new URLSearchParams(hash.substring(1));
+      const errorCode = urlParams.get('error_code');
+      const errorDescription = urlParams.get('error_description');
+      
+      // Check if this is an expired OTP error
+      if (errorCode === 'otp_expired' || errorDescription?.includes('expired')) {
+        // Redirect to forgot password page
+        router.replace('/forgot-password?error=expired');
+        return;
+      }
+    }
+  }, [router]);
+
   // Check if user is already logged in and redirect to dashboard
+  // Skip auto-redirect if coming from password reset flow (check sessionStorage)
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Check if user came from password reset page
+        const fromPasswordReset = sessionStorage.getItem('fromPasswordReset');
+        if (fromPasswordReset === 'true') {
+          // Clear the flag and sign out to allow normal login
+          sessionStorage.removeItem('fromPasswordReset');
+          await supabase.auth.signOut();
+          return;
+        }
+        
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           // User is already logged in, redirect to dashboard or next URL

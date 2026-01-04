@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Mail, Loader2, CheckCircle2 } from 'lucide-react';
 
 function ForgotPasswordPageContent() {
@@ -10,6 +11,18 @@ function ForgotPasswordPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Check for error query parameter (e.g., expired reset link)
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    if (errorParam === 'expired') {
+      setError('This password reset link has expired. Please request a new one.');
+      // Clear the query parameter from URL
+      router.replace('/forgot-password');
+    }
+  }, [searchParams, router]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

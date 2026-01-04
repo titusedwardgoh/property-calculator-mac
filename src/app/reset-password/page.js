@@ -40,8 +40,19 @@ function ResetPasswordPageContent() {
         try {
           const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
           if (exchangeError) {
-            setError('Invalid or expired reset link. Please request a new password reset.');
+            // Code might already be used - check if session exists
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              // Session already exists from callback route - clear error and proceed
+              setError('');
+              setIsValidToken(true);
+              setIsExchangingToken(false);
+              window.history.replaceState({}, document.title, window.location.pathname);
+              return;
+            }
+            // No session found - code is truly invalid/expired - redirect to forgot password
             setIsExchangingToken(false);
+            router.push('/forgot-password?error=expired');
             return;
           }
           setError(''); // Clear any previous errors
@@ -50,8 +61,18 @@ function ResetPasswordPageContent() {
           // Clear the code from URL
           window.history.replaceState({}, document.title, window.location.pathname);
         } catch (err) {
-          setError('Invalid or expired reset link. Please request a new password reset.');
-          setIsExchangingToken(false);
+          // Similar check in catch block
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            setError('');
+            setIsValidToken(true);
+            setIsExchangingToken(false);
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } else {
+            // No session found - redirect to forgot password
+            setIsExchangingToken(false);
+            router.push('/forgot-password?error=expired');
+          }
         }
       } else if (accessToken && refreshToken && type === 'recovery') {
         // Set the session using the tokens from hash
@@ -61,8 +82,18 @@ function ResetPasswordPageContent() {
             refresh_token: refreshToken,
           });
           if (sessionError) {
-            setError('Invalid or expired reset link. Please request a new password reset.');
+            // Check if session exists despite the error
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+              setError('');
+              setIsValidToken(true);
+              setIsExchangingToken(false);
+              window.history.replaceState({}, document.title, window.location.pathname);
+              return;
+            }
+            // No session found - redirect to forgot password
             setIsExchangingToken(false);
+            router.push('/forgot-password?error=expired');
             return;
           }
           setError(''); // Clear any previous errors
@@ -71,8 +102,18 @@ function ResetPasswordPageContent() {
           // Clear the hash from URL
           window.history.replaceState({}, document.title, window.location.pathname);
         } catch (err) {
-          setError('Invalid or expired reset link. Please request a new password reset.');
-          setIsExchangingToken(false);
+          // Check if session exists despite the error
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            setError('');
+            setIsValidToken(true);
+            setIsExchangingToken(false);
+            window.history.replaceState({}, document.title, window.location.pathname);
+          } else {
+            // No session found - redirect to forgot password
+            setIsExchangingToken(false);
+            router.push('/forgot-password?error=expired');
+          }
         }
       } else {
         // Check if we already have a valid session (user might have been redirected after token exchange)
@@ -82,9 +123,9 @@ function ResetPasswordPageContent() {
           setIsValidToken(true);
           setIsExchangingToken(false);
         } else {
-          // No valid token found
-          setError('Invalid or expired reset link. Please request a new password reset.');
+          // No valid token found - redirect to forgot password
           setIsExchangingToken(false);
+          router.push('/forgot-password?error=expired');
         }
       }
     };
@@ -125,6 +166,9 @@ function ResetPasswordPageContent() {
         setLoading(false);
         return;
       }
+
+      // Sign out the user on the client side to ensure session is cleared
+      await supabase.auth.signOut();
 
       setSuccess(true);
       setLoading(false);
@@ -206,7 +250,11 @@ function ResetPasswordPageContent() {
             </div>
             <div className="text-center">
               <Link 
-                href="/login" 
+                href="/login"
+                onClick={() => {
+                  // Set flag to prevent auto-login when coming from password reset
+                  sessionStorage.setItem('fromPasswordReset', 'true');
+                }}
                 className="text-primary hover:text-primary-focus font-medium underline"
               >
                 Go to login
@@ -309,7 +357,11 @@ function ResetPasswordPageContent() {
             {/* Back to Login Link */}
             <div className="text-center">
               <Link 
-                href="/login" 
+                href="/login"
+                onClick={() => {
+                  // Set flag to prevent auto-login when coming from password reset
+                  sessionStorage.setItem('fromPasswordReset', 'true');
+                }}
                 className="text-md font-medium text-gray-600 hover:text-primary hover:underline transition-colors"
               >
                 Back to login
