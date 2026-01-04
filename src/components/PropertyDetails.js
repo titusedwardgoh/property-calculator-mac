@@ -922,28 +922,13 @@ export default function PropertyDetails() {
                             return;
                           }
                           
-                          // Check if value looks formatted (has commas) - Google Places addresses have commas
-                          const looksFormatted = newValue.includes(',') && newValue.trim().length > 10;
-                          console.log('🟢 looksFormatted:', looksFormatted, '(has comma:', newValue.includes(','), ', length:', newValue.trim().length, ')');
-                          
-                          if (looksFormatted) {
-                            // Value is formatted - set as valid immediately (Google Places selection)
-                            console.log('🟢 Value looks formatted, setting hasValidAddress to true');
-                            flushSync(() => {
-                              setHasValidAddress(true);
-                            });
-                            console.log('🟢 hasValidAddress set to true');
-                          } else if (newValue.length === 0) {
+                          // Only reset validation when field is cleared or invalid input is detected
+                          // Don't set hasValidAddress to true here - that only happens via place_changed event
+                          if (newValue.length === 0) {
                             // Field cleared - reset validation
                             console.log('🟢 Field cleared, setting hasValidAddress to false');
                             setHasValidAddress(false);
-                          } else if (!newValue.includes(',')) {
-                            // No commas and not empty - likely trash input, reset validation
-                            console.log('🟢 No commas detected, setting hasValidAddress to false (trash input)');
-                            setHasValidAddress(false);
                           }
-                          // If value has commas but place_changed hasn't fired yet, don't reset
-                          // This handles the case where Google Places populates before place_changed fires
                           
                           updateFormData('propertyAddress', newValue);
                           
