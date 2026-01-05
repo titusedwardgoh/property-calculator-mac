@@ -127,6 +127,10 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
   const handleCancel = () => {
     setShowWarning(false);
     setPendingNavigation(null);
+    // Clear loading state in SurveyHeaderOverlay if navigation was cancelled
+    if (typeof window !== 'undefined' && window.__surveyHeaderOverlay) {
+      window.__surveyHeaderOverlay.clearLoadingState();
+    }
   };
 
   const handleAnonymousLoginToSave = () => {
@@ -158,6 +162,10 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
   const handleAnonymousCancel = () => {
     setShowAnonymousWarning(false);
     setPendingNavigation(null);
+    // Clear loading state in SurveyHeaderOverlay if navigation was cancelled
+    if (typeof window !== 'undefined' && window.__surveyHeaderOverlay) {
+      window.__surveyHeaderOverlay.clearLoadingState();
+    }
   };
 
   const handleEndOfSurveySave = async () => {
@@ -188,6 +196,7 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
     if (onDiscard) {
       onDiscard();
     }
+    // Note: This always navigates, so don't clear loading state - it will clear when navigation completes
     if (pendingNavigation) {
       // Check if navigating to dashboard
       if (pendingNavigation === '/dashboard' && onReturningToDashboard) {

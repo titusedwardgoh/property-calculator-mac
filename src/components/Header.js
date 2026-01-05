@@ -11,6 +11,7 @@ import { User, LogOut } from 'lucide-react';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isNavigatingToDashboard, setIsNavigatingToDashboard] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -25,6 +26,13 @@ export default function Header() {
     };
     checkAuth();
   }, [pathname, supabase]);
+
+  // Clear loading state when navigation to dashboard completes
+  useEffect(() => {
+    if (pathname === '/dashboard' && isNavigatingToDashboard) {
+      setIsNavigatingToDashboard(false);
+    }
+  }, [pathname, isNavigatingToDashboard]);
 
   const handleLogout = async () => {
     try {
@@ -135,6 +143,7 @@ export default function Header() {
                   <>
                     <Link
                       href="/dashboard"
+                      onClick={() => setIsNavigatingToDashboard(true)}
                       className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors flex items-center gap-2"
                     >
                       <User className="w-4 h-4" />
@@ -259,7 +268,10 @@ export default function Header() {
                           <li>
                             <Link
                               href="/dashboard"
-                              onClick={closeMenu}
+                              onClick={() => {
+                                closeMenu();
+                                setIsNavigatingToDashboard(true);
+                              }}
                               className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200 flex items-center gap-2"
                             >
                               
@@ -319,7 +331,17 @@ export default function Header() {
             </motion.div>
           </>
         )}
-      </AnimatePresence>
+          </AnimatePresence>
+
+      {/* Loading overlay when navigating to dashboard */}
+      {isNavigatingToDashboard && (
+        <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading dashboard...</p>
+          </div>
+        </div>
+      )}
     </>
   );
-} 
+}

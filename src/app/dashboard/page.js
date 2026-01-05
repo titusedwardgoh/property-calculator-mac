@@ -10,7 +10,8 @@ export default async function DashboardPage() {
     redirect('/login?next=/dashboard');
   }
 
-  // Load user profile to get name
+  // Load user profile to get name - non-blocking (won't delay page render if it fails)
+  // Profile query is wrapped in try-catch to ensure failures don't block page render
   let userName = null;
   try {
     const { data: profile, error: profileError } = await supabase
@@ -24,7 +25,8 @@ export default async function DashboardPage() {
     }
   } catch (error) {
     // If profile doesn't exist or error, userName will remain null
-    console.error('Error loading user profile:', error);
+    // Don't block page render - this is non-critical data
+    // Profile query failure should not prevent dashboard from loading
   }
 
   const handleLogout = async () => {

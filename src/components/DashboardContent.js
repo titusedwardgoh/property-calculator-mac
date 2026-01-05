@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle } from 'lucide-react';
+import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle, Search, ArrowUpDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { useFormStore } from '@/stores/formStore';
@@ -16,6 +16,9 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
   const [deletingId, setDeletingId] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [propertyToDelete, setPropertyToDelete] = useState(null);
+  const [sortOption, setSortOption] = useState('newest');
+  const [showSortMenu, setShowSortMenu] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
   const { user } = useAuth();
   const supabase = createClient();
@@ -166,6 +169,63 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
       bg: 'bg-warning/10',
     };
   };
+
+  const sortSurveys = (surveysToSort, sortBy) => {
+    const sorted = [...surveysToSort];
+    
+    switch (sortBy) {
+      case 'newest':
+        return sorted.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+      case 'oldest':
+        return sorted.sort((a, b) => new Date(a.updated_at) - new Date(b.updated_at));
+      case 'address-az':
+        return sorted.sort((a, b) => {
+          const addressA = (a.property_address || '').toLowerCase();
+          const addressB = (b.property_address || '').toLowerCase();
+          return addressA.localeCompare(addressB);
+        });
+      case 'state':
+        return sorted.sort((a, b) => {
+          const stateA = (a.selected_state || '').toLowerCase();
+          const stateB = (b.selected_state || '').toLowerCase();
+          return stateA.localeCompare(stateB);
+        });
+      case 'completion-asc':
+        return sorted.sort((a, b) => {
+          const percentA = a.completion_percentage || 0;
+          const percentB = b.completion_percentage || 0;
+          // Handle completed surveys - put them at the end
+          if (a.completion_status === 'complete' && b.completion_status !== 'complete') return 1;
+          if (b.completion_status === 'complete' && a.completion_status !== 'complete') return -1;
+          if (a.completion_status === 'complete' && b.completion_status === 'complete') return 0;
+          return percentA - percentB;
+        });
+      case 'completion-desc':
+        return sorted.sort((a, b) => {
+          const percentA = a.completion_percentage || 0;
+          const percentB = b.completion_percentage || 0;
+          // Handle completed surveys - put them at the beginning
+          if (a.completion_status === 'complete' && b.completion_status !== 'complete') return -1;
+          if (b.completion_status === 'complete' && a.completion_status !== 'complete') return 1;
+          if (a.completion_status === 'complete' && b.completion_status === 'complete') return 0;
+          return percentB - percentA;
+        });
+      default:
+        return sorted;
+    }
+  };
+
+  // Filter surveys based on search query
+  const filteredSurveys = surveys.filter(survey => {
+    if (!searchQuery.trim()) return true;
+    const address = (survey.property_address || '').toLowerCase();
+    const state = (survey.selected_state || '').toLowerCase();
+    const query = searchQuery.toLowerCase();
+    return address.includes(query) || state.includes(query);
+  });
+
+  // Sort the filtered surveys
+  const sortedSurveys = sortSurveys(filteredSurveys, sortOption);
   return (
     <div className="min-h-screen bg-base-200">
       <main className="pb-24">
@@ -238,6 +298,105 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
             >
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Saved Surveys</h2>
               
+              {/* Search and Sort Bar */}
+              <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.45, ease: "easeOut" }}
+                className="flex items-center gap-3 mb-6"
+              >
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by property address..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  />
+                </div>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowSortMenu(!showSortMenu)}
+                    className="flex cursor-pointer items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    aria-label="Sort surveys"
+                  >
+                    <ArrowUpDown className="w-5 h-5 text-gray-600" />
+                  </button>
+                  
+                  {/* Sort Dropdown Menu */}
+                  <AnimatePresence>
+                    {showSortMenu && (
+                      <>
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          onClick={() => setShowSortMenu(false)}
+                          className="fixed inset-0 z-10"
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20"
+                        >
+                          <button
+                            onClick={() => { setSortOption('newest'); setShowSortMenu(false); }}
+                            className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                              sortOption === 'newest' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                            }`}
+                          >
+                            Newest First
+                          </button>
+                          <button
+                            onClick={() => { setSortOption('oldest'); setShowSortMenu(false); }}
+                            className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                              sortOption === 'oldest' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                            }`}
+                          >
+                            Oldest First
+                          </button>
+                          <button
+                            onClick={() => { setSortOption('address-az'); setShowSortMenu(false); }}
+                            className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                              sortOption === 'address-az' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                            }`}
+                          >
+                            Address (A-Z)
+                          </button>
+                          <button
+                            onClick={() => { setSortOption('state'); setShowSortMenu(false); }}
+                            className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                              sortOption === 'state' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                            }`}
+                          >
+                            By State
+                          </button>
+                          <button
+                            onClick={() => { setSortOption('completion-asc'); setShowSortMenu(false); }}
+                            className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                              sortOption === 'completion-asc' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                            }`}
+                          >
+                            Completion % (Low to High)
+                          </button>
+                          <button
+                            onClick={() => { setSortOption('completion-desc'); setShowSortMenu(false); }}
+                            className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                              sortOption === 'completion-desc' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                            }`}
+                          >
+                            Completion % (High to Low)
+                          </button>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+              
               {loading ? (
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
@@ -249,9 +408,16 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                     Start a new survey and save it to see it here.
                   </p>
                 </div>
+              ) : sortedSurveys.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-gray-600 mb-4">Oops, we can&apos;t find any surveys matching your search.</p>
+                  <p className="text-sm text-gray-500">
+                    Try adjusting your search terms or clear the search to see all surveys.
+                  </p>
+                </div>
               ) : (
                 <div className="space-y-4">
-                  {surveys.map((survey, index) => {
+                  {sortedSurveys.map((survey, index) => {
                     const status = getCompletionStatus(survey);
                     const isComplete = survey.completion_status === 'complete';
                     
@@ -263,16 +429,11 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                         transition={{ duration: 0.4, delay: index * 0.1 }}
                         className="border border-secondary rounded-xl p-6 hover:shadow-md transition-all"
                       >
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex  items-center gap-3 mb-2">
-                              <h3 className="text-lg font-semibold text-gray-900">
-                                {survey.property_address || `Survey ${index + 1}`}
-                              </h3>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${status.color} ${status.bg}`}>
-                                {status.text}
-                              </span>
-                            </div>
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2 max-w-2xl">
+                              {survey.property_address || `Survey ${index + 1}`}
+                            </h3>
                             <div className="text-sm text-gray-600 space-y-1">
                               {survey.property_price && (
                                 <p>Property Price: ${survey.property_price.toLocaleString()}</p>
@@ -343,35 +504,40 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                             </div>
                           </div>
                           
-                          <div className="flex items-center gap-2">
-                            {isComplete ? (
-                              <button
-                                onClick={() => handleResume(survey.id)}
-                                className="flex cursor-pointer items-center gap-2 px-7 py-2 bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors"
-                              >
-                                <Eye className="w-4 h-4" />
-                                View
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleResume(survey.id)}
-                                className="flex cursor-pointer items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-focus text-secondary rounded-full transition-all hover:shadow-lg"
-                              >
-                                <Play className="w-4 h-4" />
-                                Resume
-                              </button>
-                            )}
-                            <button
-                              onClick={(e) => handleDeleteClick(survey.id, e)}
-                              disabled={deletingId === survey.id}
-                              className="flex cursor-pointer items-center gap-2 px-4 py-2 bg-error/10 text-error rounded-full hover:bg-error/20 transition-colors disabled:opacity-50"
-                            >
-                              {deletingId === survey.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                          <div className="flex flex-col items-end justify-between gap-2 sm:flex-shrink-0 sm:self-stretch">
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${status.color} ${status.bg}`}>
+                              {status.text}
+                            </span>
+                            <div className="flex items-center gap-2 mt-auto">
+                              {isComplete ? (
+                                <button
+                                  onClick={() => handleResume(survey.id)}
+                                  className="flex cursor-pointer items-center gap-2 px-7 py-2 bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors"
+                                >
+                                  <Eye className="w-4 h-4" />
+                                  View
+                                </button>
                               ) : (
-                                <Trash2 className="w-4 h-4" />
+                                <button
+                                  onClick={() => handleResume(survey.id)}
+                                  className="flex cursor-pointer items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-focus text-secondary rounded-full transition-all hover:shadow-lg"
+                                >
+                                  <Play className="w-4 h-4" />
+                                  Resume
+                                </button>
                               )}
-                            </button>
+                              <button
+                                onClick={(e) => handleDeleteClick(survey.id, e)}
+                                disabled={deletingId === survey.id}
+                                className="flex cursor-pointer items-center gap-2 px-4 py-2 bg-error/10 text-error rounded-full hover:bg-error/20 transition-colors disabled:opacity-50"
+                              >
+                                {deletingId === survey.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </motion.div>

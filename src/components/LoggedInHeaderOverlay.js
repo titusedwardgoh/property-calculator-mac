@@ -11,6 +11,7 @@ import { LogOut } from 'lucide-react';
 
 export default function LoggedInHeaderOverlay() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isNavigatingToDashboard, setIsNavigatingToDashboard] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
     const { user, loading } = useAuth();
@@ -26,6 +27,13 @@ export default function LoggedInHeaderOverlay() {
             }
         }
     }, [isMenuOpen]);
+
+    // Clear loading state when navigation to dashboard completes
+    useEffect(() => {
+        if (pathname === '/dashboard' && isNavigatingToDashboard) {
+            setIsNavigatingToDashboard(false);
+        }
+    }, [pathname, isNavigatingToDashboard]);
 
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen);
@@ -62,7 +70,7 @@ export default function LoggedInHeaderOverlay() {
                     <div className="flex items-center justify-between">
                         {/* Mobile: Logo centered */}
                         <div className="flex-1 flex justify-center md:hidden">
-                            <Link href="/dashboard" className="flex items-center">
+                            <Link href="/dashboard" onClick={() => setIsNavigatingToDashboard(true)} className="flex items-center">
                                 <div className="w-12 h-12 flex items-center">
                                     <Image
                                         src="/Icon2.png"
@@ -78,7 +86,7 @@ export default function LoggedInHeaderOverlay() {
                         
                         {/* Desktop: Logo on left with nav links */}
                         <div className="hidden md:flex md:items-center md:space-x-2 md:flex-1">
-                            <Link href="/dashboard" className="flex items-center">
+                            <Link href="/dashboard" onClick={() => setIsNavigatingToDashboard(true)} className="flex items-center">
                                 <div className="h-12 flex items-center">
                                     <Image
                                         src="/Icon3.png"
@@ -94,6 +102,7 @@ export default function LoggedInHeaderOverlay() {
                             <nav className="flex items-center gap-10 lg:gap-15 font-medium text-md lg:text-lg ml-10 lg:ml-20">
                                 <Link
                                     href="/dashboard"
+                                    onClick={() => setIsNavigatingToDashboard(true)}
                                     className={`hover:text-primary transition-colors ${
                                         pathname === '/dashboard' ? 'underline underline-offset-6 decoration-2' : ''
                                     }`}
@@ -176,7 +185,10 @@ export default function LoggedInHeaderOverlay() {
                                         <li>
                                             <Link
                                                 href="/dashboard"
-                                                onClick={closeMenu}
+                                                onClick={() => {
+                                                    closeMenu();
+                                                    setIsNavigatingToDashboard(true);
+                                                }}
                                                 className="block px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors border-b border-gray-200"
                                             >
                                                 Dashboard
@@ -212,6 +224,16 @@ export default function LoggedInHeaderOverlay() {
                     </>
                 )}
             </AnimatePresence>
+
+            {/* Loading overlay when navigating to dashboard */}
+            {isNavigatingToDashboard && (
+                <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                        <p className="text-gray-600">Loading dashboard...</p>
+                    </div>
+                </div>
+            )}
         </>
     );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
@@ -11,6 +12,33 @@ export default function SurveyHeaderOverlay() {
     const pathname = usePathname();
     const resetForm = useFormStore(state => state.resetForm);
     const { user } = useAuth();
+    const [isNavigatingAway, setIsNavigatingAway] = useState(false);
+    const [navigationDestination, setNavigationDestination] = useState(null);
+
+    // Clear loading state when navigation completes (pathname changes away from calculator)
+    useEffect(() => {
+        if (pathname !== '/calculator' && isNavigatingAway) {
+            setIsNavigatingAway(false);
+            setNavigationDestination(null);
+        }
+    }, [pathname, isNavigatingAway]);
+
+    // Expose function to clear loading state when navigation is cancelled
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            window.__surveyHeaderOverlay = {
+                clearLoadingState: () => {
+                    setIsNavigatingAway(false);
+                    setNavigationDestination(null);
+                }
+            };
+        }
+        return () => {
+            if (typeof window !== 'undefined') {
+                delete window.__surveyHeaderOverlay;
+            }
+        };
+    }, []);
 
     // Only show overlay when on calculator route
     if (pathname !== '/calculator') {
@@ -18,11 +46,18 @@ export default function SurveyHeaderOverlay() {
     }
 
     const handleNavigation = (url) => {
+        // Set loading state and destination before checking navigation warning
+        setIsNavigatingAway(true);
+        setNavigationDestination(url);
+        
         // Check if navigation warning should be shown
         if (typeof window !== 'undefined' && window.__navigationWarning) {
             const canNavigate = window.__navigationWarning.checkNavigation(url);
             if (!canNavigate) {
                 // Navigation warning will handle showing the modal
+                // Keep loading state active - it will show when modal closes and navigation happens
+                // The loading overlay will be behind the modal (z-50 vs modal's z-[200])
+                // When user confirms/discards, navigation will happen and overlay will be visible
                 return;
             }
         }
@@ -44,6 +79,7 @@ export default function SurveyHeaderOverlay() {
     };
 
     return (
+        <>
         <header className="fixed top-0 left-0 right-0 bg-base-100 backdrop-blur-sm shadow-sm z-[150]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
                 <div className="flex items-center justify-between">
@@ -96,6 +132,21 @@ export default function SurveyHeaderOverlay() {
                 </div>
             </div>
         </header>
+
+        {/* Loading overlay when navigating away from survey */}
+        {isNavigatingAway && (
+            <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                    <p className="text-gray-600">
+                        {navigationDestination === '/dashboard' 
+                            ? 'Returning to dashboard...' 
+                            : 'Returning to home...'}
+                    </p>
+                </div>
+            </div>
+        )}
+    </>
     );
 }
 
