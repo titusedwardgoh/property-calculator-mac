@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Home, Minus, DollarSign, Download, Mail, Edit, Plus, ArrowRight } from 'lucide-react';
 import UpfrontCosts from '../../components/UpfrontCosts';
 import OngoingCosts from '../../components/OngoingCosts';
 import Summary from '../../components/Summary';
@@ -17,6 +18,8 @@ import EndOfSurveyPrompt from '../../components/EndOfSurveyPrompt';
 import { useFormStore } from '../../stores/formStore';
 import { useSupabaseSync } from '../../hooks/useSupabaseSync';
 import { useAuth } from '../../hooks/useAuth';
+import { formatCurrency } from '../../states/shared/baseCalculations.js';
+import { useStateSelector } from '../../states/useStateSelector.js';
 
 function CalculatorPageContent() {
     const formData = useFormStore();
@@ -29,6 +32,9 @@ function CalculatorPageContent() {
     const [isLoadingResume, setIsLoadingResume] = useState(false);
     const [isReturningToDashboard, setIsReturningToDashboard] = useState(false);
     const hasResumedRef = useRef(false);
+    
+    // Get state-specific functions for calculations
+    const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW');
     
     // Initialize Supabase sync
     // Auto-save to database is ALWAYS enabled (for both logged-in and anonymous users)
@@ -606,91 +612,307 @@ function CalculatorPageContent() {
                             <BuyerDetails /> // This ensures BuyerDetails completion page remains visible
                         ) : formData.buyerDetailsCurrentStep ? (
                             <BuyerDetails /> // Show BuyerDetails when going back to a specific step
-                        ) : allFormsComplete ? (
-                            <AnimatePresence mode="wait">
-                                <motion.div
-                                    key="all-forms-complete"
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                                    className="bg-base-100 rounded-lg overflow-hidden mt-15 p-8 text-center"
-                                >
-                                    <motion.h2 
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-                                        className="text-3xl md:text-5xl font-base text-gray-800 mb-4 leading-tight"
-                                    >
-                                        All Forms Complete!
-                                    </motion.h2>
-                                    <motion.p 
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
-                                        className="md:text-2xl text-gray-500 leading-relaxed mb-8 max-w-lg mx-auto"
-                                    >
-                                        Thank you for completing all the forms. Your information has been processed.
-                                    </motion.p>
+                        ) : allFormsComplete ? (() => {
+                            // Calculate stamp duty
+                            const calculateStampDuty = () => {
+                                if (!stateFunctions || !formData.propertyPrice || !formData.selectedState || !formData.propertyType) {
+                                    return 0;
+                                }
+                                return stateFunctions.calculateStampDuty(formData.propertyPrice, formData.selectedState);
+                            };
+                            
+                            // Calculate all upfront costs
+                            const calculateAllUpfrontCosts = () => {
+                                if (!formData.buyerDetailsComplete || !stateFunctions?.calculateUpfrontCosts) {
+                                    const stampDutyAmount = calculateStampDuty();
+                                    const depositAmount = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanDeposit) || 0) : 0;
+                                    const settlementFee = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanSettlementFees) || 0) : 0;
+                                    const establishmentFee = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanEstablishmentFee) || 0) : 0;
                                     
-                                    {/* Navigation - Fixed bottom on mobile, normal position on desktop */}
-                                    <motion.div 
+                                    return {
+                                        stampDuty: { amount: stampDutyAmount, label: "Stamp Duty" },
+                                        concessions: [],
+                                        grants: [],
+                                        foreignDuty: { amount: 0, applicable: false },
+                                        netStateDuty: stampDutyAmount,
+                                        totalUpfrontCosts: stampDutyAmount + depositAmount + settlementFee + establishmentFee
+                                    };
+                                }
+                                
+                                const buyerData = {
+                                    selectedState: formData.selectedState,
+                                    buyerType: formData.buyerType,
+                                    isPPR: formData.isPPR,
+                                    isAustralianResident: formData.isAustralianResident,
+                                    isFirstHomeBuyer: formData.isFirstHomeBuyer,
+                                    ownedPropertyLast5Years: formData.ownedPropertyLast5Years,
+                                    hasPensionCard: formData.hasPensionCard,
+                                    needsLoan: formData.needsLoan,
+                                    savingsAmount: formData.savingsAmount,
+                                    income: formData.income,
+                                    dependants: formData.dependants,
+                                    dutiableValue: formData.dutiableValue,
+                                    constructionStarted: formData.constructionStarted,
+                                    sellerQuestionsComplete: formData.sellerQuestionsComplete
+                                };
+                                
+                                const propertyData = {
+                                    propertyPrice: formData.propertyPrice,
+                                    propertyType: formData.propertyType,
+                                    propertyCategory: formData.propertyCategory,
+                                    isWA: formData.isWA,
+                                    isWAMetro: formData.isWAMetro,
+                                    isACT: formData.isACT
+                                };
+                                
+                                const upfrontCostsResult = stateFunctions.calculateUpfrontCosts(buyerData, propertyData, formData.selectedState);
+                                
+                                // Add FIRB fee to base total if applicable
+                                const firbFee = parseInt(formData.FIRBFee) || 0;
+                                upfrontCostsResult.totalUpfrontCosts += firbFee;
+                                
+                                // Add loan-related amounts to total if loan details are currently complete
+                                if (formData.loanDetailsComplete && formData.needsLoan === 'yes') {
+                                    const depositAmount = parseInt(formData.loanDeposit) || 0;
+                                    const settlementFee = parseInt(formData.loanSettlementFees) || 0;
+                                    const establishmentFee = parseInt(formData.loanEstablishmentFee) || 0;
+                                    
+                                    // Add seller question costs if seller questions are complete
+                                    let additionalCosts = 0;
+                                    if (formData.sellerQuestionsComplete) {
+                                        additionalCosts += parseInt(formData.landTransferFee) || 0;
+                                        additionalCosts += parseInt(formData.legalFees) || 0;
+                                        additionalCosts += parseInt(formData.buildingAndPestInspection) || 0;
+                                    }
+                                    
+                                    return {
+                                        ...upfrontCostsResult,
+                                        totalUpfrontCosts: upfrontCostsResult.totalUpfrontCosts + depositAmount + settlementFee + establishmentFee + additionalCosts
+                                    };
+                                }
+                                
+                                // Add seller question costs if seller questions are complete but no loan
+                                if (formData.sellerQuestionsComplete) {
+                                    const landTransferFee = parseInt(formData.landTransferFee) || 0;
+                                    const legalFees = parseInt(formData.legalFees) || 0;
+                                    const buildingAndPest = parseInt(formData.buildingAndPestInspection) || 0;
+                                    const additionalCosts = landTransferFee + legalFees + buildingAndPest;
+                                    
+                                    return {
+                                        ...upfrontCostsResult,
+                                        totalUpfrontCosts: upfrontCostsResult.totalUpfrontCosts + additionalCosts
+                                    };
+                                }
+                                
+                                return upfrontCostsResult;
+                            };
+                            
+                            // Get upfront costs and calculate grants/concessions
+                            const upfrontCosts = calculateAllUpfrontCosts();
+                            const totalPurchaseCost = upfrontCosts?.totalUpfrontCosts || 0;
+                            const appliedConcessions = upfrontCosts?.concessions || [];
+                            const appliedGrants = upfrontCosts?.grants || [];
+                            const grantsConcessionsTotal = [...appliedConcessions, ...appliedGrants].reduce((sum, item) => sum + (item.amount || 0), 0);
+                            const estimatedNetUpfront = totalPurchaseCost - grantsConcessionsTotal;
+                            
+                            // Calculate monthly ongoing costs
+                            const getMonthlyOngoingCosts = () => {
+                                const propertyCosts = (formData.COUNCIL_RATES_MONTHLY || 0) + 
+                                                     (formData.WATER_RATES_MONTHLY || 0) + 
+                                                     (formData.BODY_CORP_MONTHLY || 0);
+                                const loanCosts = formData.needsLoan === 'yes' ? (formData.MONTHLY_LOAN_REPAYMENT || 0) : 0;
+                                return propertyCosts + loanCosts;
+                            };
+                            
+                            // Calculate annual ongoing costs
+                            const getAnnualOngoingCosts = () => {
+                                const hasLoan = formData.loanDetailsComplete && formData.needsLoan === 'yes';
+                                return (hasLoan ? (formData.ANNUAL_LOAN_REPAYMENT || 0) : 0) + 
+                                       (formData.sellerQuestionsComplete ? (parseInt(formData.councilRates) || 0) : 0) + 
+                                       (formData.sellerQuestionsComplete ? (parseInt(formData.waterRates) || 0) : 0) + 
+                                       (formData.sellerQuestionsComplete ? (parseInt(formData.bodyCorp) || 0) : 0);
+                            };
+                            
+                            const monthlyCashFlow = getMonthlyOngoingCosts();
+                            const annualOperatingCost = getAnnualOngoingCosts();
+                            
+                            return (
+                                <AnimatePresence mode="wait">
+                                    <motion.div
+                                        key="all-forms-complete"
                                         initial={{ opacity: 0, y: 20 }}
                                         animate={{ opacity: 1, y: 0 }}
-                                        transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
-                                        className="fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-base-100 md:bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:mt-8 md:px-6 md:pb-8 lg:mt-15 xl:mt-30"
+                                        exit={{ opacity: 0, y: -20 }}
+                                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                                        className="mt-15"
                                     >
-                                        <div className="flex flex-col gap-3 justify-center mx-auto mt-4">
-                                            <div className="flex flex-col sm:flex-row gap-3 justify-center sm:inline-flex">
-                                            <motion.button
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                                onClick={() => {
-                                                    formData.updateFormData('allFormsComplete', false);
-                                                    formData.updateFormData('showSummary', false);
-                                                    formData.updateFormData('sellerQuestionsComplete', false);
-                                                    // Set the active step to the last step of SellerQuestions
-                                                    formData.updateFormData('sellerQuestionsActiveStep', 8);
-                                                }}
-                                                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
-                                            >
-                                                ← Back to Seller Questions
-                                            </motion.button>
-                                            
-                                            <motion.button
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
-                                                onClick={() => {
-                                                    // Reset the entire form
-                                                    formData.resetForm();
-                                                }}
-                                                className="bg-gray-500 hover:bg-gray-600 px-6 py-3 rounded-full border border-gray-500 hover:border-gray-600 font-medium text-white hover:shadow-sm flex-shrink-0 cursor-pointer"
-                                            >
-                                                    Start New Survey
-                                                </motion.button>
-                                            </div>
-                                            
-                                            <div className="flex flex-col sm:flex-row gap-3 justify-center sm:inline-flex">
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => {
-                                                        // Trigger navigation warning by attempting to navigate
-                                                        const targetUrl = user ? '/dashboard' : '/';
-                                                        if (typeof window !== 'undefined' && window.__navigationWarning) {
-                                                            window.__navigationWarning.checkNavigation(targetUrl);
-                                                        }
-                                                    }}
-                                                    className="bg-white border-2 border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-full font-medium hover:shadow-sm flex-shrink-0 cursor-pointer w-full md:max-w-sm sm:w-full"
+                                        <div className="max-w-4xl mx-auto">
+                                            {/* Main Content Area */}
+                                            <div className="space-y-6">
+                                                {/* Header */}
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
                                                 >
-                                                    Exit Survey
-                                            </motion.button>
+                                                    <h2 className="text-3xl text-center md:text-5xl font-base text-gray-800 mb-4 leading-tight">
+                                                        All Forms Complete!
+                                                    </h2>
+                                                    <p className="md:text-xl text-center text-gray-500 leading-relaxed">
+                                                        Your property summary and instructions are ready.
+                                                    </p>
+                                                </motion.div>
+                                                
+                                                {/* Combined Settlement Summary and Ongoing Ownership Card */}
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+                                                    className="bg-white rounded-xl p-6 shadow-md space-y-6"
+                                                >
+                                                    {/* Settlement Summary Section */}
+                                                    <div>
+                                                        <h3 className="text-xl font-semibold text-gray-800 mb-4">Settlement Summary</h3>
+                                                        {/* Gradient Bar with three sections */}
+                                                        <div className="flex flex-col md:flex-row rounded-lg overflow-hidden shadow-sm">
+                                                            {/* Total Purchase Cost - Primary */}
+                                                            <div className="bg-primary flex-1 p-6 text-secondary">
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <Home className="w-6 h-6 text-secondary" />
+                                                                    <span className="text-sm font-medium text-secondary">Total Purchase Cost</span>
+                                                                </div>
+                                                                <p className="text-3xl font-bold text-secondary">{formatCurrency(totalPurchaseCost)}</p>
+                                                            </div>
+                                                            
+                                                            {/* Minus Grants & Concessions - Accent */}
+                                                            <div className="bg-accent flex-1 p-6 text-accent-content">
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <Minus className="w-6 h-6 text-accent-content" />
+                                                                    <span className="text-sm font-medium text-accent-content">Minus Total</span>
+                                                                </div>
+                                                                <p className="text-3xl font-bold text-accent-content">{formatCurrency(grantsConcessionsTotal)}</p>
+                                                            </div>
+                                                            
+                                                            {/* Estimated Net Upfront - Secondary */}
+                                                            <div className="bg-secondary flex-1 p-6 text-secondary-content">
+                                                                <div className="flex items-center gap-2 mb-2">
+                                                                    <DollarSign className="w-6 h-6 text-secondary-content" />
+                                                                    <span className="text-sm font-medium text-secondary-content">Estimated Net Upfront</span>
+                                                                </div>
+                                                                <p className="text-3xl font-bold text-secondary-content">{formatCurrency(estimatedNetUpfront)}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {/* Ongoing Ownership Section */}
+                                                    <div>
+                                                        <h3 className="text-xl font-semibold text-gray-800 mb-4">Ongoing Ownership</h3>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            {/* Monthly Cash Flow Card */}
+                                                            <motion.div
+                                                                initial={{ opacity: 0, x: -20 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                transition={{ duration: 0.5, delay: 0.5 }}
+                                                                className="bg-primary/10 rounded-xl p-6 shadow-md"
+                                                            >
+                                                                <p className="text-sm font-medium text-gray-700 mb-2">Monthly Cash Flow:</p>
+                                                                <p className="text-2xl font-bold text-primary mb-1">{formatCurrency(monthlyCashFlow)} /mo</p>
+                                                                <p className="text-xs text-gray-500">*Includes: IPI, Strata Fees.*</p>
+                                                            </motion.div>
+                                                            
+                                                            {/* Annual Operating Cost Card */}
+                                                            <motion.div
+                                                                initial={{ opacity: 0, x: 20 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                transition={{ duration: 0.5, delay: 0.5 }}
+                                                                className="bg-primary/10 rounded-xl p-6 shadow-md"
+                                                            >
+                                                                <p className="text-sm font-medium text-gray-700 mb-2">Annual Operating Cost</p>
+                                                                <p className="text-2xl font-bold text-primary mb-1">{formatCurrency(annualOperatingCost)} /yr</p>
+                                                                <p className="text-xs text-gray-500">*Includes: Rates, insurance, Maint.*</p>
+                                                            </motion.div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    {/* Action Buttons */}
+                                                    <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                                                        <motion.button
+                                                            whileHover={{ scale: 1.05 }}
+                                                            whileTap={{ scale: 0.95 }}
+                                                            className="flex items-center cursor-pointer justify-center gap-2 bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-lg font-medium shadow-sm transition-colors"
+                                                        >
+                                                            <Download className="w-5 h-5" />
+                                                            Download Full PDF Report
+                                                        </motion.button>
+                                                        
+                                                        <motion.button
+                                                            whileHover={{ scale: 1.05 }}
+                                                            whileTap={{ scale: 0.95 }}
+                                                            className="flex items-center cursor-pointer justify-center gap-2 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-lg font-medium shadow-sm transition-colors"
+                                                        >
+                                                            <Mail className="w-5 h-5" />
+                                                            Email Me These Results
+                                                        </motion.button>
+                                                    </div>
+                                                </motion.div>
+                                                
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
+                                                    className="flex justify-center"
+                                                >
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        className="flex items-center cursor-pointer justify-center gap-2 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-lg font-medium shadow-sm transition-colors"
+                                                    >
+                                                        <Edit className="w-5 h-5" />
+                                                        Review/Edit All Answers
+                                                    </motion.button>
+                                                </motion.div>
+                                                
+                                                {/* Navigation Buttons */}
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: 20 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
+                                                    className="flex flex-col sm:flex-row gap-3 pt-4 justify-center"
+                                                >
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => {
+                                                            const targetUrl = user ? '/dashboard' : '/';
+                                                            if (typeof window !== 'undefined' && window.__navigationWarning) {
+                                                                window.__navigationWarning.checkNavigation(targetUrl);
+                                                            }
+                                                        }}
+                                                        className="flex items-center cursor-pointer justify-center gap-2 bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-lg font-medium shadow-sm transition-colors"
+                                                    >
+                                                        <Home className="w-5 h-5" />
+                                                        Exit to My Dashboard
+                                                        <ArrowRight className="w-5 h-5" />
+                                                    </motion.button>
+                                                    
+                                                    <motion.button
+                                                        whileHover={{ scale: 1.05 }}
+                                                        whileTap={{ scale: 0.95 }}
+                                                        onClick={() => {
+                                                            formData.resetForm();
+                                                        }}
+                                                        className="flex items-center cursor-pointer justify-center gap-2 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-lg font-medium shadow-sm transition-colors"
+                                                    >
+                                                        <Plus className="w-5 h-5" />
+                                                        Start New Survey
+                                                    </motion.button>
+                                                </motion.div>
                                             </div>
                                         </div>
                                     </motion.div>
-                                </motion.div>
-                            </AnimatePresence>
-                        ) : null}
+                                </AnimatePresence>
+                            );
+                        })() : null}
                     </div>
                 </div>
             </main>
