@@ -19,7 +19,7 @@ const supabase = createServiceClient(supabaseUrl, supabaseServiceKey, {
 
 export async function POST(request) {
   try {
-    const { action, sessionId, deviceId, userId, data, propertyId, userSaved, inspected } = await request.json()
+    const { action, sessionId, deviceId, userId, data, propertyId, userSaved, inspected, propertyIds } = await request.json()
 
     switch (action) {
       case 'save':
@@ -34,6 +34,10 @@ export async function POST(request) {
         return await linkPropertyToUser(propertyId)
       case 'updatePropertyInspected':
         return await updatePropertyInspected(propertyId, inspected)
+      case 'bulkDeleteProperties':
+        return await bulkDeleteProperties(propertyIds)
+      case 'bulkUpdateInspected':
+        return await bulkUpdateInspected(propertyIds)
       default:
         return Response.json({ error: 'Invalid action' }, { status: 400 })
     }
@@ -761,6 +765,122 @@ async function updatePropertyInspected(propertyId, inspected) {
     })
   } catch (error) {
     console.error('Update inspected error:', error)
+    return Response.json({ error: error.message }, { status: 500 })
+  }
+}
+
+async function bulkDeleteProperties(propertyIds) {
+  try {
+    if (!propertyIds || !Array.isArray(propertyIds) || propertyIds.length === 0) {
+      return Response.json({ error: 'Property IDs array is required' }, { status: 400 })
+    }
+
+    // Get user from session
+    const serverClient = await createServerClient()
+    const { data: { user }, error: authError } = await serverClient.auth.getUser()
+    
+    if (authError || !user) {
+      return Response.json({ error: 'Unauthorized - must be logged in' }, { status: 401 })
+    }
+
+    // Verify all properties belong to the authenticated user
+    const { data: properties, error: fetchError } = await supabase
+      .from('properties')
+      .select('id, user_id')
+      .in('id', propertyIds)
+
+    if (fetchError) {
+      console.error('Error fetching properties:', fetchError)
+      return Response.json({ error: 'Error fetching properties' }, { status: 500 })
+    }
+
+    if (!properties || properties.length === 0) {
+      return Response.json({ error: 'No properties found' }, { status: 404 })
+    }
+
+    // Check if all properties belong to the user
+    const unauthorizedProperties = properties.filter(p => p.user_id !== user.id)
+    if (unauthorizedProperties.length > 0) {
+      return Response.json({ error: 'Unauthorized - some properties do not belong to user' }, { status: 403 })
+    }
+
+    // Update user_saved to false for all matching properties
+    const { error: updateError } = await supabase
+      .from('properties')
+      .update({ user_saved: false })
+      .in('id', propertyIds)
+      .eq('user_id', user.id)
+
+    if (updateError) {
+      console.error('Error bulk deleting properties:', updateError)
+      return Response.json({ error: 'Failed to delete properties' }, { status: 500 })
+    }
+
+    return Response.json({ 
+      success: true, 
+      message: `${propertyIds.length} properties deleted successfully`,
+      deletedCount: propertyIds.length
+    })
+  } catch (error) {
+    console.error('Bulk delete error:', error)
+    return Response.json({ error: error.message }, { status: 500 })
+  }
+}
+
+async function bulkUpdateInspected(propertyIds) {
+  try {
+    if (!propertyIds || !Array.isArray(propertyIds) || propertyIds.length === 0) {
+      return Response.json({ error: 'Property IDs array is required' }, { status: 400 })
+    }
+
+    // Get user from session
+    const serverClient = await createServerClient()
+    const { data: { user }, error: authError } = await serverClient.auth.getUser()
+    
+    if (authError || !user) {
+      return Response.json({ error: 'Unauthorized - must be logged in' }, { status: 401 })
+    }
+
+    // Verify all properties belong to the authenticated user
+    const { data: properties, error: fetchError } = await supabase
+      .from('properties')
+      .select('id, user_id')
+      .in('id', propertyIds)
+
+    if (fetchError) {
+      console.error('Error fetching properties:', fetchError)
+      return Response.json({ error: 'Error fetching properties' }, { status: 500 })
+    }
+
+    if (!properties || properties.length === 0) {
+      return Response.json({ error: 'No properties found' }, { status: 404 })
+    }
+
+    // Check if all properties belong to the user
+    const unauthorizedProperties = properties.filter(p => p.user_id !== user.id)
+    if (unauthorizedProperties.length > 0) {
+      return Response.json({ error: 'Unauthorized - some properties do not belong to user' }, { status: 403 })
+    }
+
+    // Set inspected to true for all matching properties
+    const { error: updateError } = await supabase
+      .from('properties')
+      .update({ inspected: true })
+      .in('id', propertyIds)
+      .eq('user_id', user.id)
+
+    if (updateError) {
+      console.error('Error bulk updating inspected status:', updateError)
+      return Response.json({ error: 'Failed to update inspected status' }, { status: 500 })
+    }
+
+    return Response.json({ 
+      success: true, 
+      message: `${propertyIds.length} properties marked as inspected`,
+      updatedCount: propertyIds.length
+    })
+  } catch (error) {
+    console.error('Bulk update inspected error:', error)
     return Response.json({ error: error.message }, { status: 500 })
   }
 }

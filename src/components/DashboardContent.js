@@ -19,6 +19,8 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
   const [sortOption, setSortOption] = useState('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedProperties, setSelectedProperties] = useState(new Set());
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
   const supabase = createClient();
@@ -26,7 +28,7 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
 
   useEffect(() => {
     loadSurveys();
-  }, [user]);
+  }, [user?.id]);
 
   const loadSurveys = async () => {
     if (!user) return;
@@ -143,6 +145,120 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
         )
       );
       alert('Failed to update inspected status. Please try again.');
+    }
+  };
+
+  const handleCheckboxChange = (propertyId, isChecked) => {
+    setSelectedProperties(prev => {
+      const next = new Set(prev);
+      if (isChecked) {
+        next.add(propertyId);
+      } else {
+        next.delete(propertyId);
+      }
+      // Close sort menu when selecting properties
+      if (isChecked && showSortMenu) {
+        setShowSortMenu(false);
+      }
+      return next;
+    });
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedProperties.size === 0 || !user) return;
+    
+    setIsBulkProcessing(true);
+    const propertyIds = Array.from(selectedProperties);
+    
+    try {
+      const response = await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'bulkDeleteProperties',
+          propertyIds: propertyIds,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || 'Failed to delete properties');
+      }
+
+      // Remove deleted properties from local state
+      setSurveys(prevSurveys => 
+        prevSurveys.filter(survey => !selectedProperties.has(survey.id))
+      );
+      
+      // Clear selection
+      setSelectedProperties(new Set());
+    } catch (error) {
+      console.error('Error deleting properties:', error);
+      alert('Failed to delete properties. Please try again.');
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  };
+
+  const handleBulkInspected = async () => {
+    if (selectedProperties.size === 0 || !user) return;
+    
+    setIsBulkProcessing(true);
+    const propertyIds = Array.from(selectedProperties);
+    
+    // Store original inspected status for rollback
+    const originalInspectedStatus = new Map();
+    surveys.forEach(survey => {
+      if (selectedProperties.has(survey.id)) {
+        originalInspectedStatus.set(survey.id, survey.inspected || false);
+      }
+    });
+    
+    // Optimistically update UI immediately
+    setSurveys(prevSurveys => 
+      prevSurveys.map(survey => 
+        selectedProperties.has(survey.id)
+          ? { ...survey, inspected: true }
+          : survey
+      )
+    );
+
+    try {
+      const response = await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'bulkUpdateInspected',
+          propertyIds: propertyIds,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || 'Failed to update inspected status');
+      }
+
+      // Clear selection
+      setSelectedProperties(new Set());
+    } catch (error) {
+      console.error('Error updating inspected status:', error);
+      // Revert the optimistic update on error
+      setSurveys(prevSurveys => 
+        prevSurveys.map(survey => 
+          selectedProperties.has(survey.id)
+            ? { ...survey, inspected: originalInspectedStatus.get(survey.id) || false }
+            : survey
+        )
+      );
+      alert('Failed to update inspected status. Please try again.');
+    } finally {
+      setIsBulkProcessing(false);
     }
   };
 
@@ -298,104 +414,162 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
             >
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Saved Surveys</h2>
               
-              {/* Search and Sort Bar */}
-              <motion.div
-                initial={{ opacity: 0, y: 24 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.45, ease: "easeOut" }}
-                className="flex items-center gap-3 mb-6"
-              >
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search by property address..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                  />
-                </div>
-                <div className="relative">
-                  <button
-                    onClick={() => setShowSortMenu(!showSortMenu)}
-                    className="flex cursor-pointer items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                    aria-label="Sort surveys"
-                  >
-                    <ArrowUpDown className="w-5 h-5 text-gray-600" />
-                  </button>
-                  
-                  {/* Sort Dropdown Menu */}
-                  <AnimatePresence>
-                    {showSortMenu && (
-                      <>
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          onClick={() => setShowSortMenu(false)}
-                          className="fixed inset-0 z-10"
+              {/* Container with fixed height to prevent layout shift */}
+              <div className="relative h-10 mb-6">
+                {/* Search and Sort Bar - Hidden when properties are selected */}
+                <AnimatePresence mode="wait">
+                  {selectedProperties.size === 0 && (
+                    <motion.div
+                      key="search-bar"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 20 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute inset-0 flex items-center gap-3"
+                    >
+                      <div className="relative flex-1 h-full">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="Search by property address..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full h-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                         />
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                          animate={{ opacity: 1, scale: 1, y: 0 }}
-                          exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                          transition={{ duration: 0.2 }}
-                          className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20"
+                      </div>
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowSortMenu(!showSortMenu)}
+                          className="flex cursor-pointer items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                          aria-label="Sort surveys"
                         >
-                          <button
-                            onClick={() => { setSortOption('newest'); setShowSortMenu(false); }}
-                            className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                              sortOption === 'newest' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                            }`}
+                          <ArrowUpDown className="w-5 h-5 text-gray-600" />
+                        </button>
+                    
+                    {/* Sort Dropdown Menu */}
+                    <AnimatePresence>
+                      {showSortMenu && (
+                        <>
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowSortMenu(false)}
+                            className="fixed inset-0 z-10"
+                          />
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20"
                           >
-                            Newest First
-                          </button>
-                          <button
-                            onClick={() => { setSortOption('oldest'); setShowSortMenu(false); }}
-                            className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                              sortOption === 'oldest' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                            }`}
-                          >
-                            Oldest First
-                          </button>
-                          <button
-                            onClick={() => { setSortOption('address-az'); setShowSortMenu(false); }}
-                            className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                              sortOption === 'address-az' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                            }`}
-                          >
-                            Address (A-Z)
-                          </button>
-                          <button
-                            onClick={() => { setSortOption('state'); setShowSortMenu(false); }}
-                            className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                              sortOption === 'state' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                            }`}
-                          >
-                            By State
-                          </button>
-                          <button
-                            onClick={() => { setSortOption('completion-asc'); setShowSortMenu(false); }}
-                            className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                              sortOption === 'completion-asc' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                            }`}
-                          >
-                            Completion % (Low to High)
-                          </button>
-                          <button
-                            onClick={() => { setSortOption('completion-desc'); setShowSortMenu(false); }}
-                            className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                              sortOption === 'completion-desc' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                            }`}
-                          >
-                            Completion % (High to Low)
-                          </button>
-                        </motion.div>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </motion.div>
+                            <button
+                              onClick={() => { setSortOption('newest'); setShowSortMenu(false); }}
+                              className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                sortOption === 'newest' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                              }`}
+                            >
+                              Newest First
+                            </button>
+                            <button
+                              onClick={() => { setSortOption('oldest'); setShowSortMenu(false); }}
+                              className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                sortOption === 'oldest' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                              }`}
+                            >
+                              Oldest First
+                            </button>
+                            <button
+                              onClick={() => { setSortOption('address-az'); setShowSortMenu(false); }}
+                              className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                sortOption === 'address-az' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                              }`}
+                            >
+                              Address (A-Z)
+                            </button>
+                            <button
+                              onClick={() => { setSortOption('state'); setShowSortMenu(false); }}
+                              className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                sortOption === 'state' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                              }`}
+                            >
+                              By State
+                            </button>
+                            <button
+                              onClick={() => { setSortOption('completion-asc'); setShowSortMenu(false); }}
+                              className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                sortOption === 'completion-asc' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                              }`}
+                            >
+                              Completion % (Low to High)
+                            </button>
+                            <button
+                              onClick={() => { setSortOption('completion-desc'); setShowSortMenu(false); }}
+                              className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                sortOption === 'completion-desc' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                              }`}
+                            >
+                              Completion % (High to Low)
+                            </button>
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Bulk Action Buttons - Shown when properties are selected */}
+                <AnimatePresence mode="wait">
+                  {selectedProperties.size > 0 && (
+                    <motion.div
+                      key="bulk-actions"
+                      initial={{ opacity: 0, y: -20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      transition={{ duration: 0.3 }}
+                      className="absolute inset-0 flex items-center gap-3"
+                    >
+                      <button
+                        onClick={handleBulkDelete}
+                        disabled={isBulkProcessing}
+                        className="flex cursor-pointer items-center justify-center gap-2 px-6 py-2 bg-error text-white rounded-lg hover:bg-error/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                      >
+                        {isBulkProcessing ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="w-5 h-5 hidden sm:block" />
+                            Delete {selectedProperties.size} {selectedProperties.size === 1 ? 'property' : 'properties'}
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={handleBulkInspected}
+                        disabled={isBulkProcessing}
+                        className="flex cursor-pointer items-center justify-center gap-2 px-6 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                      >
+                        {isBulkProcessing ? (
+                          <>
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Eye className="w-5 h-5 hidden sm:block" />
+                            Inspected {selectedProperties.size} {selectedProperties.size === 1 ? 'property' : 'properties'}
+                          </>
+                        )}
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
               
               {loading ? (
                 <div className="flex items-center justify-center py-12">
@@ -505,9 +679,21 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                           </div>
                           
                           <div className="flex flex-col items-end justify-between gap-2 sm:flex-shrink-0 sm:self-stretch">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${status.color} ${status.bg}`}>
-                              {status.text}
-                            </span>
+                            <div className="flex items-center gap-2">
+                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${status.color} ${status.bg}`}>
+                                {status.text}
+                              </span>
+                              <input
+                                type="checkbox"
+                                checked={selectedProperties.has(survey.id)}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  handleCheckboxChange(survey.id, e.target.checked);
+                                }}
+                                className="w-5 h-5 cursor-pointer text-primary border-gray-300 rounded focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
                             <div className="flex items-center gap-2 mt-auto">
                               {isComplete ? (
                                 <button
