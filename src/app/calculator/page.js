@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Minus, DollarSign, Download, Mail, Edit, Plus, ArrowRight } from 'lucide-react';
+import { Home, Minus, DollarSign, Download, Mail, Edit, Plus, ArrowRight, Loader2 } from 'lucide-react';
 import UpfrontCosts from '../../components/UpfrontCosts';
 import OngoingCosts from '../../components/OngoingCosts';
 import Summary from '../../components/Summary';
@@ -31,6 +31,7 @@ function CalculatorPageContent() {
     const searchParams = useSearchParams();
     const [isLoadingResume, setIsLoadingResume] = useState(false);
     const [isReturningToDashboard, setIsReturningToDashboard] = useState(false);
+    const [isEmailingPDF, setIsEmailingPDF] = useState(false);
     const hasResumedRef = useRef(false);
     
     // Get state-specific functions for calculations
@@ -352,6 +353,171 @@ function CalculatorPageContent() {
     const handleEndOfSurveyDismiss = () => {
         // User chose not to save - data is still retained in backend
         // Just close the prompt
+    };
+
+    const handleEmailPDF = async () => {
+        // Check if user is logged in and has email
+        if (!user || !user.email) {
+            alert('Please log in to email your results.');
+            return;
+        }
+
+        setIsEmailingPDF(true);
+
+        try {
+            // Calculate all the values needed for the PDF (same as completion page)
+            const calculateStampDuty = () => {
+                if (!stateFunctions || !formData.propertyPrice || !formData.selectedState || !formData.propertyType) {
+                    return 0;
+                }
+                return stateFunctions.calculateStampDuty(formData.propertyPrice, formData.selectedState);
+            };
+
+            const calculateAllUpfrontCosts = () => {
+                if (!formData.buyerDetailsComplete || !stateFunctions?.calculateUpfrontCosts) {
+                    const stampDutyAmount = calculateStampDuty();
+                    const depositAmount = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanDeposit) || 0) : 0;
+                    const settlementFee = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanSettlementFees) || 0) : 0;
+                    const establishmentFee = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanEstablishmentFee) || 0) : 0;
+                    
+                    return {
+                        stampDuty: { amount: stampDutyAmount, label: "Stamp Duty" },
+                        concessions: [],
+                        grants: [],
+                        foreignDuty: { amount: 0, applicable: false },
+                        netStateDuty: stampDutyAmount,
+                        totalUpfrontCosts: stampDutyAmount + depositAmount + settlementFee + establishmentFee
+                    };
+                }
+                
+                const buyerData = {
+                    selectedState: formData.selectedState,
+                    buyerType: formData.buyerType,
+                    isPPR: formData.isPPR,
+                    isAustralianResident: formData.isAustralianResident,
+                    isFirstHomeBuyer: formData.isFirstHomeBuyer,
+                    ownedPropertyLast5Years: formData.ownedPropertyLast5Years,
+                    hasPensionCard: formData.hasPensionCard,
+                    needsLoan: formData.needsLoan,
+                    savingsAmount: formData.savingsAmount,
+                    income: formData.income,
+                    dependants: formData.dependants,
+                    dutiableValue: formData.dutiableValue,
+                    constructionStarted: formData.constructionStarted,
+                    sellerQuestionsComplete: formData.sellerQuestionsComplete
+                };
+                
+                const propertyData = {
+                    propertyPrice: formData.propertyPrice,
+                    propertyType: formData.propertyType,
+                    propertyCategory: formData.propertyCategory,
+                    isWA: formData.isWA,
+                    isWAMetro: formData.isWAMetro,
+                    isACT: formData.isACT
+                };
+                
+                const upfrontCostsResult = stateFunctions.calculateUpfrontCosts(buyerData, propertyData, formData.selectedState);
+                
+                const firbFee = parseInt(formData.FIRBFee) || 0;
+                upfrontCostsResult.totalUpfrontCosts += firbFee;
+                
+                if (formData.loanDetailsComplete && formData.needsLoan === 'yes') {
+                    const depositAmount = parseInt(formData.loanDeposit) || 0;
+                    const settlementFee = parseInt(formData.loanSettlementFees) || 0;
+                    const establishmentFee = parseInt(formData.loanEstablishmentFee) || 0;
+                    
+                    let additionalCosts = 0;
+                    if (formData.sellerQuestionsComplete) {
+                        additionalCosts += parseInt(formData.landTransferFee) || 0;
+                        additionalCosts += parseInt(formData.legalFees) || 0;
+                        additionalCosts += parseInt(formData.buildingAndPestInspection) || 0;
+                    }
+                    
+                    return {
+                        ...upfrontCostsResult,
+                        totalUpfrontCosts: upfrontCostsResult.totalUpfrontCosts + depositAmount + settlementFee + establishmentFee + additionalCosts
+                    };
+                }
+                
+                if (formData.sellerQuestionsComplete) {
+                    const landTransferFee = parseInt(formData.landTransferFee) || 0;
+                    const legalFees = parseInt(formData.legalFees) || 0;
+                    const buildingAndPest = parseInt(formData.buildingAndPestInspection) || 0;
+                    const additionalCosts = landTransferFee + legalFees + buildingAndPest;
+                    
+                    return {
+                        ...upfrontCostsResult,
+                        totalUpfrontCosts: upfrontCostsResult.totalUpfrontCosts + additionalCosts
+                    };
+                }
+                
+                return upfrontCostsResult;
+            };
+
+            const getMonthlyOngoingCosts = () => {
+                const propertyCosts = (formData.COUNCIL_RATES_MONTHLY || 0) + 
+                                     (formData.WATER_RATES_MONTHLY || 0) + 
+                                     (formData.BODY_CORP_MONTHLY || 0);
+                const loanCosts = formData.needsLoan === 'yes' ? (formData.MONTHLY_LOAN_REPAYMENT || 0) : 0;
+                return propertyCosts + loanCosts;
+            };
+
+            const getAnnualOngoingCosts = () => {
+                const hasLoan = formData.loanDetailsComplete && formData.needsLoan === 'yes';
+                return (hasLoan ? (formData.ANNUAL_LOAN_REPAYMENT || 0) : 0) + 
+                       (formData.sellerQuestionsComplete ? (parseInt(formData.councilRates) || 0) : 0) + 
+                       (formData.sellerQuestionsComplete ? (parseInt(formData.waterRates) || 0) : 0) + 
+                       (formData.sellerQuestionsComplete ? (parseInt(formData.bodyCorp) || 0) : 0);
+            };
+
+            const upfrontCosts = calculateAllUpfrontCosts();
+            const stampDuty = calculateStampDuty();
+            const monthlyCashFlow = getMonthlyOngoingCosts();
+            const annualOperatingCost = getAnnualOngoingCosts();
+
+            const calculations = {
+                upfrontCosts,
+                ongoingCosts: {
+                    monthly: monthlyCashFlow,
+                    annual: annualOperatingCost,
+                },
+                stampDuty,
+            };
+
+            // Send to API
+            const response = await fetch('/api/email-pdf', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userEmail: user.email,
+                    formData,
+                    calculations,
+                }),
+            });
+
+            // Check if response is JSON
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/json')) {
+                const text = await response.text();
+                console.error('Non-JSON response:', text);
+                throw new Error('Server returned an error. Please check the console for details.');
+            }
+
+            const result = await response.json();
+
+            if (!response.ok || result.error) {
+                throw new Error(result.error || result.details || 'Failed to send email');
+            }
+
+            alert('Email sent successfully! Please check your inbox.');
+        } catch (error) {
+            console.error('Error sending email:', error);
+            alert(`Failed to send email: ${error.message}. Please check the console for details.`);
+        } finally {
+            setIsEmailingPDF(false);
+        }
     };
 
     return (
@@ -845,10 +1011,21 @@ function CalculatorPageContent() {
                                                         <motion.button
                                                             whileHover={{ scale: 1.05 }}
                                                             whileTap={{ scale: 0.95 }}
-                                                            className="flex items-center cursor-pointer justify-center gap-2 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-lg font-medium shadow-sm transition-colors"
+                                                            onClick={handleEmailPDF}
+                                                            disabled={isEmailingPDF}
+                                                            className="flex items-center cursor-pointer justify-center gap-2 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-lg font-medium shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                                         >
-                                                            <Mail className="w-5 h-5" />
-                                                            Email Me These Results
+                                                            {isEmailingPDF ? (
+                                                                <>
+                                                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                                                    Sending...
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <Mail className="w-5 h-5" />
+                                                                    Email Me These Results
+                                                                </>
+                                                            )}
                                                         </motion.button>
                                                     </div>
                                                 </motion.div>
