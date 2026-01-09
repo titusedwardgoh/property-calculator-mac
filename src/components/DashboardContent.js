@@ -16,11 +16,12 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
   const [deletingId, setDeletingId] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [propertyToDelete, setPropertyToDelete] = useState(null);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkDeleteCount, setBulkDeleteCount] = useState(0);
   const [sortOption, setSortOption] = useState('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedProperties, setSelectedProperties] = useState(new Set());
-  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const router = useRouter();
   const { user } = useAuth();
   const supabase = createClient();
@@ -164,12 +165,34 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
     });
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDelete = () => {
     if (selectedProperties.size === 0 || !user) return;
     
-    setIsBulkProcessing(true);
+    // Show confirmation modal
+    setBulkDeleteCount(selectedProperties.size);
+    setShowBulkDeleteModal(true);
+  };
+
+  const handleBulkDeleteConfirm = async () => {
+    if (selectedProperties.size === 0 || !user) return;
+    
+    // Close modal
+    setShowBulkDeleteModal(false);
+    
     const propertyIds = Array.from(selectedProperties);
     
+    // Store deleted surveys for rollback
+    const deletedSurveys = surveys.filter(survey => selectedProperties.has(survey.id));
+    
+    // Optimistically remove from UI immediately
+    setSurveys(prevSurveys => 
+      prevSurveys.filter(survey => !selectedProperties.has(survey.id))
+    );
+    
+    // Clear selection immediately for instant feedback
+    setSelectedProperties(new Set());
+    
+    // Update database in the background
     try {
       const response = await fetch('/api/supabase', {
         method: 'POST',
@@ -187,26 +210,22 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
       if (!response.ok || result.error) {
         throw new Error(result.error || 'Failed to delete properties');
       }
-
-      // Remove deleted properties from local state
-      setSurveys(prevSurveys => 
-        prevSurveys.filter(survey => !selectedProperties.has(survey.id))
-      );
-      
-      // Clear selection
-      setSelectedProperties(new Set());
     } catch (error) {
       console.error('Error deleting properties:', error);
+      // Restore deleted surveys on error
+      setSurveys(prevSurveys => [...prevSurveys, ...deletedSurveys]);
       alert('Failed to delete properties. Please try again.');
-    } finally {
-      setIsBulkProcessing(false);
     }
+  };
+
+  const handleBulkDeleteCancel = () => {
+    setShowBulkDeleteModal(false);
+    setBulkDeleteCount(0);
   };
 
   const handleBulkInspected = async () => {
     if (selectedProperties.size === 0 || !user) return;
     
-    setIsBulkProcessing(true);
     const propertyIds = Array.from(selectedProperties);
     
     // Store original inspected status for rollback
@@ -217,6 +236,9 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
       }
     });
     
+    // Store selected properties for rollback (needed for error handling)
+    const selectedPropsForRollback = new Set(selectedProperties);
+    
     // Optimistically update UI immediately
     setSurveys(prevSurveys => 
       prevSurveys.map(survey => 
@@ -225,7 +247,11 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
           : survey
       )
     );
+    
+    // Clear selection immediately for instant feedback
+    setSelectedProperties(new Set());
 
+    // Update database in the background
     try {
       const response = await fetch('/api/supabase', {
         method: 'POST',
@@ -243,22 +269,17 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
       if (!response.ok || result.error) {
         throw new Error(result.error || 'Failed to update inspected status');
       }
-
-      // Clear selection
-      setSelectedProperties(new Set());
     } catch (error) {
       console.error('Error updating inspected status:', error);
       // Revert the optimistic update on error
       setSurveys(prevSurveys => 
         prevSurveys.map(survey => 
-          selectedProperties.has(survey.id)
+          selectedPropsForRollback.has(survey.id)
             ? { ...survey, inspected: originalInspectedStatus.get(survey.id) || false }
             : survey
         )
       );
       alert('Failed to update inspected status. Please try again.');
-    } finally {
-      setIsBulkProcessing(false);
     }
   };
 
@@ -534,37 +555,17 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                     >
                       <button
                         onClick={handleBulkDelete}
-                        disabled={isBulkProcessing}
-                        className="flex cursor-pointer items-center justify-center gap-2 px-6 py-2 bg-error text-white rounded-lg hover:bg-error/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                        className="flex cursor-pointer items-center justify-center gap-2 px-6 py-2 bg-error text-white rounded-lg hover:bg-error/90 transition-colors font-medium"
                       >
-                        {isBulkProcessing ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <Trash2 className="w-5 h-5 hidden sm:block" />
-                            Delete {selectedProperties.size} {selectedProperties.size === 1 ? 'property' : 'properties'}
-                          </>
-                        )}
+                        <Trash2 className="w-5 h-5 hidden sm:block" />
+                        Delete {selectedProperties.size} {selectedProperties.size === 1 ? 'property' : 'properties'}
                       </button>
                       <button
                         onClick={handleBulkInspected}
-                        disabled={isBulkProcessing}
-                        className="flex cursor-pointer items-center justify-center gap-2 px-6 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                        className="flex cursor-pointer items-center justify-center gap-2 px-6 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors font-medium"
                       >
-                        {isBulkProcessing ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            Processing...
-                          </>
-                        ) : (
-                          <>
-                            <Eye className="w-5 h-5 hidden sm:block" />
-                            Inspected {selectedProperties.size} {selectedProperties.size === 1 ? 'property' : 'properties'}
-                          </>
-                        )}
+                        <Eye className="w-5 h-5 hidden sm:block" />
+                        Inspected {selectedProperties.size} {selectedProperties.size === 1 ? 'property' : 'properties'}
                       </button>
                     </motion.div>
                   )}
@@ -606,8 +607,8 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                           <div className="flex-1 min-w-0">
                             <h3 className="text-lg font-semibold text-gray-900 mb-2 max-w-2xl">
-                              {survey.property_address || `Survey ${index + 1}`}
-                            </h3>
+                                {survey.property_address || `Survey ${index + 1}`}
+                              </h3>
                             <div className="text-sm text-gray-600 space-y-1">
                               {survey.property_price && (
                                 <p>Property Price: ${survey.property_price.toLocaleString()}</p>
@@ -679,7 +680,7 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                           </div>
                           
                           <div className="flex flex-col items-end justify-between gap-2 sm:flex-shrink-0 sm:self-stretch">
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2">
                               <span className={`px-3 py-1 rounded-full text-xs font-medium ${status.color} ${status.bg}`}>
                                 {status.text}
                               </span>
@@ -695,34 +696,34 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                               />
                             </div>
                             <div className="flex items-center gap-2 mt-auto">
-                              {isComplete ? (
-                                <button
-                                  onClick={() => handleResume(survey.id)}
-                                  className="flex cursor-pointer items-center gap-2 px-7 py-2 bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors"
-                                >
-                                  <Eye className="w-4 h-4" />
-                                  View
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => handleResume(survey.id)}
-                                  className="flex cursor-pointer items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-focus text-secondary rounded-full transition-all hover:shadow-lg"
-                                >
-                                  <Play className="w-4 h-4" />
-                                  Resume
-                                </button>
-                              )}
+                            {isComplete ? (
                               <button
-                                onClick={(e) => handleDeleteClick(survey.id, e)}
-                                disabled={deletingId === survey.id}
-                                className="flex cursor-pointer items-center gap-2 px-4 py-2 bg-error/10 text-error rounded-full hover:bg-error/20 transition-colors disabled:opacity-50"
+                                onClick={() => handleResume(survey.id)}
+                                  className="flex cursor-pointer items-center gap-2 px-7 py-2 bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors"
                               >
-                                {deletingId === survey.id ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="w-4 h-4" />
-                                )}
+                                <Eye className="w-4 h-4" />
+                                View
                               </button>
+                            ) : (
+                              <button
+                                onClick={() => handleResume(survey.id)}
+                                className="flex cursor-pointer items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-focus text-secondary rounded-full transition-all hover:shadow-lg"
+                              >
+                                <Play className="w-4 h-4" />
+                                Resume
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => handleDeleteClick(survey.id, e)}
+                              disabled={deletingId === survey.id}
+                              className="flex cursor-pointer items-center gap-2 px-4 py-2 bg-error/10 text-error rounded-full hover:bg-error/20 transition-colors disabled:opacity-50"
+                            >
+                              {deletingId === survey.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </button>
                             </div>
                           </div>
                         </div>
@@ -779,21 +780,92 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                   <p className="text-gray-600 text-base mb-6">
                     This survey will be removed from your dashboard.
                   </p>
-                  
+                
                   {/* Action Buttons */}
                   <div className="flex gap-3">
-                    <button
-                      onClick={handleDeleteCancel}
+                  <button
+                    onClick={handleDeleteCancel}
                       className="flex-1 cursor-pointer border-2 border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-6 py-3 rounded-full font-medium transition-all duration-200"
-                    >
+                  >
                       Cancel
-                    </button>
-                    <button
-                      onClick={handleDeleteConfirm}
+                  </button>
+                  <button
+                    onClick={handleDeleteConfirm}
                       className="flex-1 cursor-pointer bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
-                    >
+                  >
                       Delete
+                  </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Bulk Delete Confirmation Modal */}
+      <AnimatePresence>
+        {showBulkDeleteModal && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleBulkDeleteCancel}
+              className="fixed inset-0 bg-black/50 z-[200]"
+            />
+            
+            {/* Modal */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
+                {/* Header */}
+                <div className="bg-primary/10 px-8 pt-8 pb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-2xl font-bold text-gray-900">
+                        Delete {bulkDeleteCount} {bulkDeleteCount === 1 ? 'survey' : 'surveys'}?
+                      </h3>
+                    </div>
+                    <button
+                      onClick={handleBulkDeleteCancel}
+                      className="text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"
+                      aria-label="Close"
+                    >
+                      <X className="w-6 h-6" />
                     </button>
+                  </div>
+                </div>
+                
+                {/* Content */}
+                <div className="px-8 py-6">
+                  <p className="text-gray-600 text-base mb-6">
+                    {bulkDeleteCount === 1 
+                      ? 'This survey will be removed from your dashboard.'
+                      : 'These surveys will be removed from your dashboard.'
+                    }
+                  </p>
+                
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                  <button
+                    onClick={handleBulkDeleteCancel}
+                      className="flex-1 cursor-pointer border-2 border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-6 py-3 rounded-full font-medium transition-all duration-200"
+                  >
+                      Cancel
+                  </button>
+                  <button
+                    onClick={handleBulkDeleteConfirm}
+                      className="flex-1 cursor-pointer bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
+                  >
+                      Delete
+                  </button>
                   </div>
                 </div>
               </div>

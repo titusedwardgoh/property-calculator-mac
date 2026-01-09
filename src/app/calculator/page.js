@@ -758,9 +758,6 @@ function CalculatorPageContent() {
                                                     <h2 className="text-3xl text-center md:text-5xl font-base text-gray-800 mb-4 leading-tight">
                                                         All Forms Complete!
                                                     </h2>
-                                                    <p className="md:text-xl text-center text-gray-500 leading-relaxed">
-                                                        Your property summary and instructions are ready.
-                                                    </p>
                                                 </motion.div>
                                                 
                                                 {/* Combined Settlement Summary and Ongoing Ownership Card */}

@@ -927,7 +927,7 @@ export default function PropertyDetails() {
                           if (newValue.length === 0) {
                             // Field cleared - reset validation
                             console.log('🟢 Field cleared, setting hasValidAddress to false');
-                            setHasValidAddress(false);
+                          setHasValidAddress(false);
                           }
                           
                           updateFormData('propertyAddress', newValue);

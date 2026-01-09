@@ -293,7 +293,7 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
         </>
       )}
       </AnimatePresence>
-
+      
       <AnimatePresence>
         {showWarning && (
         <>
@@ -337,21 +337,21 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
                 <p className="text-gray-600 text-base mb-6">
                   Your unsaved changes will be lost. Save changes before closing?
                 </p>
-                
+              
                 {/* Action Buttons */}
                 <div className="flex gap-3">
-                  <button
-                    onClick={handleDiscard}
+                <button
+                  onClick={handleDiscard}
                     className="flex-1 cursor-pointer border-2 border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-6 py-3 rounded-full font-medium transition-all duration-200"
-                  >
+                >
                     Don&apos;t Save
-                  </button>
-                  <button
-                    onClick={handleConfirm} 
+                </button>
+                <button
+                  onClick={handleConfirm}
                     className="flex-1 cursor-pointer bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
-                  >
+                >
                     Save
-                  </button>
+                </button>
                 </div>
               </div>
             </div>
