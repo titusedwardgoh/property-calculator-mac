@@ -19,6 +19,14 @@ function LoginPageContent() {
 
   // Get the 'next' parameter from URL to know where to redirect after login
   const nextUrl = searchParams.get('next') || '/dashboard';
+  
+  // Pre-fill email from URL parameter
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+  }, [searchParams]);
 
   // Check for expired OTP error in URL hash (from Supabase redirect)
   useEffect(() => {
@@ -120,6 +128,12 @@ function LoginPageContent() {
         } catch (error) {
           console.error('Error linking property to account:', error);
         }
+      }
+      
+      // Show message about linked surveys if any were merged
+      if (result.linkedSurveys > 0) {
+        // Store message in sessionStorage to show on dashboard
+        sessionStorage.setItem('linkedSurveysMessage', `Great! We've linked ${result.linkedSurveys} survey${result.linkedSurveys > 1 ? 's' : ''} from your email to your account.`);
       }
       
       // Use window.location for full page reload to ensure auth state updates

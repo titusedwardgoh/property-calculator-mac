@@ -19,7 +19,7 @@ const supabase = createServiceClient(supabaseUrl, supabaseServiceKey, {
 
 export async function POST(request) {
   try {
-    const { action, sessionId, deviceId, userId, data, propertyId, userSaved, inspected, propertyIds } = await request.json()
+    const { action, sessionId, deviceId, userId, data, propertyId, userSaved, inspected, propertyIds, linkedUserId } = await request.json()
 
     switch (action) {
       case 'save':
@@ -32,6 +32,8 @@ export async function POST(request) {
         return await loadPropertyById(propertyId, userId)
       case 'linkPropertyToUser':
         return await linkPropertyToUser(propertyId)
+      case 'linkGuestSurveyToUser':
+        return await linkGuestSurveyToUser(propertyId, linkedUserId)
       case 'updatePropertyInspected':
         return await updatePropertyInspected(propertyId, inspected)
       case 'bulkDeleteProperties':
@@ -881,6 +883,57 @@ async function bulkUpdateInspected(propertyIds) {
     })
   } catch (error) {
     console.error('Bulk update inspected error:', error)
+    return Response.json({ error: error.message }, { status: 500 })
+  }
+}
+
+async function linkGuestSurveyToUser(propertyId, userId) {
+  try {
+    if (!propertyId) {
+      return Response.json({ error: 'Property ID is required' }, { status: 400 })
+    }
+
+    if (!userId) {
+      return Response.json({ error: 'User ID is required' }, { status: 400 })
+    }
+
+    // Verify the property exists
+    const { data: property, error: fetchError } = await supabase
+      .from('properties')
+      .select('id, user_id')
+      .eq('id', propertyId)
+      .maybeSingle()
+
+    if (fetchError) {
+      console.error('Error fetching property:', fetchError)
+      return Response.json({ error: 'Error fetching property' }, { status: 500 })
+    }
+
+    if (!property) {
+      return Response.json({ error: 'Property not found' }, { status: 404 })
+    }
+
+    // Update the property to link it to the user
+    const { error: updateError } = await supabase
+      .from('properties')
+      .update({
+        user_id: userId,
+        user_saved: true,
+        is_active: true
+      })
+      .eq('id', propertyId)
+
+    if (updateError) {
+      console.error('Error linking survey to user:', updateError)
+      return Response.json({ error: 'Failed to link survey to user' }, { status: 500 })
+    }
+
+    return Response.json({
+      success: true,
+      message: 'Survey linked to user successfully'
+    })
+  } catch (error) {
+    console.error('Link guest survey error:', error)
     return Response.json({ error: error.message }, { status: 500 })
   }
 }

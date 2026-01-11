@@ -21,6 +21,14 @@ function SignupPageContent() {
 
   // Get the 'next' parameter from URL to know where to redirect after signup
   const nextUrl = searchParams.get('next') || '/dashboard';
+  
+  // Pre-fill email from URL parameter
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    if (emailParam) {
+      setEmail(emailParam);
+    }
+  }, [searchParams]);
 
   // Check if user is already logged in and redirect to dashboard
   useEffect(() => {
@@ -102,6 +110,12 @@ function SignupPageContent() {
         } catch (error) {
           console.error('Error linking property to account:', error);
         }
+      }
+      
+      // Show message about linked surveys if any were merged
+      if (data.linkedSurveys > 0) {
+        // Store message in sessionStorage to show on dashboard
+        sessionStorage.setItem('linkedSurveysMessage', `Great! We've linked ${data.linkedSurveys} survey${data.linkedSurveys > 1 ? 's' : ''} from your email to your account.`);
       }
       
       // Redirect to dashboard or specified next URL on success
@@ -268,7 +282,7 @@ function SignupPageContent() {
             whileHover={{ scale: loading ? 1 : 1.02 }}
             whileTap={{ scale: loading ? 1 : 0.98 }}
             disabled={loading}
-            className="w-full bg-primary hover:bg-primary-focus text-secondary font-medium py-3 px-6 rounded-full transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full bg-primary cursor-pointer hover:bg-primary-focus text-secondary font-medium py-3 px-6 rounded-full transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               <>

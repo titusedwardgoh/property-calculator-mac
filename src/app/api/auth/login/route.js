@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { mergeGuestSurveys } from '@/lib/mergeGuestSurveys'
 
 export async function POST(request) {
   try {
@@ -26,11 +27,22 @@ export async function POST(request) {
       )
     }
 
+    // Merge any guest surveys from survey_leads
+    let linkedSurveysCount = 0
+    if (data.user && data.user.id) {
+      const mergeResult = await mergeGuestSurveys(email, data.user.id)
+      if (mergeResult.success && mergeResult.linkedCount > 0) {
+        linkedSurveysCount = mergeResult.linkedCount
+        console.log(`Linked ${linkedSurveysCount} guest survey(s) to logged-in user account`)
+      }
+    }
+
     // Return success response - cookies are set by Supabase server client
     return NextResponse.json({
       success: true,
       user: data.user,
-      message: 'Login successful'
+      message: 'Login successful',
+      linkedSurveys: linkedSurveysCount
     })
   } catch (error) {
     console.error('Login error:', error)

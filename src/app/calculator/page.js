@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Minus, DollarSign, Download, Mail, Edit, Plus, ArrowRight, Loader2 } from 'lucide-react';
+import { Home, Minus, DollarSign, Download, Mail, Edit, Plus, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
 import UpfrontCosts from '../../components/UpfrontCosts';
 import OngoingCosts from '../../components/OngoingCosts';
 import Summary from '../../components/Summary';
@@ -15,11 +15,13 @@ import WelcomePage from '../../components/WelcomePage';
 import SurveyHeaderOverlay from '../../components/SurveyHeaderOverlay';
 import NavigationWarning from '../../components/NavigationWarning';
 import EndOfSurveyPrompt from '../../components/EndOfSurveyPrompt';
+import EmailModal from '../../components/EmailModal';
 import { useFormStore } from '../../stores/formStore';
 import { useSupabaseSync } from '../../hooks/useSupabaseSync';
 import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency } from '../../states/shared/baseCalculations.js';
 import { useStateSelector } from '../../states/useStateSelector.js';
+import Link from 'next/link';
 
 function CalculatorPageContent() {
     const formData = useFormStore();
@@ -32,6 +34,9 @@ function CalculatorPageContent() {
     const [isLoadingResume, setIsLoadingResume] = useState(false);
     const [isReturningToDashboard, setIsReturningToDashboard] = useState(false);
     const [isEmailingPDF, setIsEmailingPDF] = useState(false);
+    const [showEmailModal, setShowEmailModal] = useState(false);
+    const [showEmailSuccess, setShowEmailSuccess] = useState(false);
+    const [emailSuccessData, setEmailSuccessData] = useState(null);
     const hasResumedRef = useRef(false);
     
     // Get state-specific functions for calculations
@@ -84,20 +89,20 @@ function CalculatorPageContent() {
             })
             .then(res => res.json())
             .then(result => {
-                    console.log('📥 Resume API response:', result);
-                    if (result.success && result.data) {
-                        const record = result.data;
-                        console.log('📋 Loaded record data:', {
-                            id: record.id,
-                            is_active: record.is_active,
-                            parent_id: record.parent_id,
-                            user_saved: record.user_saved,
-                            hasPropertyDetails: !!record.property_details,
-                            hasBuyerDetails: !!record.buyer_details,
-                            propertyPrice: record.property_price,
-                            propertyAddress: record.property_address,
-                            message: result.message
-                        });
+                console.log('📥 Resume API response:', result);
+                if (result.success && result.data) {
+                    const record = result.data;
+                    console.log('📋 Loaded record data:', {
+                        id: record.id,
+                        is_active: record.is_active,
+                        parent_id: record.parent_id,
+                        user_saved: record.user_saved,
+                        hasPropertyDetails: !!record.property_details,
+                        hasBuyerDetails: !!record.buyer_details,
+                        propertyPrice: record.property_price,
+                        propertyAddress: record.property_address,
+                        message: result.message
+                    });
                         console.log('📋 Full property_details object:', record.property_details);
                         console.log('📋 Full buyer_details object:', record.buyer_details);
                     
@@ -358,10 +363,21 @@ function CalculatorPageContent() {
     const handleEmailPDF = async () => {
         // Check if user is logged in and has email
         if (!user || !user.email) {
-            alert('Please log in to email your results.');
+            // Show modal for guests
+            setShowEmailModal(true);
             return;
         }
 
+        // For logged-in users, proceed with email
+        await sendEmailPDF(user.email, false);
+    };
+
+    const handleEmailModalSubmit = async (email, emailExists) => {
+        setShowEmailModal(false);
+        await sendEmailPDF(email, true, emailExists);
+    };
+
+    const sendEmailPDF = async (userEmail, isGuest, emailExists = null) => {
         setIsEmailingPDF(true);
 
         try {
@@ -491,9 +507,11 @@ function CalculatorPageContent() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userEmail: user.email,
+                    userEmail,
                     formData,
                     calculations,
+                    isGuest,
+                    propertyId,
                 }),
             });
 
@@ -511,7 +529,14 @@ function CalculatorPageContent() {
                 throw new Error(result.error || result.details || 'Failed to send email');
             }
 
-            alert('Email sent successfully! Please check your inbox.');
+            // Show success state with appropriate CTA
+            setEmailSuccessData({
+                email: userEmail,
+                emailExists: result.emailExists || emailExists,
+                testingMode: result.testingMode || false,
+                reminder: result.reminder || null,
+            });
+            setShowEmailSuccess(true);
         } catch (error) {
             console.error('Error sending email:', error);
             alert(`Failed to send email: ${error.message}. Please check the console for details.`);
@@ -903,13 +928,13 @@ function CalculatorPageContent() {
                             const annualOperatingCost = getAnnualOngoingCosts();
                             
                             return (
-                                <AnimatePresence mode="wait">
-                                    <motion.div
-                                        key="all-forms-complete"
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -20 }}
-                                        transition={{ duration: 0.5, ease: "easeInOut" }}
+                            <AnimatePresence mode="wait">
+                                <motion.div
+                                    key="all-forms-complete"
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -20 }}
+                                    transition={{ duration: 0.5, ease: "easeInOut" }}
                                         className="mt-15"
                                     >
                                         <div className="max-w-4xl mx-auto">
@@ -917,12 +942,12 @@ function CalculatorPageContent() {
                                             <div className="space-y-6">
                                                 {/* Header */}
                                                 <motion.div
-                                                    initial={{ opacity: 0, y: 10 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-                                                >
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+                                    >
                                                     <h2 className="text-3xl text-center md:text-5xl font-base text-gray-800 mb-4 leading-tight">
-                                                        All Forms Complete!
+                                        All Forms Complete!
                                                     </h2>
                                                 </motion.div>
                                                 
@@ -998,41 +1023,106 @@ function CalculatorPageContent() {
                                                     </div>
                                                     
                                                     {/* Action Buttons */}
-                                                    <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
-                                                        <motion.button
-                                                            whileHover={{ scale: 1.05 }}
-                                                            whileTap={{ scale: 0.95 }}
-                                                            className="flex items-center cursor-pointer justify-center gap-2 bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-lg font-medium shadow-sm transition-colors"
+                                                    {showEmailSuccess ? (
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: 20 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            className="flex flex-col gap-4 pt-4"
                                                         >
-                                                            <Download className="w-5 h-5" />
-                                                            Download Full PDF Report
-                                                        </motion.button>
-                                                        
-                                                        <motion.button
-                                                            whileHover={{ scale: 1.05 }}
-                                                            whileTap={{ scale: 0.95 }}
-                                                            onClick={handleEmailPDF}
-                                                            disabled={isEmailingPDF}
-                                                            className="flex items-center cursor-pointer justify-center gap-2 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-lg font-medium shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        >
-                                                            {isEmailingPDF ? (
-                                                                <>
-                                                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                                                    Sending...
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Mail className="w-5 h-5" />
-                                                                    Email Me These Results
-                                                                </>
-                                                            )}
-                                                        </motion.button>
-                                                    </div>
+                                                            <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6 text-center">
+                                                                <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto mb-3" />
+                                                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                                                    Check your inbox!
+                                                                </h3>
+                                                                <p className="text-gray-600 mb-4">
+                                                                    Your results have been sent to {emailSuccessData?.email}
+                                                                </p>
+                                                                
+                                                                {emailSuccessData?.testingMode && (
+                                                                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-left">
+                                                                        <p className="text-sm text-yellow-800 font-medium mb-1">📝 Developer Note:</p>
+                                                                        <p className="text-xs text-yellow-700">
+                                                                            {emailSuccessData?.reminder || 'Resend is in testing mode. To enable email sending, verify a domain at resend.com/domains and update the from address.'}
+                                                                        </p>
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                {emailSuccessData?.emailExists ? (
+                                                                    <>
+                                                                        <p className="text-sm text-gray-700 mb-4">
+                                                                            We found an account with this email! Sign in to save these results to your profile.
+                                                                        </p>
+                                                                        <Link
+                                                                            href={`/login?email=${encodeURIComponent(emailSuccessData.email)}&next=/calculator`}
+                                                                            className="inline-block"
+                                                                        >
+                                                                            <motion.button
+                                                                                whileHover={{ scale: 1.05 }}
+                                                                                whileTap={{ scale: 0.95 }}
+                                                                                className="flex items-center justify-center gap-2 bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-lg font-medium shadow-sm transition-colors mx-auto"
+                                                                            >
+                                                                                Sign In to Your Account
+                                                                            </motion.button>
+                                                                        </Link>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <p className="text-sm text-gray-700 mb-4">
+                                                                            Want to keep these results forever? Create a free account to track your progress and access more insights.
+                                                                        </p>
+                                                                        <Link
+                                                                            href={`/signup?email=${encodeURIComponent(emailSuccessData.email)}`}
+                                                                            className="inline-block"
+                                                                        >
+                                                                            <motion.button
+                                                                                whileHover={{ scale: 1.05 }}
+                                                                                whileTap={{ scale: 0.95 }}
+                                                                                className="flex items-center cursor-pointer justify-center gap-2 bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-lg font-medium shadow-sm transition-colors mx-auto"
+                                                                            >
+                                                                                Create My Account
+                                                                            </motion.button>
+                                                                        </Link>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </motion.div>
+                                                    ) : (
+                                                        <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                                                            <motion.button
+                                                                whileHover={{ scale: 1.05 }}
+                                                                whileTap={{ scale: 0.95 }}
+                                                                className="flex items-center cursor-pointer justify-center gap-2 bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-lg font-medium shadow-sm transition-colors"
+                                                            >
+                                                                <Download className="w-5 h-5" />
+                                                                Download Full PDF Report
+                                                            </motion.button>
+                                                            
+                                                            <motion.button
+                                                                whileHover={{ scale: 1.05 }}
+                                                                whileTap={{ scale: 0.95 }}
+                                                                onClick={handleEmailPDF}
+                                                                disabled={isEmailingPDF}
+                                                                className="flex items-center cursor-pointer justify-center gap-2 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-lg font-medium shadow-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            >
+                                                                {isEmailingPDF ? (
+                                                                    <>
+                                                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                                                        Sending...
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Mail className="w-5 h-5" />
+                                                                        Email Me These Results
+                                                                    </>
+                                                                )}
+                                                            </motion.button>
+                                                        </div>
+                                                    )}
                                                 </motion.div>
                                                 
                                                 <motion.div
                                                     initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
+                                        animate={{ opacity: 1, y: 0 }}
                                                     transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
                                                     className="flex justify-center"
                                                 >
@@ -1045,52 +1135,60 @@ function CalculatorPageContent() {
                                                         Review/Edit All Answers
                                                     </motion.button>
                                                 </motion.div>
-                                                
+                                    
                                                 {/* Navigation Buttons */}
-                                                <motion.div
-                                                    initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
+                                    <motion.div 
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
                                                     className="flex flex-col sm:flex-row gap-3 pt-4 justify-center"
-                                                >
-                                                    <motion.button
-                                                        whileHover={{ scale: 1.05 }}
-                                                        whileTap={{ scale: 0.95 }}
-                                                        onClick={() => {
+                                    >
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => {
                                                             const targetUrl = user ? '/dashboard' : '/';
                                                             if (typeof window !== 'undefined' && window.__navigationWarning) {
                                                                 window.__navigationWarning.checkNavigation(targetUrl);
                                                             }
-                                                        }}
+                                                }}
                                                         className="flex items-center cursor-pointer justify-center gap-2 bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-lg font-medium shadow-sm transition-colors"
-                                                    >
+                                            >
                                                         <Home className="w-5 h-5" />
                                                         Exit to My Dashboard
                                                         <ArrowRight className="w-5 h-5" />
-                                                    </motion.button>
-                                                    
-                                                    <motion.button
-                                                        whileHover={{ scale: 1.05 }}
-                                                        whileTap={{ scale: 0.95 }}
-                                                        onClick={() => {
-                                                            formData.resetForm();
-                                                        }}
+                                            </motion.button>
+                                            
+                                            <motion.button
+                                                whileHover={{ scale: 1.05 }}
+                                                whileTap={{ scale: 0.95 }}
+                                                onClick={() => {
+                                                    formData.resetForm();
+                                                }}
                                                         className="flex items-center cursor-pointer justify-center gap-2 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-lg font-medium shadow-sm transition-colors"
-                                                    >
+                                            >
                                                         <Plus className="w-5 h-5" />
                                                         Start New Survey
-                                                    </motion.button>
+                                            </motion.button>
                                                 </motion.div>
                                             </div>
                                         </div>
-                                    </motion.div>
-                                </AnimatePresence>
+                                </motion.div>
+                            </AnimatePresence>
                             );
                         })() : null}
                     </div>
                 </div>
             </main>
             )}
+
+            {/* Email Modal */}
+            <EmailModal
+                isOpen={showEmailModal}
+                onClose={() => setShowEmailModal(false)}
+                onEmailSubmit={handleEmailModalSubmit}
+                propertyId={propertyId}
+            />
         </div>
     )
 }
