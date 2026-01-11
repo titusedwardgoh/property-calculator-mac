@@ -204,7 +204,7 @@ export default function EmailModal({ isOpen, onClose, onEmailSubmit, propertyId 
                 <div>
                   <p className="font-medium mb-1">New Email</p>
                   <p className="text-green-600">
-                    We'll send your results to this email. You can create an account later to save and track your surveys.
+                    We&apos;ll send your results to this email. You can create an account later to save and track your surveys.
                   </p>
                 </div>
               </motion.div>
