@@ -22,9 +22,18 @@ export async function POST(request) {
 
     const supabase = await createClient()
 
+    // Get the origin from the request to construct the redirect URL
+    const requestUrl = new URL(request.url)
+    const origin = requestUrl.origin
+    // Redirect to login page after email confirmation
+    const redirectTo = `${origin}/api/auth/callback?next=/login`
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        emailRedirectTo: redirectTo,
+      },
     })
 
     if (error) {

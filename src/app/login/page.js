@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LogIn, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { LogIn, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 function LoginPageContent() {
@@ -13,6 +13,7 @@ function LoginPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [emailVerified, setEmailVerified] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -20,13 +21,19 @@ function LoginPageContent() {
   // Get the 'next' parameter from URL to know where to redirect after login
   const nextUrl = searchParams.get('next') || '/dashboard';
   
-  // Pre-fill email from URL parameter
+  // Pre-fill email from URL parameter and check for email verification
   useEffect(() => {
     const emailParam = searchParams.get('email');
     if (emailParam) {
       setEmail(emailParam);
     }
-  }, [searchParams]);
+    const emailVerifiedParam = searchParams.get('emailVerified');
+    if (emailVerifiedParam === 'true') {
+      setEmailVerified(true);
+      // Clean up URL parameter
+      router.replace('/login', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   // Check for expired OTP error in URL hash (from Supabase redirect)
   useEffect(() => {
@@ -48,10 +55,15 @@ function LoginPageContent() {
   }, [router]);
 
   // Check if user is already logged in and redirect to dashboard
-  // Skip auto-redirect if coming from password reset flow (check sessionStorage)
+  // Skip auto-redirect if coming from password reset flow or email verification
   useEffect(() => {
     const checkAuth = async () => {
       try {
+        // Skip auto-redirect if coming from email verification
+        if (emailVerified) {
+          return;
+        }
+        
         // Check if user came from password reset page
         const fromPasswordReset = sessionStorage.getItem('fromPasswordReset');
         if (fromPasswordReset === 'true') {
@@ -72,7 +84,7 @@ function LoginPageContent() {
     };
 
     checkAuth();
-  }, [router, nextUrl, supabase]);
+  }, [router, nextUrl, supabase, emailVerified]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -203,6 +215,21 @@ function LoginPageContent() {
             </Link>
           </motion.p>
         </div>
+
+        {/* Email Verified Success Message */}
+        {emailVerified && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-6 flex items-start gap-3"
+          >
+            <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-green-800 mb-1">Email verified successfully!</p>
+              <p className="text-sm text-green-700">Please log in with your email and password to continue.</p>
+            </div>
+          </motion.div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleLogin} className="space-y-6">

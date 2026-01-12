@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { UserPlus, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { UserPlus, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 function SignupPageContent() {
@@ -15,6 +15,7 @@ function SignupPageContent() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const supabase = createClient();
@@ -118,8 +119,9 @@ function SignupPageContent() {
         sessionStorage.setItem('linkedSurveysMessage', `Great! We've linked ${data.linkedSurveys} survey${data.linkedSurveys > 1 ? 's' : ''} from your email to your account.`);
       }
       
-      // Redirect to dashboard or specified next URL on success
-      router.push(nextUrl);
+      // Show success message instead of redirecting
+      setLoading(false);
+      setShowSuccessMessage(true);
     } catch (err) {
       setError('An error occurred. Please try again.');
       setLoading(false);
@@ -153,38 +155,84 @@ function SignupPageContent() {
         transition={{ duration: 0.5 }}
         className="bg-base-100 rounded-lg w-full max-w-md md:max-w-xl p-8"
       >
-        {/* Header */}
-        <div className="text-center mb-8">
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
-            className="flex items-center justify-center mb-6"
-          >
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary">
-              <UserPlus className="w-8 h-8" />
+        {showSuccessMessage ? (
+          /* Success Message */
+          <div className="text-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="flex items-center justify-center mb-6"
+            >
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-100 text-green-600">
+                <CheckCircle2 className="w-8 h-8" />
+              </div>
+            </motion.div>
+            <motion.h1
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+              className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6"
+            >
+              Account created successfully!
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+              className="text-lg md:text-xl text-gray-600 mb-8"
+            >
+              Please check your email to activate your account. We&apos;ve sent a verification link to <strong>{email}</strong>.
+            </motion.p>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+            >
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => router.push(`/login?email=${encodeURIComponent(email)}`)}
+                className="w-full bg-primary cursor-pointer hover:bg-primary-focus text-secondary font-medium py-3 px-6 rounded-full transition-all duration-200 hover:shadow-lg flex items-center justify-center gap-2"
+              >
+                Go to Login
+              </motion.button>
+            </motion.div>
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="text-center mb-8">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="flex items-center justify-center mb-6"
+              >
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary">
+                  <UserPlus className="w-8 h-8" />
+                </div>
+              </motion.div>
+              <motion.h1
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+                className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6"
+              >
+                Create your account
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+                className="text-lg md:text-xl text-gray-600"
+              >
+                Already have an account?{' '}
+                <Link href="/login" className="text-primary hover:text-primary-focus font-medium underline">
+                  Log in
+                </Link>
+              </motion.p>
             </div>
-          </motion.div>
-          <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-            className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6"
-          >
-            Create your account
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-            className="text-lg md:text-xl text-gray-600"
-          >
-            Already have an account?{' '}
-            <Link href="/login" className="text-primary hover:text-primary-focus font-medium underline">
-              Log in
-            </Link>
-          </motion.p>
-        </div>
 
         {/* Form */}
         <form onSubmit={handleSignup} className="space-y-6">
@@ -352,6 +400,8 @@ function SignupPageContent() {
             </svg>
           </motion.button>
         </div>
+          </>
+        )}
       </motion.div>
     </div>
   );

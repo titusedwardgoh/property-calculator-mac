@@ -5,10 +5,13 @@ export async function GET(request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const type = requestUrl.searchParams.get('type')
-  const next = requestUrl.searchParams.get('next') || '/dashboard'
+  // Default to login page for email confirmations, dashboard for other flows
+  const next = requestUrl.searchParams.get('next') || '/login'
   
   // Check if this is a password reset flow (check before code exchange)
   const isRecovery = type === 'recovery' || next === '/reset-password'
+  // Check if this is an email confirmation (not recovery and going to login)
+  const isEmailConfirmation = !isRecovery && next === '/login'
 
   if (code) {
     const supabase = await createClient()
@@ -20,6 +23,14 @@ export async function GET(request) {
       
       if (isRecovery) {
         const response = NextResponse.redirect(new URL('/reset-password?code=' + code, request.url))
+        response.headers.set('Cache-Control', 'no-store, must-revalidate')
+        return response
+      }
+      
+      // If this is an email confirmation, sign out the user after verifying email
+      if (isEmailConfirmation) {
+        await supabase.auth.signOut()
+        const response = NextResponse.redirect(new URL('/login?emailVerified=true', request.url))
         response.headers.set('Cache-Control', 'no-store, must-revalidate')
         return response
       }

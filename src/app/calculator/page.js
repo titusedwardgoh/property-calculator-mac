@@ -1154,9 +1154,19 @@ function CalculatorPageContent() {
                                                 }}
                                                         className="flex items-center cursor-pointer justify-center gap-2 bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-lg font-medium shadow-sm transition-colors"
                                             >
-                                                        <Home className="w-5 h-5" />
-                                                        Exit to My Dashboard
-                                                        <ArrowRight className="w-5 h-5" />
+                                                        {user ? (
+                                                            <>
+                                                                <Home className="w-5 h-5" />
+                                                                Exit to My Dashboard
+                                                                <ArrowRight className="w-5 h-5" />
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Mail className="w-5 h-5" />
+                                                                Log in to Save
+                                                                <ArrowRight className="w-5 h-5" />
+                                                            </>
+                                                        )}
                                             </motion.button>
                                             
                                             <motion.button
