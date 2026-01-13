@@ -33,26 +33,62 @@ function LoginPageContent() {
       // Clean up URL parameter
       router.replace('/login', { scroll: false });
     }
+    // Check for error parameter (e.g., expired email confirmation link)
+    const errorParam = searchParams.get('error');
+    if (errorParam === 'alreadyConfirmed') {
+      setError('Email already confirmed. Please log in with your email and password.');
+      // Clean up URL parameter
+      router.replace('/login', { scroll: false });
+    } else if (errorParam === 'expired') {
+      setError('Email confirmation link has expired. Please request a new confirmation email by signing up again.');
+      // Clean up URL parameter
+      router.replace('/login', { scroll: false });
+    } else if (errorParam) {
+      setError(errorParam);
+      // Clean up URL parameter
+      router.replace('/login', { scroll: false });
+    }
   }, [searchParams, router]);
 
   // Check for expired OTP error in URL hash (from Supabase redirect)
+  // Be conservative: only redirect to forgot-password if we're certain it's a password reset
+  // Otherwise, show error on login page (likely email confirmation)
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    
+    // If we already have an error query parameter, don't check the hash
+    // This prevents double-processing errors from the callback route
+    const errorParam = searchParams.get('error');
+    if (errorParam) {
+      return;
+    }
     
     const hash = window.location.hash;
     if (hash) {
       const urlParams = new URLSearchParams(hash.substring(1));
       const errorCode = urlParams.get('error_code');
       const errorDescription = urlParams.get('error_description');
+      const type = urlParams.get('type');
       
       // Check if this is an expired OTP error
       if (errorCode === 'otp_expired' || errorDescription?.includes('expired')) {
-        // Redirect to forgot password page
-        router.replace('/forgot-password?error=expired');
-        return;
+        // Only redirect to forgot-password if type is explicitly 'recovery'
+        // Otherwise, assume it's an email confirmation and show error on login page
+        if (type === 'recovery') {
+          // This is definitely a password reset flow
+          router.replace('/forgot-password?error=expired');
+          return;
+        } else {
+          // Likely an email confirmation - show error on login page
+          // Note: We can't check email status from hash errors, so show generic message
+          setError('This link has expired. Please request a new confirmation email by signing up again, or try logging in if your email is already confirmed.');
+          // Clean up the hash
+          window.history.replaceState({}, document.title, window.location.pathname + window.location.search);
+          return;
+        }
       }
     }
-  }, [router]);
+  }, [router, searchParams]);
 
   // Check if user is already logged in and redirect to dashboard
   // Skip auto-redirect if coming from password reset flow or email verification

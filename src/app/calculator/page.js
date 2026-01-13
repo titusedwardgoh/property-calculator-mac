@@ -954,7 +954,7 @@ function CalculatorPageContent() {
                                                 {/* Combined Settlement Summary and Ongoing Ownership Card */}
                                                 <motion.div
                                                     initial={{ opacity: 0, y: 20 }}
-                                                    animate={{ opacity: 1, y: 0 }}
+                                        animate={{ opacity: 1, y: 0 }}
                                                     transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
                                                     className="bg-white rounded-xl p-6 shadow-md space-y-6"
                                                 >

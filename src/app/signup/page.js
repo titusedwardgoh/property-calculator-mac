@@ -201,38 +201,38 @@ function SignupPageContent() {
           </div>
         ) : (
           <>
-            {/* Header */}
-            <div className="text-center mb-8">
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                className="flex items-center justify-center mb-6"
-              >
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary">
-                  <UserPlus className="w-8 h-8" />
-                </div>
-              </motion.div>
-              <motion.h1
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6"
-              >
-                Create your account
-              </motion.h1>
-              <motion.p
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-                className="text-lg md:text-xl text-gray-600"
-              >
-                Already have an account?{' '}
-                <Link href="/login" className="text-primary hover:text-primary-focus font-medium underline">
-                  Log in
-                </Link>
-              </motion.p>
+        {/* Header */}
+        <div className="text-center mb-8">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="flex items-center justify-center mb-6"
+          >
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary">
+              <UserPlus className="w-8 h-8" />
             </div>
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+            className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6"
+          >
+            Create your account
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+            className="text-lg md:text-xl text-gray-600"
+          >
+            Already have an account?{' '}
+            <Link href="/login" className="text-primary hover:text-primary-focus font-medium underline">
+              Log in
+            </Link>
+          </motion.p>
+        </div>
 
         {/* Form */}
         <form onSubmit={handleSignup} className="space-y-6">
