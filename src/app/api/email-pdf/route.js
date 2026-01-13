@@ -156,7 +156,7 @@ export async function POST(request) {
     // Determine email content based on whether email exists
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
     const signupLink = `${siteUrl}/signup?email=${encodeURIComponent(userEmail)}`;
-    const loginLink = `${siteUrl}/login?email=${encodeURIComponent(userEmail)}&next=/calculator`;
+    const loginLink = `${siteUrl}/login?email=${encodeURIComponent(userEmail)}&next=/dashboard`;
 
     let emailHtml = '';
     if (isGuest && emailExists) {
