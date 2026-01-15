@@ -66,12 +66,19 @@ function SignupPageContent() {
     setLoading(true);
 
     try {
+      // Read propertyId from sessionStorage if available (from "Log in to save" flow)
+      const linkPropertyId = typeof window !== 'undefined' ? sessionStorage.getItem('linkPropertyIdAfterAuth') : null;
+      
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ 
+          email, 
+          password,
+          propertyId: linkPropertyId || null
+        }),
       });
 
       const data = await response.json();
@@ -85,32 +92,11 @@ function SignupPageContent() {
       // Wait a moment for cookies to be fully set
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Check if there's a property to link after auth
-      const linkPropertyId = sessionStorage.getItem('linkPropertyIdAfterAuth');
+      // Note: Property linking is now handled by the signup API route via survey_leads
+      // The propertyId was passed to the API and saved to survey_leads
+      // It will be linked when the user logs in after email confirmation
       if (linkPropertyId) {
-        // Link the property to the user's account
-        try {
-          const linkResponse = await fetch('/api/supabase', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              action: 'linkPropertyToUser',
-              propertyId: linkPropertyId
-            })
-          });
-          
-          const linkResult = await linkResponse.json();
-          if (linkResponse.ok) {
-            console.log('✅ Property linked to account:', linkResult.message);
-            sessionStorage.removeItem('linkPropertyIdAfterAuth');
-          } else {
-            console.error('Error linking property:', linkResult.error);
-          }
-        } catch (error) {
-          console.error('Error linking property to account:', error);
-        }
+        sessionStorage.removeItem('linkPropertyIdAfterAuth');
       }
       
       // Show message about linked surveys if any were merged

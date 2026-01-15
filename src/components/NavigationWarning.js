@@ -225,6 +225,7 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
           onDismiss={handleEndOfSurveyDismiss}
           onLinkToAccount={onLinkToAccount}
           onReturningToDashboard={onReturningToDashboard}
+          propertyId={propertyId}
         />
       )}
       

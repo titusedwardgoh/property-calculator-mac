@@ -1,10 +1,20 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { mergeGuestSurveys } from '@/lib/mergeGuestSurveys'
 
+// Service role client for admin operations
+const supabaseUrl = process.env.SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const serviceClient = supabaseUrl && supabaseServiceKey
+  ? createServiceClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    })
+  : null
+
 export async function POST(request) {
   try {
-    const { email, password } = await request.json()
+    const { email, password, propertyId } = await request.json()
 
     if (!email || !password) {
       return NextResponse.json(
@@ -42,6 +52,39 @@ export async function POST(request) {
         { error: error.message },
         { status: 400 }
       )
+    }
+
+    // If propertyId was provided (from "Log in to save" flow), save to survey_leads
+    // This ensures the survey will be linked when the user logs in after email confirmation
+    if (propertyId && email && serviceClient) {
+      try {
+        const { error: insertError } = await serviceClient
+          .from('survey_leads')
+          .insert({
+            email: email.toLowerCase(),
+            property_id: propertyId,
+            converted: false,
+          });
+
+        if (insertError) {
+          // Check if error is about table not existing or duplicate entry
+          const isTableMissing = insertError.code === '42P01' || insertError.message?.includes('does not exist') || insertError.message?.includes('relation');
+          const isDuplicate = insertError.code === '23505' || insertError.message?.includes('duplicate');
+          
+          if (isTableMissing) {
+            console.warn('survey_leads table does not exist yet. Please run the SQL script to create it.');
+          } else if (isDuplicate) {
+            console.log('Survey lead already exists for this email and property');
+          } else {
+            console.error('Error saving to survey_leads:', insertError.message || insertError);
+          }
+        } else {
+          console.log('Saved property to survey_leads for future linking');
+        }
+      } catch (leadErr) {
+        console.error('Exception saving to survey_leads:', leadErr.message || leadErr);
+        // Don't fail signup if this fails
+      }
     }
 
     // Merge any guest surveys from survey_leads
