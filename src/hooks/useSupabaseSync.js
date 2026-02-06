@@ -3,6 +3,74 @@ import { getSessionId, getDeviceId, getSupabaseUserId } from '../lib/sessionMana
 import { useStateSelector } from '../states/useStateSelector'
 import { calculateGlobalProgress } from '../lib/progressCalculation'
 
+// Normalization helper function (outside hook for consistency)
+// IMPORTANT: this is used for change detection / auto-save decisions.
+// We intentionally ignore UI/navigation flags and calculated values that can change without user edits.
+const uiOnlyKeys = [
+  'showReviewPage',
+  'showWelcomePage',
+  'openDropdown',
+  'isResumingSurvey',
+  'isEditMode',
+  'isTransitioning',
+  'propertyId'
+]
+
+const calculatedKeys = [
+  'LVR',
+  'LMI_COST',
+  'LMI_STAMP_DUTY',
+  'MONTHLY_LOAN_REPAYMENT',
+  'ANNUAL_LOAN_REPAYMENT',
+  'COUNCIL_RATES_MONTHLY',
+  'WATER_RATES_MONTHLY',
+  'BODY_CORP_MONTHLY'
+]
+
+const getNormalizedData = (data) => {
+  if (!data) return null;
+  const cleanData = {};
+
+  const shouldExcludeKey = (key) => {
+    if (uiOnlyKeys.includes(key)) return true
+    if (calculatedKeys.includes(key)) return true
+    // UI flags/toggles
+    if (key.startsWith('show')) return true
+    // Step tracking / navigation state
+    if (key.endsWith('CurrentStep')) return true
+    if (key.endsWith('ActiveStep')) return true
+    // Completion flags are derived from answers and can flip due to resume logic
+    if (key.endsWith('Complete')) return true
+    if (key.endsWith('FormComplete')) return true
+    if (key.endsWith('EverCompleted')) return true
+    // Large static tables (never user-edited; including them slows comparisons and adds noise)
+    if (key === 'LMI_RATES') return true
+    if (key === 'LMI_STAMP_DUTY_RATES') return true
+    if (key.startsWith('FIRB_FEES_')) return true
+    return false
+  }
+
+  const normalizeValue = (v) => {
+    if (v === undefined || v === null || v === '') return null
+    if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+      const o = {}
+      Object.keys(v).sort().forEach((k) => { o[k] = normalizeValue(v[k]); })
+      return o
+    }
+    return v
+  }
+
+  Object.keys(data).forEach((key) => {
+    if (shouldExcludeKey(key)) return
+    cleanData[key] = normalizeValue(data[key])
+  })
+
+  // Sort keys so same data always produces same string (avoids false diff from key order)
+  const sorted = {}
+  Object.keys(cleanData).sort().forEach((k) => { sorted[k] = cleanData[k]; })
+  return JSON.stringify(sorted)
+}
+
 /**
  * Hook to sync form data with Supabase
  * @param {Object} formData - The current form state from Zustand
@@ -13,12 +81,16 @@ import { calculateGlobalProgress } from '../lib/progressCalculation'
 export function useSupabaseSync(formData, updateFormData, propertyId, setPropertyId, options = {}) {
   const { 
     autoSave = false, // Auto-save disabled by default (only for logged-in users who want it)
-    enableAutoSave = false // Flag to enable auto-save (set to true for logged-in users)
+    enableAutoSave = false, // Flag to enable auto-save (set to true for logged-in users)
+    isLoadingResume = false // When true, skip auto-save until baseline is set after load
   } = options
   
   const saveTimeoutRef = useRef(null)
   const isInitialMountRef = useRef(true)
   const isSavingRef = useRef(false) // Track if a save is currently in progress
+  const originalLoadedStateRef = useRef(null) // Track original loaded state for change detection
+  const skipNextAutoSaveRef = useRef(false) // Skip one run after baseline set to avoid race
+  const lastBaselineSetAtRef = useRef(0) // Cooldown: no auto-save for a period after baseline set
   // Use a ref to track the latest propertyId to avoid stale closure issues
   const propertyIdRef = useRef(propertyId)
   
@@ -51,6 +123,28 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
     if (data.propertyDetailsComplete) return 'property_details'
     return 'property_details'
   }, [])
+
+  // Set baseline state for change detection
+  // No arg: use current flattened formData (after load stabilization). null: clear baseline (e.g. after Don't Save).
+  const setOriginalLoadedState = useCallback((data) => {
+    originalLoadedStateRef.current = data === null
+      ? null
+      : getNormalizedData(data !== undefined ? data : formData)
+    if (data !== null) {
+      skipNextAutoSaveRef.current = true
+      lastBaselineSetAtRef.current = Date.now()
+    }
+  }, [formData])
+
+  // Check if there are unsaved changes
+  const checkHasUnsavedChanges = useCallback(() => {
+    if (!originalLoadedStateRef.current) {
+      // If no baseline set, check if there's any form data
+      return !!(formData.propertyPrice || formData.propertyAddress || formData.selectedState);
+    }
+    // Compare normalized current state against baseline
+    return originalLoadedStateRef.current !== getNormalizedData(formData);
+  }, [formData])
 
   // Organize form data into sections
   const organizeFormDataIntoSections = useCallback((data) => {
@@ -374,6 +468,11 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
         propertyIdRef.current = result.propertyId
       }
 
+      // Only update baseline when the server actually persisted (so unsaved edits still prompt on exit)
+      if (result.persisted !== false) {
+        setOriginalLoadedState(data)
+      }
+
       console.log(userSaved ? '✅ Manual save completed:' : '✅ Auto-save completed:', result.message)
     } catch (error) {
       console.error('❌ Error saving to Supabase:', error)
@@ -476,12 +575,23 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
       isInitialMountRef.current = false
       return
     }
-    
-    // Only auto-save if explicitly enabled (for logged-in users who want it)
-    if (autoSave && enableAutoSave) {
-      debouncedSave(formData)
+    // Skip auto-save during resume load until baseline is set
+    if (isLoadingResume) return
+    // Skip one run after baseline is set (avoids duplicate save when isLoadingResume flips to false)
+    if (skipNextAutoSaveRef.current) {
+      skipNextAutoSaveRef.current = false
+      return
     }
-  }, [formData, debouncedSave, autoSave, enableAutoSave])
+    // Cooldown: skip auto-save for 1.5s after baseline set so late-arriving state updates don't trigger save
+    if (Date.now() - lastBaselineSetAtRef.current < 1500) return
+
+    // Only auto-save if explicitly enabled AND there are actual changes
+    if (autoSave && enableAutoSave) {
+      if (checkHasUnsavedChanges()) {
+        debouncedSave(formData)
+      }
+    }
+  }, [formData, debouncedSave, autoSave, enableAutoSave, checkHasUnsavedChanges, isLoadingResume])
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -500,17 +610,7 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
   return {
     saveToSupabase: saveExplicitly, // Expose explicit save function
     loadFromSupabase,
-    hasUnsavedChanges: () => {
-      // Check if there's any form data filled in
-      return !!(
-        formData.propertyPrice ||
-        formData.propertyAddress ||
-        formData.selectedState ||
-        formData.buyerType ||
-        formData.needsLoan ||
-        formData.loanDeposit ||
-        formData.councilRates
-      )
-    }
+    setOriginalLoadedState, // Expose function to set baseline state
+    hasUnsavedChanges: checkHasUnsavedChanges
   }
 }

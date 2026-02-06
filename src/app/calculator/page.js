@@ -12,6 +12,7 @@ import BuyerDetails from '../../components/BuyerDetails';
 import LoanDetails from '../../components/LoanDetails';
 import SellerQuestions from '../../components/SellerQuestions';
 import WelcomePage from '../../components/WelcomePage';
+import ReviewSummary from '../../components/ReviewSummary';
 import SurveyHeaderOverlay from '../../components/SurveyHeaderOverlay';
 import NavigationWarning from '../../components/NavigationWarning';
 import EndOfSurveyPrompt from '../../components/EndOfSurveyPrompt';
@@ -45,14 +46,15 @@ function CalculatorPageContent() {
     // Initialize Supabase sync
     // Auto-save to database is ALWAYS enabled (for both logged-in and anonymous users)
     // The "save" prompts are about linking records to user's dashboard (user_id)
-    const { saveToSupabase, hasUnsavedChanges, loadFromSupabase } = useSupabaseSync(
+    const { saveToSupabase, hasUnsavedChanges, loadFromSupabase, setOriginalLoadedState } = useSupabaseSync(
         formData, 
         updateFormData, 
         propertyId, 
         setPropertyId,
         { 
             autoSave: true, // Enable auto-save functionality
-            enableAutoSave: true // Always auto-save to database (logged in or not)
+            enableAutoSave: true, // Always auto-save to database (logged in or not)
+            isLoadingResume
         }
     );
     
@@ -218,6 +220,15 @@ function CalculatorPageContent() {
                     
                     console.log('✅ Form data updated from resume');
                     
+                    // Set baseline state for change detection after form has stabilized.
+                    // Read current state at timeout time to avoid stale closure (setOriginalLoadedState()
+                    // from effect closure would see pre-merge formData).
+                    setTimeout(() => {
+                      const currentState = useFormStore.getState();
+                      setOriginalLoadedState(currentState);
+                      setIsLoadingResume(false);
+                    }, 800);
+                    
                     // Clear resume flag from sessionStorage
                     sessionStorage.removeItem('resumePropertyId');
                 } else {
@@ -225,6 +236,7 @@ function CalculatorPageContent() {
                     // If resume fails, show welcome page
                     updateFormData('showWelcomePage', true);
                     hasResumedRef.current = false; // Allow retry
+                    setIsLoadingResume(false);
                 }
             })
             .catch(error => {
@@ -232,8 +244,6 @@ function CalculatorPageContent() {
                 // If error, show welcome page
                 updateFormData('showWelcomePage', true);
                 hasResumedRef.current = false; // Allow retry
-            })
-            .finally(() => {
                 setIsLoadingResume(false);
             });
         } else if (!shouldResume) {
@@ -328,6 +338,7 @@ function CalculatorPageContent() {
     const showSellerQuestions = formData.showSellerQuestions;
     const sellerQuestionsComplete = formData.sellerQuestionsComplete;
     const allFormsComplete = formData.allFormsComplete;
+    const showReviewPage = formData.showReviewPage;
     const selectedState = formData.selectedState;
     const isACT = formData.isACT;
     const propertyType = formData.propertyType;
@@ -351,7 +362,8 @@ function CalculatorPageContent() {
     };
 
     const handleDiscard = () => {
-        // Clear form data when discarding
+        // Clear baseline so auto-save does not run after reset; then clear form
+        setOriginalLoadedState(null);
         formData.resetForm();
     };
 
@@ -787,7 +799,9 @@ function CalculatorPageContent() {
                     
                     {/* Main content area */}
                     <div className="order-2 md:order-1 md:w-3/5">
-                        {!propertyDetailsComplete ? (
+                        {showReviewPage ? (
+                            <ReviewSummary />
+                        ) : !propertyDetailsComplete ? (
                             <PropertyDetails />
                         ) : !buyerDetailsComplete ? (
                             <BuyerDetails />
@@ -1129,6 +1143,10 @@ function CalculatorPageContent() {
                                                     <motion.button
                                                         whileHover={{ scale: 1.05 }}
                                                         whileTap={{ scale: 0.95 }}
+                                                        onClick={() => {
+                                                            formData.setShowReviewPage(true);
+                                                            window.scrollTo(0, 0);
+                                                        }}
                                                         className="flex items-center cursor-pointer justify-center gap-2 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-lg font-medium shadow-sm transition-colors"
                                                     >
                                                         <Edit className="w-5 h-5" />

@@ -76,6 +76,7 @@ export const useFormStore = create((set, get) => ({
   // Final completion
   allFormsComplete: false,
   showSummary: false,
+  showReviewPage: false,
   
   // Dropdown state management
   openDropdown: null, // 'upfront' or 'ongoing' or 'summary' or null
@@ -264,6 +265,9 @@ export const useFormStore = create((set, get) => ({
   // Set resume flag
   setIsResumingSurvey: (isResuming) => set({ isResumingSurvey: isResuming }),
   
+  // Set review page visibility
+  setShowReviewPage: (val) => set({ showReviewPage: val }),
+  
   // Check if form has unsaved changes
   hasUnsavedChanges: () => {
     const state = get()
@@ -343,6 +347,7 @@ export const useFormStore = create((set, get) => ({
     sellerQuestionsActiveStep: 1,
     allFormsComplete: false,
     showSummary: false,
+    showReviewPage: false,
     showWelcomePage: true,
     openDropdown: null,
     showUpfrontDropdown: false,

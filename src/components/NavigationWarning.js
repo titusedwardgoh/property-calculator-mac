@@ -19,8 +19,8 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
   // Only show warning if user is logged in AND property address is set
   const shouldShowWarning = hasUnsavedChanges && user && propertyAddress && propertyAddress.trim() !== '';
   
-  // Show anonymous warning if user is NOT logged in, has unsaved changes, and survey is NOT complete
-  const shouldShowAnonymousWarning = hasUnsavedChanges && !user && !allFormsComplete;
+  // Show anonymous warning if user is NOT logged in and has unsaved changes (including when survey is complete)
+  const shouldShowAnonymousWarning = hasUnsavedChanges && !user;
   
   // Show end-of-survey prompt if survey is complete (for both logged in and anonymous users)
   const shouldShowEndOfSurveyPrompt = allFormsComplete;
@@ -44,20 +44,27 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
 
   // Function to check navigation (called from parent component)
   const checkNavigation = (url) => {
-    // If survey is complete, show end-of-survey prompt instead of regular warning
-    if (shouldShowEndOfSurveyPrompt && url !== pathname) {
+    // Silent exit if no unsaved changes
+    if (!hasUnsavedChanges) {
+      return true; // Allow navigation immediately
+    }
+    
+    // Check anonymous warning first (for both mid-survey and end-of-survey when not logged in)
+    if (shouldShowAnonymousWarning && url !== pathname) {
       setPendingNavigation(url);
-      setShowEndOfSurveyPrompt(true);
+      setShowAnonymousWarning(true);
       return false; // Prevent navigation
     }
+    // Check logged-in user warning
     if (shouldShowWarning && url !== pathname) {
       setPendingNavigation(url);
       setShowWarning(true);
       return false; // Prevent navigation
     }
-    if (shouldShowAnonymousWarning && url !== pathname) {
+    // Show end-of-survey prompt for logged-in users when survey is complete
+    if (shouldShowEndOfSurveyPrompt && user && url !== pathname) {
       setPendingNavigation(url);
-      setShowAnonymousWarning(true);
+      setShowEndOfSurveyPrompt(true);
       return false; // Prevent navigation
     }
     return true; // Allow navigation
@@ -148,6 +155,10 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
 
   const handleAnonymousDiscard = () => {
     setShowAnonymousWarning(false);
+    // Clear loading state in SurveyHeaderOverlay before navigating
+    if (typeof window !== 'undefined' && window.__surveyHeaderOverlay) {
+      window.__surveyHeaderOverlay.clearLoadingState();
+    }
     if (onDiscard) {
       onDiscard();
     }

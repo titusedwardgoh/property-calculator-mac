@@ -1,6 +1,15 @@
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { createClient as createServerClient } from '@/lib/supabase/server'
-import { v4 as uuidv4 } from 'uuid'
+
+function stableStringify(value) {
+  if (value === null || value === undefined) return 'null'
+  if (Array.isArray(value)) return `[${value.map(stableStringify).join(',')}]`
+  if (typeof value === 'object') {
+    const keys = Object.keys(value).sort()
+    return `{${keys.map((k) => `${JSON.stringify(k)}:${stableStringify(value[k])}`).join(',')}}`
+  }
+  return JSON.stringify(value)
+}
 
 // Server-side Supabase client with service role key (for database operations)
 const supabaseUrl = process.env.SUPABASE_URL
@@ -224,9 +233,13 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
         // This ensures we never accidentally update the master record
         const { data: currentRecord } = await supabase
           .from('properties')
-          .select('id, is_active')
+          .select('id, is_active, root_id, user_id')
           .eq('id', propertyId)
           .maybeSingle()
+
+        if (currentRecord && currentRecord.user_id !== verifiedUserId) {
+          return Response.json({ error: 'Unauthorized' }, { status: 401 })
+        }
 
         if (currentRecord && currentRecord.is_active === false) {
           // This is a session record - safe to update
@@ -248,13 +261,14 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
             })
           }
         } else if (currentRecord && currentRecord.is_active === true) {
-          // This is a master record - should not be auto-saved
-          // This shouldn't happen, but if it does, return success without updating
-          console.warn('Attempted to auto-save master record - skipping')
-          return Response.json({ 
-            success: true, 
+          // Master record: never create a session draft on auto-save. Only manual "Save" creates drafts.
+          // This guarantees no duplicate rows when user just views a completed survey (client can still
+          // send auto-save due to timing/normalization flakiness).
+          return Response.json({
+            success: true,
             propertyId: propertyId,
-            message: 'Auto-save skipped (master record)' 
+            persisted: false,
+            message: 'Auto-save skipped (viewing master; save explicitly to create version)'
           })
         }
       } else {
@@ -284,8 +298,9 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
       console.log('💾 Manual Save triggered:', { propertyId, verifiedUserId })
       
       if (propertyId) {
+        let effectivePropertyId = propertyId
         // Fetch the current record
-        const { data: currentRecord, error: fetchError } = await supabase
+        let { data: currentRecord, error: fetchError } = await supabase
           .from('properties')
           .select('id, root_id, parent_id, is_active')
           .eq('id', propertyId)
@@ -308,6 +323,35 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
           is_active: currentRecord.is_active
         })
 
+        // If user is saving while still on an active master record (no session draft yet),
+        // create the session draft now and continue the normal versioning flow.
+        if (currentRecord.is_active === true) {
+          const rootId = currentRecord.root_id || currentRecord.id
+          const sessionRecordData = {
+            ...recordData,
+            parent_id: currentRecord.id,
+            root_id: rootId,
+            is_active: false,
+            user_saved: false
+          }
+
+          const { data: sessionRecord, error: insertError } = await supabase
+            .from('properties')
+            .insert(sessionRecordData)
+            .select()
+            .maybeSingle()
+
+          if (insertError) throw insertError
+
+          effectivePropertyId = sessionRecord.id
+          currentRecord = {
+            id: sessionRecord.id,
+            root_id: sessionRecord.root_id,
+            parent_id: sessionRecord.parent_id,
+            is_active: sessionRecord.is_active
+          }
+        }
+
         // Scenario: First Time Saving (First Version)
         // If current record has no parent_id and is_active = false, this is the first save
         if (!currentRecord.parent_id && currentRecord.is_active === false) {
@@ -315,12 +359,12 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
           // This is a first-time save - activate the draft and set root_id in one step
           recordData.is_active = true
           recordData.parent_id = null
-          recordData.root_id = propertyId // Set root_id to its own id
+          recordData.root_id = effectivePropertyId // Set root_id to its own id
 
           const { data: updatedRecord, error: updateError } = await supabase
             .from('properties')
             .update(recordData)
-            .eq('id', propertyId)
+            .eq('id', effectivePropertyId)
             .select()
             .maybeSingle()
 
@@ -329,7 +373,7 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
             throw updateError
           }
 
-          console.log('✅ First save: Activated record', propertyId)
+          console.log('✅ First save: Activated record', effectivePropertyId)
 
           return Response.json({ 
             success: true, 
@@ -365,12 +409,12 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
         recordData.root_id = currentRecord.root_id || currentRecord.id
         recordData.parent_id = currentRecord.parent_id || null
 
-        console.log('📥 Activating session record:', propertyId, 'with root_id:', recordData.root_id)
+        console.log('📥 Activating session record:', effectivePropertyId, 'with root_id:', recordData.root_id)
 
         const { data: updatedRecord, error: updateError } = await supabase
           .from('properties')
           .update(recordData)
-          .eq('id', propertyId)
+          .eq('id', effectivePropertyId)
           .select()
           .maybeSingle()
 
@@ -379,7 +423,7 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
           throw updateError
         }
 
-        console.log('✅ Saved: Deactivated master', currentRecord.parent_id, 'Activated session', propertyId)
+        console.log('✅ Saved: Deactivated master', currentRecord.parent_id, 'Activated session', effectivePropertyId)
 
         return Response.json({ 
           success: true, 
@@ -631,77 +675,9 @@ async function loadPropertyById(propertyId, userId) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Survey Resume Handler: If user is signed in and master record is active, create session record
-    console.log('🔍 loadPropertyById versioning check:', {
-      verifiedUserId: !!verifiedUserId,
-      masterIsActive: masterRecord.is_active,
-      masterId: masterRecord.id,
-      willCreateSession: verifiedUserId && masterRecord.is_active === true
-    })
-    
-    if (verifiedUserId && masterRecord.is_active === true) {
-      // Identify root_id: use existing root_id or master record's id
-      const rootId = masterRecord.root_id || masterRecord.id
-
-      console.log('📝 Creating session record for resume:', {
-        masterId: masterRecord.id,
-        rootId: rootId,
-        userId: verifiedUserId
-      })
-
-      // Create session record (clone of master with is_active = false)
-      const newSessionId = uuidv4()
-      const sessionRecordData = {
-        device_id: masterRecord.device_id,
-        session_id: newSessionId,
-        user_id: masterRecord.user_id,
-        parent_id: masterRecord.id, // Parent is the master record
-        root_id: rootId, // Same root as master
-        is_active: false, // Session record is always inactive
-        user_saved: false, // Not yet saved
-        property_price: masterRecord.property_price,
-        property_address: masterRecord.property_address,
-        selected_state: masterRecord.selected_state,
-        property_details: masterRecord.property_details,
-        buyer_details: masterRecord.buyer_details,
-        loan_details: masterRecord.loan_details,
-        seller_questions: masterRecord.seller_questions,
-        calculated_values: masterRecord.calculated_values,
-        completion_status: masterRecord.completion_status,
-        completion_percentage: masterRecord.completion_percentage,
-        current_section: masterRecord.current_section
-      }
-
-      const { data: sessionRecord, error: insertError } = await supabase
-        .from('properties')
-        .insert(sessionRecordData)
-        .select()
-        .maybeSingle()
-
-      if (insertError) {
-        console.error('Error creating session record:', insertError)
-        // Fall back to returning master record if session creation fails
-        return Response.json({ 
-          success: true, 
-          data: masterRecord,
-          message: 'Property loaded successfully' 
-        })
-      }
-
-      console.log('✅ Created session record:', {
-        sessionId: sessionRecord.id,
-        masterId: masterRecord.id,
-        rootId: rootId,
-        is_active: sessionRecord.is_active
-      })
-
-      // Return the session record for editing
-      return Response.json({ 
-        success: true, 
-        data: sessionRecord,
-        message: 'Property loaded successfully (session record created)' 
-      })
-    }
+    // IMPORTANT: Do NOT create a session (shadow) record on load.
+    // Creating session records is deferred until the first save (auto-save or manual save),
+    // so simply viewing/resuming a completed survey without edits does not create duplicates.
 
     // Return the record (either not a resume operation, or master is already inactive)
     return Response.json({ 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
@@ -14,12 +14,25 @@ export default function SurveyHeaderOverlay() {
     const { user } = useAuth();
     const [isNavigatingAway, setIsNavigatingAway] = useState(false);
     const [navigationDestination, setNavigationDestination] = useState(null);
+    const navigationTimeoutRef = useRef(null);
+    const isNavigatingAwayRef = useRef(false);
+
+    // Update ref when isNavigatingAway changes
+    useEffect(() => {
+        isNavigatingAwayRef.current = isNavigatingAway;
+    }, [isNavigatingAway]);
 
     // Clear loading state when navigation completes (pathname changes away from calculator)
     useEffect(() => {
         if (pathname !== '/calculator' && isNavigatingAway) {
             setIsNavigatingAway(false);
             setNavigationDestination(null);
+            isNavigatingAwayRef.current = false;
+            // Clear safety timeout if navigation completed
+            if (navigationTimeoutRef.current) {
+                clearTimeout(navigationTimeoutRef.current);
+                navigationTimeoutRef.current = null;
+            }
         }
     }, [pathname, isNavigatingAway]);
 
@@ -30,12 +43,22 @@ export default function SurveyHeaderOverlay() {
                 clearLoadingState: () => {
                     setIsNavigatingAway(false);
                     setNavigationDestination(null);
+                    isNavigatingAwayRef.current = false;
+                    // Clear safety timeout when manually clearing loading state
+                    if (navigationTimeoutRef.current) {
+                        clearTimeout(navigationTimeoutRef.current);
+                        navigationTimeoutRef.current = null;
+                    }
                 }
             };
         }
         return () => {
             if (typeof window !== 'undefined') {
                 delete window.__surveyHeaderOverlay;
+            }
+            // Cleanup timeout on unmount
+            if (navigationTimeoutRef.current) {
+                clearTimeout(navigationTimeoutRef.current);
             }
         };
     }, []);
@@ -46,9 +69,27 @@ export default function SurveyHeaderOverlay() {
     }
 
     const handleNavigation = (url) => {
+        // Clear any existing timeout
+        if (navigationTimeoutRef.current) {
+            clearTimeout(navigationTimeoutRef.current);
+            navigationTimeoutRef.current = null;
+        }
+        
         // Set loading state and destination before checking navigation warning
         setIsNavigatingAway(true);
+        isNavigatingAwayRef.current = true;
         setNavigationDestination(url);
+        
+        // Set safety timeout to auto-clear loading state after 5 seconds if navigation doesn't complete
+        navigationTimeoutRef.current = setTimeout(() => {
+            if (isNavigatingAwayRef.current) {
+                console.warn('Navigation timeout: Clearing loading state after 5 seconds');
+                setIsNavigatingAway(false);
+                setNavigationDestination(null);
+                isNavigatingAwayRef.current = false;
+                navigationTimeoutRef.current = null;
+            }
+        }, 5000);
         
         // Check if navigation warning should be shown
         if (typeof window !== 'undefined' && window.__navigationWarning) {
@@ -58,6 +99,7 @@ export default function SurveyHeaderOverlay() {
                 // Keep loading state active - it will show when modal closes and navigation happens
                 // The loading overlay will be behind the modal (z-50 vs modal's z-[200])
                 // When user confirms/discards, navigation will happen and overlay will be visible
+                // Safety timeout will clear it if navigation doesn't happen
                 return;
             }
         }

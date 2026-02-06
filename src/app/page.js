@@ -94,13 +94,13 @@ export default function HomePage() {
                             className="max-w-xl"
                         >
                             <p className="text-sm font-semibold tracking-wide uppercase text-primary mb-3">
-                                What type of property buyer are you?
+                                
                             </p>
                             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-5">
                                 Tired of guessing how much you need for a home?
                             </h2>
                             <p className="text-lg md:text-xl text-gray-600 leading-relaxed mb-10">
-                                Why struggle to piece together your budget from three different calculators? Australian property costs are complex, combining state-specific stamp duty, LMI, and legal fees that can easily cost you thousands if you miss a single detail. Get the full financial picture—accurate, comprehensive, and completely free—in one simple place.
+                            You could be missing out on thousands of dollars back in your pocket. Don’t budget with multiple tools—get the full financial picture in one place. We calculate every fee and uncover every saving, so you know exactly what you’ll pay and exactly what you’ll keep. Accurate, free, and zero surprises.
                             </p>
                             <motion.button
                                 whileHover={{ scale: 1.05 }}
