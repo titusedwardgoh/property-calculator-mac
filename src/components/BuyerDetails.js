@@ -18,6 +18,8 @@ export default function BuyerDetails() {
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState('forward'); // 'forward' or 'backward'
   const [isInitialEntry, setIsInitialEntry] = useState(true); // Track if we're on initial entry from PropertyDetails
+  const [showCalculatingOverlay, setShowCalculatingOverlay] = useState(false);
+  const [overlayPhase, setOverlayPhase] = useState('calculating'); // 'calculating' | 'done'
   const totalSteps = formData.isACT ? 10 : 7; // Add extra steps for ACT income, property ownership, and dependants questions
   const { user } = useAuth();
   const supabase = createClient();
@@ -258,11 +260,16 @@ export default function BuyerDetails() {
         }
       }, 150);
     } else if (currentStep === totalSteps) {
-      // Form is complete
-      updateFormData('buyerDetailsComplete', true);
-      // Reset the navigation flags to ensure proper flow
-      updateFormData('showLoanDetails', false);
-      updateFormData('showSellerQuestions', false);
+      // Show overlay: "Sit tight" longer, then "Full Assessment Complete!" briefly
+      setOverlayPhase('calculating');
+      setShowCalculatingOverlay(true);
+      setTimeout(() => setOverlayPhase('done'), 2500); // Sit tight for 2.5s, then done for 1s
+      setTimeout(() => {
+        setShowCalculatingOverlay(false);
+        updateFormData('buyerDetailsComplete', true);
+        updateFormData('showLoanDetails', false);
+        updateFormData('showSellerQuestions', false);
+      }, 3500);
     }
   };
 
@@ -1044,6 +1051,39 @@ export default function BuyerDetails() {
   };
 
   return (
+    <>
+      {showCalculatingOverlay && (
+        <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <div className="min-h-[2.5rem] flex items-center justify-center">
+              <AnimatePresence mode="wait">
+                {overlayPhase === 'calculating' ? (
+                  <motion.p
+                    key="calculating"
+                    initial={{ y: 0, opacity: 1 }}
+                    exit={{ y: 50, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="text-gray-600"
+                  >
+                    Sit tight, we are saving you some money!
+                  </motion.p>
+                ) : (
+                  <motion.p
+                    key="done"
+                    initial={{ y: -30, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="text-gray-600"
+                  >
+                    Full Assessment Complete!
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      )}
     <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
       <div className="flex">
         <AnimatePresence mode="wait">
@@ -1181,5 +1221,6 @@ export default function BuyerDetails() {
         </div>
       </div>
     </div>
+    </>
   );
 }

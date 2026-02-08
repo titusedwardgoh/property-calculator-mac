@@ -17,6 +17,8 @@ export default function PropertyDetails() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [direction, setDirection] = useState('forward'); // 'forward' or 'backward'
   const [isComplete, setIsComplete] = useState(false);
+  const [showCalculatingOverlay, setShowCalculatingOverlay] = useState(false);
+  const [overlayPhase, setOverlayPhase] = useState('calculating'); // 'calculating' | 'done'
   const isExecutingRef = useRef(false);
   const totalSteps = 6; // Always 6 internal steps, but step 3 is skipped for non-WA
   const prevPropertyCategoryRef = useRef(formData.propertyCategory);
@@ -679,62 +681,67 @@ export default function PropertyDetails() {
         updateFormData('propertyDetailsActiveStep', nextStepNumber);
       }, 150);
     } else {
-      // Form is complete - calculate stamp duty
-      calculateAndLogStampDuty();
-      setIsComplete(true);
-      // Set form complete flag to show completion page
-      // propertyDetailsComplete will be set when user clicks Next on completion page (goToBuyerDetails)
-      // propertyDetailsFormComplete tracks that they reached the completion page (for resume logic)
-      updateFormData('propertyDetailsFormComplete', true);
-      // DON'T set propertyDetailsComplete here - let it be set in goToBuyerDetails() when user clicks Next
-      // This ensures the completion page shows before transitioning to BuyerDetails
-      // Reset the executing ref
-      isExecutingRef.current = false;
-      
-      // Log final form completion
-      
-      console.log('📊 Final Form Summary:', {
-        // Property Details
-      propertyAddress: formData.propertyAddress,
-      selectedState: formData.selectedState,
-      isWA: formData.isWA,
-      isWAMetro: formData.isWAMetro,
-      propertyCategory: formData.propertyCategory,
-      propertyType: formData.propertyType,
-      propertyPrice: formData.propertyPrice,
-      // Buyer Details
-      buyerType: formData.buyerType,
-      isPPR: formData.isPPR,
-      isAustralianResident: formData.isAustralianResident,
-      isFirstHomeBuyer: formData.isFirstHomeBuyer,
-      hasPensionCard: formData.hasPensionCard,
-      needsLoan: formData.needsLoan,
-      savingsAmount: formData.savingsAmount,
-      income: formData.income,
-      // Loan Details (if applicable)
-      loanDeposit: formData.loanDeposit,
-      loanType: formData.loanType,
-      loanTerm: formData.loanTerm,
-      loanRate: formData.loanRate,
-      loanLMI: formData.loanLMI,
-      loanSettlementFees: formData.loanSettlementFees,
-      loanEstablishmentFee: formData.loanEstablishmentFee,
-      LVR: formData.LVR,
-      LMI_COST: formData.LMI_COST,
-      MONTHLY_LOAN_REPAYMENT: formData.MONTHLY_LOAN_REPAYMENT,
-      ANNUAL_LOAN_REPAYMENT: formData.ANNUAL_LOAN_REPAYMENT,
-      // Seller Questions
-      councilRates: formData.councilRates,
-      waterRates: formData.waterRates,
-      constructionStarted: formData.constructionStarted,
-      dutiableValue: formData.dutiableValue,
-      bodyCorp: formData.bodyCorp,
-      landTransferFee: formData.landTransferFee,
-      legalFees: formData.legalFees,
-      buildingAndPestInspection: formData.buildingAndPestInspection,
-      FIRBFee: formData.FIRBFee,
-      sellerQuestion9: formData.sellerQuestion9
-      });
+      // Show overlay for 2s before completing and showing "Basic Property Details Complete"
+      setOverlayPhase('calculating');
+      setShowCalculatingOverlay(true);
+      setTimeout(() => setOverlayPhase('done'), 1000);
+      setTimeout(() => {
+        setShowCalculatingOverlay(false);
+        // Form is complete - calculate stamp duty
+        calculateAndLogStampDuty();
+        setIsComplete(true);
+        // Set form complete flag to show completion page
+        // propertyDetailsComplete will be set when user clicks Next on completion page (goToBuyerDetails)
+        // propertyDetailsFormComplete tracks that they reached the completion page (for resume logic)
+        updateFormData('propertyDetailsFormComplete', true);
+        // DON'T set propertyDetailsComplete here - let it be set in goToBuyerDetails() when user clicks Next
+        // This ensures the completion page shows before transitioning to BuyerDetails
+        // Reset the executing ref
+        isExecutingRef.current = false;
+
+        console.log('📊 Final Form Summary:', {
+          // Property Details
+          propertyAddress: formData.propertyAddress,
+          selectedState: formData.selectedState,
+          isWA: formData.isWA,
+          isWAMetro: formData.isWAMetro,
+          propertyCategory: formData.propertyCategory,
+          propertyType: formData.propertyType,
+          propertyPrice: formData.propertyPrice,
+          // Buyer Details
+          buyerType: formData.buyerType,
+          isPPR: formData.isPPR,
+          isAustralianResident: formData.isAustralianResident,
+          isFirstHomeBuyer: formData.isFirstHomeBuyer,
+          hasPensionCard: formData.hasPensionCard,
+          needsLoan: formData.needsLoan,
+          savingsAmount: formData.savingsAmount,
+          income: formData.income,
+          // Loan Details (if applicable)
+          loanDeposit: formData.loanDeposit,
+          loanType: formData.loanType,
+          loanTerm: formData.loanTerm,
+          loanRate: formData.loanRate,
+          loanLMI: formData.loanLMI,
+          loanSettlementFees: formData.loanSettlementFees,
+          loanEstablishmentFee: formData.loanEstablishmentFee,
+          LVR: formData.LVR,
+          LMI_COST: formData.LMI_COST,
+          MONTHLY_LOAN_REPAYMENT: formData.MONTHLY_LOAN_REPAYMENT,
+          ANNUAL_LOAN_REPAYMENT: formData.ANNUAL_LOAN_REPAYMENT,
+          // Seller Questions
+          councilRates: formData.councilRates,
+          waterRates: formData.waterRates,
+          constructionStarted: formData.constructionStarted,
+          dutiableValue: formData.dutiableValue,
+          bodyCorp: formData.bodyCorp,
+          landTransferFee: formData.landTransferFee,
+          legalFees: formData.legalFees,
+          buildingAndPestInspection: formData.buildingAndPestInspection,
+          FIRBFee: formData.FIRBFee,
+          sellerQuestion9: formData.sellerQuestion9
+        });
+      }, 2500);
     }
   };
 
@@ -1349,6 +1356,39 @@ export default function PropertyDetails() {
   };
 
   return (
+    <>
+      {showCalculatingOverlay && (
+        <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <div className="min-h-[2.5rem] flex items-center justify-center">
+              <AnimatePresence mode="wait">
+                {overlayPhase === 'calculating' ? (
+                  <motion.p
+                    key="calculating"
+                    initial={{ y: 0, opacity: 1 }}
+                    exit={{ y: 50, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="text-gray-600"
+                  >
+                    Hang on, calculating basic stamp duty
+                  </motion.p>
+                ) : (
+                  <motion.p
+                    key="done"
+                    initial={{ y: -30, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="text-gray-600"
+                  >
+                    Done, that was quick!
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      )}
     <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
         <div className="flex">
          <div className="ml-2 md:ml-3 lg:ml-2 flex items-center text-xs -mt-113 md:-mt-113 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap relative overflow-hidden min-w-[3ch]">
@@ -1465,5 +1505,6 @@ export default function PropertyDetails() {
         </div>
       </div>
     </div>
+    </>
   );
 }

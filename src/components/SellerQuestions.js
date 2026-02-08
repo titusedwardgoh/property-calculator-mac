@@ -17,6 +17,8 @@ export default function SellerQuestions() {
   const [localCompletionState, setLocalCompletionState] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const [buttonsExiting, setButtonsExiting] = useState(false);
+  const [showCalculatingOverlay, setShowCalculatingOverlay] = useState(false);
+  const [overlayPhase, setOverlayPhase] = useState(0); // 0–3: additional fees, property details, concessions, congratulations
   const totalSteps = 8;
 
   // Calculate the starting step number based on WA, ACT selection and loan need
@@ -232,11 +234,17 @@ export default function SellerQuestions() {
         updateFormData('sellerQuestionsActiveStep', nextStepNumber);
       }, 150);
     } else if (currentStep === totalSteps) {
-      // Form is complete
-      updateFormData('sellerQuestionsComplete', true);
-      // Update ongoing costs when seller questions complete
-      formData.updateOngoingCosts();
-      // Don't set localCompletionState here - it will be set when the completion page is shown
+      // Show 4-phase overlay before completing
+      setOverlayPhase(0);
+      setShowCalculatingOverlay(true);
+      setTimeout(() => setOverlayPhase(1), 1500);
+      setTimeout(() => setOverlayPhase(2), 3000);
+      setTimeout(() => setOverlayPhase(3), 4500);
+      setTimeout(() => {
+        setShowCalculatingOverlay(false);
+        updateFormData('sellerQuestionsComplete', true);
+        formData.updateOngoingCosts();
+      }, 6000);
       
       // Log final form completion
       console.log('📊 Final Complete Form Summary:', {
@@ -820,7 +828,36 @@ export default function SellerQuestions() {
     }
   };
 
+  const overlayMessages = [
+    'Including additional fees',
+    'Updating Property details',
+    'Re-checking all concessions and grants',
+    'Congratulations!'
+  ];
+
   return (
+    <>
+      {showCalculatingOverlay && (
+        <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <div className="min-h-[2.5rem] flex items-center justify-center">
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={overlayPhase}
+                  initial={{ y: overlayPhase === 0 ? 0 : -30, opacity: overlayPhase === 0 ? 1 : 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 50, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="text-gray-600"
+                >
+                  {overlayMessages[overlayPhase]}
+                </motion.p>
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      )}
     <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
       <div className="flex">
         <AnimatePresence mode="wait">
@@ -965,6 +1002,7 @@ export default function SellerQuestions() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

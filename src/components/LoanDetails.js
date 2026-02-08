@@ -15,6 +15,8 @@ export default function LoanDetails() {
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState('forward');
   const [isInitialEntry, setIsInitialEntry] = useState(true); // Track if we're on initial entry from BuyerDetails
+  const [showCalculatingOverlay, setShowCalculatingOverlay] = useState(false);
+  const [overlayPhase, setOverlayPhase] = useState('calculating'); // 'calculating' | 'done'
   const totalSteps = 7;
 
   // Calculate net state duty at component level
@@ -131,9 +133,15 @@ export default function LoanDetails() {
         updateFormData('loanDetailsActiveStep', currentStep + 1);
       }, 150);
     } else if (currentStep === totalSteps) {
-      // Form is complete
-      updateFormData('loanDetailsComplete', true);
-      updateFormData('loanDetailsEverCompleted', true);
+      // Show overlay (same as BuyerDetails) before completing
+      setOverlayPhase('calculating');
+      setShowCalculatingOverlay(true);
+      setTimeout(() => setOverlayPhase('done'), 2500); // Sit tight for 2.5s, then done for 1s
+      setTimeout(() => {
+        setShowCalculatingOverlay(false);
+        updateFormData('loanDetailsComplete', true);
+        updateFormData('loanDetailsEverCompleted', true);
+      }, 3500);
       
       // Log final form completion
       console.log('📊 Final Form Summary:', {
@@ -780,6 +788,39 @@ export default function LoanDetails() {
   };
 
   return (
+    <>
+      {showCalculatingOverlay && (
+        <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <div className="min-h-[2.5rem] flex items-center justify-center">
+              <AnimatePresence mode="wait">
+                {overlayPhase === 'calculating' ? (
+                  <motion.p
+                    key="calculating"
+                    initial={{ y: 0, opacity: 1 }}
+                    exit={{ y: 50, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="text-gray-600"
+                  >
+                    Calculating your on-going costs!
+                  </motion.p>
+                ) : (
+                  <motion.p
+                    key="done"
+                    initial={{ y: -30, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="text-gray-600"
+                  >
+                    Success! Your on-going costs are ready!
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      )}
     <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
       <div className="flex">
         <AnimatePresence mode="wait">
@@ -892,5 +933,6 @@ export default function LoanDetails() {
         </div>
       </div>
     </div>
+    </>
   );
 }
