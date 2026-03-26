@@ -1,5 +1,12 @@
 import { create } from 'zustand'
 
+const BRANCH_DEPENDENCIES = {
+  // Keep hasPensionCard when state changes because the same question applies in ACT and non-ACT.
+  selectedState: ['isWA', 'isWAMetro', 'ownedPropertyLast5Years', 'income', 'dependants', 'dutiableValue'],
+  propertyType: ['constructionStarted', 'dutiableValue'],
+  needsLoan: ['loanDeposit', 'loanType', 'loanTerm', 'loanInterestOnlyPeriod', 'loanRate', 'loanLMI', 'loanSettlementFees', 'loanEstablishmentFee']
+};
+
 export const useFormStore = create((set, get) => ({
   // Supabase integration
   propertyId: null, // Current property record ID in Supabase
@@ -77,7 +84,11 @@ export const useFormStore = create((set, get) => ({
   allFormsComplete: false,
   showSummary: false,
   showReviewPage: false,
-  
+  editingFromReview: false, // true when user clicked Edit from Review; completing a section returns to Review
+  showAdditionalQuestions: false, // true when user clicked Answer now from Review gap-filler
+  additionalQuestionsFields: [], // frozen list of field keys when entering the AdditionalQuestions wizard
+  additionalQuestionsStep: 1, // current step in the AdditionalQuestions wizard
+
   // Dropdown state management
   openDropdown: null, // 'upfront' or 'ongoing' or 'summary' or null
   
@@ -253,11 +264,37 @@ export const useFormStore = create((set, get) => ({
     '40000001+': 1205200
   },
   
-  // Actions to update state
-  updateFormData: (field, value) => set((state) => ({ 
-    ...state, 
-    [field]: value 
-  })),
+  // Actions to update state (with branching resets and cleanup)
+  updateFormData: (field, value) => set((state) => {
+    if (state[field] === value) return state;
+    const next = { ...state, [field]: value };
+    if (BRANCH_DEPENDENCIES[field]) {
+      BRANCH_DEPENDENCIES[field].forEach((dep) => { next[dep] = ''; });
+      next.allFormsComplete = false;
+      next.showSummary = false;
+      if (!state.showReviewPage && !state.editingFromReview) {
+        next.sellerQuestionsComplete = false;
+      }
+    }
+    if (field === 'needsLoan') {
+      if (value === 'no') {
+        next.showLoanDetails = false;
+        next.loanDetailsComplete = true; // Mark as complete so it's skipped
+      } else if (value === 'yes') {
+        // User now wants a loan: clear completion so we don't show LoanDetails completion screen
+        next.loanDetailsComplete = false;
+        next.loanDetailsEverCompleted = false;
+      }
+    }
+    if (field === 'selectedState') {
+      // If on Review page or editing from Review, keep section completion so Overall Progress stays correct
+      if (!state.showReviewPage && !state.editingFromReview) {
+        next.buyerDetailsComplete = false;
+        next.loanDetailsComplete = false;
+      }
+    }
+    return next;
+  }),
   
   // Set property ID from Supabase
   setPropertyId: (id) => set({ propertyId: id }),
@@ -348,6 +385,9 @@ export const useFormStore = create((set, get) => ({
     allFormsComplete: false,
     showSummary: false,
     showReviewPage: false,
+    showAdditionalQuestions: false,
+    additionalQuestionsFields: [],
+    additionalQuestionsStep: 1,
     showWelcomePage: true,
     openDropdown: null,
     showUpfrontDropdown: false,

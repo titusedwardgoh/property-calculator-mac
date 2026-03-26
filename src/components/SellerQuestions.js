@@ -536,12 +536,12 @@ export default function SellerQuestions() {
             <h2 
               className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight"
             >
-              Seller Questions Complete
+              {formData.editingFromReview ? 'Review of Seller Questions Complete' : 'Seller Questions Complete'}
             </h2>
             <p 
               className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8"
             >
-              All forms are now complete!
+              {formData.editingFromReview ? 'There may be some additional questions to answer based on your changes' : 'All forms are now complete!'}
             </p>
           </motion.div>
         </AnimatePresence>
@@ -930,14 +930,17 @@ export default function SellerQuestions() {
                  
                  <motion.button
                    onClick={() => {
-                     // Trigger button exit animation first
+                     if (formData.editingFromReview) {
+                       updateFormData('sellerQuestionsComplete', true);
+                       updateFormData('showReviewPage', true);
+                       updateFormData('editingFromReview', false);
+                       return;
+                     }
                      setButtonsExiting(true);
-                     // Then trigger content exit animation
                      setTimeout(() => {
                        setIsExiting(true);
                        setDirection('forward');
                      }, 100);
-                     // Set final state after both animations complete
                      setTimeout(() => {
                        updateFormData('allFormsComplete', true);
                        updateFormData('showSummary', true);

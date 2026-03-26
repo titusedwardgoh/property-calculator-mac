@@ -10,7 +10,7 @@ import { useFormStore } from '../stores/formStore';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
-import { calculateGlobalProgress } from '../lib/progressCalculation';
+import { calculateGlobalProgress, getMissingFields } from '../lib/progressCalculation';
 
 export default function BuyerDetails() {
     const formData = useFormStore();
@@ -260,16 +260,27 @@ export default function BuyerDetails() {
         }
       }, 150);
     } else if (currentStep === totalSteps) {
-      // Show overlay: "Sit tight" longer, then "Full Assessment Complete!" briefly
+      // Show overlay - match Property Details style when editing from Review (going to AdditionalQuestions)
+      const isEditToAdditionalQuestions = formData.editingFromReview && formData.needsLoan === 'yes';
       setOverlayPhase('calculating');
       setShowCalculatingOverlay(true);
-      setTimeout(() => setOverlayPhase('done'), 2500); // Sit tight for 2.5s, then done for 1s
-      setTimeout(() => {
-        setShowCalculatingOverlay(false);
-        updateFormData('buyerDetailsComplete', true);
-        updateFormData('showLoanDetails', false);
-        updateFormData('showSellerQuestions', false);
-      }, 3500);
+      if (isEditToAdditionalQuestions) {
+        setTimeout(() => setOverlayPhase('done'), 1000);
+        setTimeout(() => {
+          setShowCalculatingOverlay(false);
+          updateFormData('buyerDetailsComplete', true);
+          updateFormData('showLoanDetails', false);
+          updateFormData('showSellerQuestions', false);
+        }, 2500);
+      } else {
+        setTimeout(() => setOverlayPhase('done'), 2500);
+        setTimeout(() => {
+          setShowCalculatingOverlay(false);
+          updateFormData('buyerDetailsComplete', true);
+          updateFormData('showLoanDetails', false);
+          updateFormData('showSellerQuestions', false);
+        }, 3500);
+      }
     }
   };
 
@@ -491,12 +502,14 @@ export default function BuyerDetails() {
       return (
         <div className="flex flex-col mt-8 md:mt-0 pr-2">
           <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
-            Buyer Details Complete
+            {formData.editingFromReview ? 'Review of Buyer Details Complete' : 'Buyer Details Complete'}
           </h2>
           <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
-            {formData.needsLoan === 'yes' 
-              ? 'Now let\'s get some details about your loan...'
-              : 'Now let\'s ask a few additional questions some of which you need to ask the seller...'
+            {formData.editingFromReview
+              ? 'There may be some additional questions to answer based on your changes'
+              : formData.needsLoan === 'yes' 
+                ? 'Now let\'s get some details about your loan...'
+                : 'Now let\'s ask a few additional questions some of which you need to ask the seller...'
             }
           </p>
 
@@ -523,7 +536,7 @@ export default function BuyerDetails() {
                   key={option.value}
                   onClick={() => updateFormData('buyerType', option.value)}
                   {...getInputButtonAnimation()}
-                  className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
+                  className={`py-2 px-3 cursor-pointer rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
                     formData.buyerType === option.value
                       ? 'border-gray-800 bg-secondary text-white shadow-lg'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -569,7 +582,7 @@ export default function BuyerDetails() {
                     onClick={() => !isDisabled && updateFormData('isPPR', option.value)}
                     disabled={isDisabled}
                     {...(!isDisabled ? getInputButtonAnimation() : {})}
-                    className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
+                    className={`py-2 px-3 cursor-pointer rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
                       isDisabled 
                         ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
                         : formData.isPPR === option.value
@@ -612,7 +625,7 @@ export default function BuyerDetails() {
                   key={option.value}
                   onClick={() => updateFormData('isAustralianResident', option.value)}
                   {...getInputButtonAnimation()}
-                  className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
+                  className={`py-2 px-3 cursor-pointer rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
                     formData.isAustralianResident === option.value
                       ? 'border-gray-800 bg-secondary text-white shadow-lg'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -652,7 +665,7 @@ export default function BuyerDetails() {
                   key={option.value}
                   onClick={() => updateFormData('isFirstHomeBuyer', option.value)}
                   {...getInputButtonAnimation()}
-                  className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
+                  className={`py-2 px-3 cursor-pointer rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
                     formData.isFirstHomeBuyer === option.value
                       ? 'border-gray-800 bg-secondary text-white shadow-lg'
                       : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -699,7 +712,7 @@ export default function BuyerDetails() {
                       onClick={() => !isDisabled && updateFormData('ownedPropertyLast5Years', option.value)}
                       disabled={isDisabled}
                       {...(!isDisabled ? getInputButtonAnimation() : {})}
-                      className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start ${
+                      className={`py-2 px-3 cursor-pointer rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start ${
                         isDisabled 
                           ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
                           : formData.ownedPropertyLast5Years === option.value
@@ -749,7 +762,7 @@ export default function BuyerDetails() {
                       onClick={() => !isDisabled && updateFormData('hasPensionCard', option.value)}
                       disabled={isDisabled}
                       {...(!isDisabled ? getInputButtonAnimation() : {})}
-                      className={`py-2 px-3 rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start ${
+                      className={`py-2 px-3 cursor-pointer rounded-lg w-full md:w-[260px] border-2 flex flex-col items-start ${
                         isDisabled 
                           ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
                           : formData.hasPensionCard === option.value
@@ -913,7 +926,7 @@ export default function BuyerDetails() {
                     key={option.value}
                     onClick={() => updateFormData('needsLoan', option.value)}
                     {...getInputButtonAnimation()}
-                    className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
+                    className={`py-2 px-3 cursor-pointer rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
                       formData.needsLoan === option.value
                         ? 'border-gray-800 bg-secondary text-white shadow-lg'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -1024,7 +1037,7 @@ export default function BuyerDetails() {
                     key={option.value}
                     onClick={() => updateFormData('needsLoan', option.value)}
                     {...getInputButtonAnimation()}
-                    className={`py-2 px-3 rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
+                    className={`py-2 px-3 cursor-pointer rounded-lg w-full md:w-[250px] border-2 flex flex-col items-start ${
                       formData.needsLoan === option.value
                         ? 'border-gray-800 bg-secondary text-white shadow-lg'
                         : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
@@ -1066,7 +1079,9 @@ export default function BuyerDetails() {
                     transition={{ duration: 0.3, ease: 'easeInOut' }}
                     className="text-gray-600"
                   >
-                    Sit tight, we are saving you some money!
+                    {formData.editingFromReview && formData.needsLoan === 'yes'
+                      ? 'Hang on, updating buyer details'
+                      : 'Sit tight, we are saving you some money!'}
                   </motion.p>
                 ) : (
                   <motion.p
@@ -1076,7 +1091,9 @@ export default function BuyerDetails() {
                     transition={{ duration: 0.3, ease: 'easeInOut' }}
                     className="text-gray-600"
                   >
-                    Full Assessment Complete!
+                    {(!formData.editingFromReview || formData.needsLoan === 'yes')
+                      ? 'Done, that was quick!'
+                      : 'Full Assessment Complete!'}
                   </motion.p>
                 )}
               </AnimatePresence>
@@ -1142,12 +1159,30 @@ export default function BuyerDetails() {
               
               <motion.button
                 onClick={() => {
-                  // Move to next section based on loan need
+                  if (formData.editingFromReview) {
+                    if (formData.needsLoan === 'yes') {
+                      // Mirror Property Details: return to Review with AdditionalQuestions for loan fields
+                      updateFormData('editingFromReview', false);
+                      updateFormData('loanDetailsComplete', false); // Ensure we don't show LoanDetails completion screen
+                      const missing = getMissingFields({ ...formData, buyerDetailsComplete: true });
+                      if (missing.length > 0) {
+                        updateFormData('additionalQuestionsFields', missing);
+                        updateFormData('showAdditionalQuestions', true);
+                        updateFormData('additionalQuestionsStep', 1);
+                      }
+                      updateFormData('showReviewPage', true);
+                      updateFormData('showLoanDetails', false);
+                      updateFormData('showSellerQuestions', false);
+                    } else {
+                      // Standard return to review
+                      updateFormData('showReviewPage', true);
+                      updateFormData('editingFromReview', false);
+                    }
+                    return;
+                  }
                   if (formData.needsLoan === 'yes') {
-                    // Go to loan details - set a flag to show it
                     updateFormData('showLoanDetails', true);
                   } else {
-                    // Go to seller questions - set a flag to show it
                     updateFormData('showSellerQuestions', true);
                   }
                 }}

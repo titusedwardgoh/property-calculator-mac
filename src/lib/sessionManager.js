@@ -112,7 +112,11 @@ export async function getSupabaseUserId() {
     
     return session.user.id
   } catch (error) {
-    console.error('Error getting Supabase user ID:', error)
+    // Don't log expected refresh token errors (expired/revoked)
+    const msg = error?.message || ''
+    if (!msg.includes('Refresh Token') && !msg.includes('refresh_token')) {
+      console.error('Error getting Supabase user ID:', error)
+    }
     return null
   }
 }

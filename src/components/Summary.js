@@ -304,7 +304,7 @@ export default function Summary() {
                                 
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
-                                        Property Type
+                                        New/Existing
                                     </span>
                                     <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
                                         {formData.propertyType === 'existing' ? 'Existing' : 
@@ -315,7 +315,7 @@ export default function Summary() {
                                 
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
-                                        Category
+                                        Property Type
                                     </span>
                                     <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
                                         {formData.propertyCategory === 'house' ? 'House' :
@@ -367,7 +367,7 @@ export default function Summary() {
                                 
                                 <div className="flex justify-between items-center">
                                     <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg">
-                                        Residency Status
+                                        Australian Citizen/PR
                                     </span>
                                     <span className="text-gray-800 text-sm md:text-xs lg:text-sm xl:text-lg font-medium">
                                         {formData.isAustralianResident === 'yes' ? 'Australian Resident' :

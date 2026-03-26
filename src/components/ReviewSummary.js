@@ -1,17 +1,24 @@
 "use client";
 
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFormStore } from '../stores/formStore';
-import { getRequiredFields, calculateGlobalProgress } from '../lib/progressCalculation';
+import { getRequiredFields, getMissingFields, calculateGlobalProgress } from '../lib/progressCalculation';
 import { getFieldLabel, formatFieldValue } from '../lib/fieldMapping';
+import ReviewGapFiller from './ReviewGapFiller';
 
 export default function ReviewSummary() {
   const formData = useFormStore();
   const { updateFormData, setShowReviewPage } = formData;
+  const [showRemovingLoanOverlay, setShowRemovingLoanOverlay] = useState(false);
+  const [overlayPhase, setOverlayPhase] = useState('removing');
+  const [showEditSectionOverlay, setShowEditSectionOverlay] = useState(false);
+  const [editSectionLabel, setEditSectionLabel] = useState('');
   
-  // Get required fields based on current form state
+  // Get required fields and missing (gap) fields based on current form state
   const requiredFields = getRequiredFields(formData);
-  
+  const missingFields = getMissingFields(formData);
+
   // Calculate global progress
   const progress = calculateGlobalProgress(formData, {});
   
@@ -38,24 +45,27 @@ export default function ReviewSummary() {
   const sellerFieldsToShow = getSectionFields(sellerFields, requiredFields, formData);
   
   // Edit button handlers
-  const handlePropertyEdit = () => {
+  const doPropertyEdit = () => {
+    updateFormData('editingFromReview', true);
     updateFormData('showReviewPage', false);
     updateFormData('propertyDetailsActiveStep', 1);
     updateFormData('propertyDetailsComplete', false);
+    updateFormData('propertyDetailsFormComplete', false);
     updateFormData('isResumingSurvey', false);
     window.scrollTo(0, 0);
   };
-  
-  const handleBuyerEdit = () => {
+
+  const doBuyerEdit = () => {
+    updateFormData('editingFromReview', true);
     updateFormData('showReviewPage', false);
     updateFormData('buyerDetailsActiveStep', 1);
     updateFormData('buyerDetailsComplete', false);
     updateFormData('isResumingSurvey', false);
-    // Do NOT reset showLoanDetails or showSellerQuestions - preserve user's progress
     window.scrollTo(0, 0);
   };
-  
-  const handleLoanEdit = () => {
+
+  const doLoanEdit = () => {
+    updateFormData('editingFromReview', true);
     updateFormData('showReviewPage', false);
     updateFormData('showLoanDetails', true);
     updateFormData('showSellerQuestions', false);
@@ -64,8 +74,9 @@ export default function ReviewSummary() {
     updateFormData('isResumingSurvey', false);
     window.scrollTo(0, 0);
   };
-  
-  const handleSellerEdit = () => {
+
+  const doSellerEdit = () => {
+    updateFormData('editingFromReview', true);
     updateFormData('showReviewPage', false);
     updateFormData('showLoanDetails', false);
     updateFormData('showSellerQuestions', true);
@@ -73,6 +84,44 @@ export default function ReviewSummary() {
     updateFormData('sellerQuestionsComplete', false);
     updateFormData('isResumingSurvey', false);
     window.scrollTo(0, 0);
+  };
+
+  const withEditOverlay = (doEdit, label) => () => {
+    setEditSectionLabel(label);
+    setShowEditSectionOverlay(true);
+    setTimeout(() => {
+      setShowEditSectionOverlay(false);
+      doEdit();
+    }, 2000);
+  };
+
+  const handlePropertyEdit = withEditOverlay(doPropertyEdit, 'Property Details');
+  const handleBuyerEdit = withEditOverlay(doBuyerEdit, 'Buyer Details');
+  const handleLoanEdit = withEditOverlay(doLoanEdit, 'Loan Details');
+  const handleSellerEdit = withEditOverlay(doSellerEdit, 'Other Costs');
+
+  const handleWantLoan = () => {
+    updateFormData('needsLoan', 'yes');
+    // Restore flags that BRANCH_DEPENDENCIES resets, since we know we're on the review page
+    // and all other sections were already complete
+    updateFormData('sellerQuestionsComplete', true);
+    updateFormData('allFormsComplete', true);
+    updateFormData('showSummary', true);
+    handleLoanEdit(); // Uses overlay then navigates to loan details
+  };
+
+  const handlePayCash = () => {
+    setOverlayPhase('removing');
+    setShowRemovingLoanOverlay(true);
+    updateFormData('needsLoan', 'no');
+    // Restore flags that BRANCH_DEPENDENCIES clears so we stay on review with Summary/costs visible
+    updateFormData('sellerQuestionsComplete', true);
+    updateFormData('allFormsComplete', true);
+    updateFormData('showSummary', true);
+    setTimeout(() => setOverlayPhase('done'), 2500);
+    setTimeout(() => {
+      setShowRemovingLoanOverlay(false);
+    }, 3500);
   };
   
   // Render section card
@@ -94,7 +143,7 @@ export default function ReviewSummary() {
             onClick={onEdit}
             className="px-4 py-2 cursor-pointer text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors"
           >
-            Edit
+            Edit Section
           </motion.button>
         </div>
         <div className="space-y-3">
@@ -106,7 +155,19 @@ export default function ReviewSummary() {
               transition={{ duration: 0.4, delay: 0.3 + (index * 0.1) + (fieldIndex * 0.05), ease: "easeOut" }}
               className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0"
             >
-              <span className="text-gray-600">{getFieldLabel(field)}</span>
+              <span className="text-gray-600 flex items-center gap-2">
+                {getFieldLabel(field)}
+                {field === 'needsLoan' && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={formData.needsLoan === 'yes' ? handlePayCash : handleWantLoan}
+                    className="ml-4 px-4 py-2 cursor-pointer text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors"
+                  >
+                    {formData.needsLoan === 'yes' ? 'Pay in Cash' : 'I Want a Loan'}
+                  </motion.button>
+                )}
+              </span>
               <span className="text-gray-900 font-medium text-right">{formatFieldValue(field, formData[field])}</span>
             </motion.div>
           ))}
@@ -116,6 +177,47 @@ export default function ReviewSummary() {
   };
   
   return (
+    <>
+      {showRemovingLoanOverlay && (
+        <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <div className="min-h-[2.5rem] flex items-center justify-center">
+              <AnimatePresence mode="wait">
+                {overlayPhase === 'removing' ? (
+                  <motion.p
+                    key="removing"
+                    initial={{ y: 0, opacity: 1 }}
+                    exit={{ y: 50, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="text-gray-600"
+                  >
+                    Removing your Loan!
+                  </motion.p>
+                ) : (
+                  <motion.p
+                    key="done"
+                    initial={{ y: -30, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="text-gray-600"
+                  >
+                    Done, that was quick!
+                  </motion.p>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
+      )}
+      {showEditSectionOverlay && (
+        <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-gray-600">Taking you back to {editSectionLabel}</p>
+          </div>
+        </div>
+      )}
     <AnimatePresence mode="wait">
       <motion.div
         key="review-summary"
@@ -125,6 +227,8 @@ export default function ReviewSummary() {
         transition={{ duration: 0.5, ease: "easeInOut" }}
         className="max-w-4xl mx-auto p-6"
       >
+        <ReviewGapFiller missingFields={missingFields} />
+
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -136,9 +240,9 @@ export default function ReviewSummary() {
         </motion.div>
         
         {renderSection('Property Details', propertyFieldsToShow, handlePropertyEdit, 0)}
-        {renderSection('Buyer Profile', buyerFieldsToShow, handleBuyerEdit, 1)}
+        {renderSection('Your Information', buyerFieldsToShow, handleBuyerEdit, 1)}
         {renderSection('Loan Details', loanFieldsToShow, handleLoanEdit, 2)}
-        {renderSection('Seller Costs', sellerFieldsToShow, handleSellerEdit, 3)}
+        {renderSection('Additional Hidden Costs', sellerFieldsToShow, handleSellerEdit, 3)}
         
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -159,38 +263,29 @@ export default function ReviewSummary() {
             >
               Back to Results
             </motion.button>
-            {progress < 100 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.4, delay: 0.7 }}
-                className="text-center"
-              >
-                <button
-                  disabled
-                  className="px-8 py-4 bg-gray-300 text-gray-500 rounded-lg font-semibold text-lg cursor-not-allowed"
-                >
-                  Generate My Property Report
-                </button>
-                <p className="mt-3 text-sm text-gray-600">Survey incomplete - please fill all required fields</p>
-              </motion.div>
-            ) : (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => {
-                  setShowReviewPage(false);
-                  updateFormData('showSummary', true);
-                  window.scrollTo(0, 0);
-                }}
-                className="px-8 py-4 bg-gray-800 text-white rounded-lg font-semibold text-lg hover:bg-gray-900 transition-colors shadow-lg"
-              >
-                Generate My Property Report
-              </motion.button>
-            )}
+            <motion.button
+              whileHover={missingFields.length === 0 && progress >= 100 ? { scale: 1.05 } : {}}
+              whileTap={missingFields.length === 0 && progress >= 100 ? { scale: 0.95 } : {}}
+              disabled={missingFields.length > 0 || progress < 100}
+              onClick={() => {
+                if (missingFields.length > 0 || progress < 100) return;
+                setShowReviewPage(false);
+                updateFormData('showSummary', true);
+                updateFormData('allFormsComplete', true);
+                window.scrollTo(0, 0);
+              }}
+              className={
+                missingFields.length > 0 || progress < 100
+                  ? "px-8 py-4 bg-gray-300 text-gray-500 rounded-lg font-semibold text-lg cursor-not-allowed"
+                  : "px-8 cursor-pointer py-4 bg-gray-800 text-white rounded-lg font-semibold text-lg hover:bg-gray-900 transition-colors shadow-lg"
+              }
+            >
+              {missingFields.length > 0 ? "Complete required details above" : "Generate My Property Report"}
+            </motion.button>
           </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
+    </>
   );
 }

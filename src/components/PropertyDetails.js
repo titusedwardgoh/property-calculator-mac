@@ -8,7 +8,7 @@ import { useFormStore } from '../stores/formStore';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
-import { calculateGlobalProgress } from '../lib/progressCalculation';
+import { calculateGlobalProgress, getMissingFields } from '../lib/progressCalculation';
 
 export default function PropertyDetails() {
   const formData = useFormStore();
@@ -324,15 +324,18 @@ export default function PropertyDetails() {
             
             // hasValidAddress was already set to true at the start of this handler
             
-            // Auto-detect state
-            const stateComponent = addressComponents.find(component => 
+            // Auto-detect state from address only when selectedState is not already populated
+            // (e.g. when editing, keep the saved response like ACT even if address suggests QLD)
+            const currentState = useFormStore.getState().selectedState;
+            const stateAlreadyPopulated = currentState && String(currentState).trim() !== '';
+            const stateComponent = addressComponents.find(component =>
               component.types.includes('administrative_area_level_1')
             );
             if (stateComponent) {
               const stateCode = stateComponent.short_name;
               const stateMapping = {
                 'NSW': 'NSW',
-                'VIC': 'VIC', 
+                'VIC': 'VIC',
                 'QLD': 'QLD',
                 'SA': 'SA',
                 'WA': 'WA',
@@ -340,34 +343,30 @@ export default function PropertyDetails() {
                 'NT': 'NT',
                 'ACT': 'ACT'
               };
-              if (stateMapping[stateCode]) {
-                updateFormData('selectedState', stateMapping[stateCode]);
-                updateFormData('detectedState', stateMapping[stateCode]); // Store detected state
-                if (stateCode === 'ACT') {
-                  updateFormData('isACT', true);
-                } else {
-                  updateFormData('isACT', false);
-                }
-                
-                // Auto-detect WA north/south if property is in WA
-                if (stateCode === 'WA' && place.geometry && place.geometry.location) {
-                  const latitude = place.geometry.location.lat();
-                  const longitude = place.geometry.location.lng();
-                  const isNorth = latitude > -26.0;
-                  updateFormData('isWA', isNorth ? 'north' : 'south');
-                  updateFormData('detectedWALocation', isNorth ? 'north' : 'south'); // Store detected location
-                  
-                  // Auto-detect metro/peel region (only for south of 26th parallel)
-                  // Metro/Peel region is roughly: Perth metro area and Peel region (Mandurah area)
-                  // Approximate boundaries: lat -33.5 to -31.5, long 115.5 to 116.5
-                  if (!isNorth) {
-                    const isMetro = latitude >= -33.5 && latitude <= -31.5 && longitude >= 115.5 && longitude <= 116.5;
-                    updateFormData('isWAMetro', isMetro ? 'metro' : 'non-metro');
-                    updateFormData('detectedWAMetro', isMetro ? 'metro' : 'non-metro'); // Store detected metro status
+              const mappedState = stateMapping[stateCode];
+              if (mappedState) {
+                updateFormData('detectedState', mappedState); // Always store what address suggests (for banner)
+                if (!stateAlreadyPopulated) {
+                  updateFormData('selectedState', mappedState);
+                  if (stateCode === 'ACT') {
+                    updateFormData('isACT', true);
                   } else {
-                    // North of 26th parallel is always non-metro
-                    updateFormData('isWAMetro', 'non-metro');
-                    updateFormData('detectedWAMetro', 'non-metro');
+                    updateFormData('isACT', false);
+                  }
+                  if (stateCode === 'WA' && place.geometry && place.geometry.location) {
+                    const latitude = place.geometry.location.lat();
+                    const longitude = place.geometry.location.lng();
+                    const isNorth = latitude > -26.0;
+                    updateFormData('isWA', isNorth ? 'north' : 'south');
+                    updateFormData('detectedWALocation', isNorth ? 'north' : 'south');
+                    if (!isNorth) {
+                      const isMetro = latitude >= -33.5 && latitude <= -31.5 && longitude >= 115.5 && longitude <= 116.5;
+                      updateFormData('isWAMetro', isMetro ? 'metro' : 'non-metro');
+                      updateFormData('detectedWAMetro', isMetro ? 'metro' : 'non-metro');
+                    } else {
+                      updateFormData('isWAMetro', 'non-metro');
+                      updateFormData('detectedWAMetro', 'non-metro');
+                    }
                   }
                 }
               }
@@ -506,9 +505,8 @@ export default function PropertyDetails() {
             window.__googleMapsLoading = false;
             window.__googleMapsLoaded = true;
             
-            // Trigger autocomplete initialization if we're on step 1
-            if (currentStep === 1 && !formData.propertyStreetAddress && autocompleteInputRef.current) {
-              // Add a small delay for mobile devices
+            // Trigger autocomplete when on step 1 (including when editing a completed survey with existing address)
+            if (currentStep === 1 && autocompleteInputRef.current) {
               setTimeout(() => {
                 initializeAutocomplete();
               }, 200);
@@ -536,27 +534,23 @@ export default function PropertyDetails() {
     loadGoogleMapsScript();
   }, [currentStep, formData.propertyStreetAddress]);
 
-  // Initialize Google Places Autocomplete when component mounts and when on step 1
+  // Initialize Google Places Autocomplete when on step 1 (including when editing with existing address)
   useEffect(() => {
-    if (currentStep === 1 && !formData.propertyStreetAddress && !isManualEntry) {
-      // Wait for Google Maps API to load AND for the input to be rendered
+    if (currentStep === 1 && !isManualEntry) {
       const checkGoogleMaps = () => {
         if (typeof window !== 'undefined' && 
             (window.__googleMapsLoaded || (window.google && window.google.maps && window.google.maps.places)) && 
             autocompleteInputRef.current) {
           initializeAutocomplete();
         } else {
-          // Increase timeout for mobile devices
           const timeout = window.innerWidth < 768 ? 200 : 100;
           setTimeout(checkGoogleMaps, timeout);
         }
       };
-      
-      // Add initial delay for mobile devices to ensure proper rendering
       const initialDelay = window.innerWidth < 768 ? 300 : 100;
       setTimeout(checkGoogleMaps, initialDelay);
     }
-  }, [currentStep, formData.propertyStreetAddress, isManualEntry]);
+  }, [currentStep, isManualEntry]);
 
   // Reinitialize autocomplete when switching back from manual entry
   useEffect(() => {
@@ -746,9 +740,19 @@ export default function PropertyDetails() {
   };
 
   const goToBuyerDetails = () => {
-    // Move to buyer details when user presses next
     setDirection('forward');
     updateFormData('propertyDetailsComplete', true);
+    if (formData.editingFromReview) {
+      updateFormData('editingFromReview', false);
+      const missing = getMissingFields({ ...formData, propertyDetailsComplete: true });
+      if (missing.length > 0) {
+        updateFormData('additionalQuestionsFields', missing);
+        updateFormData('showAdditionalQuestions', true);
+        updateFormData('additionalQuestionsStep', 1);
+      }
+      updateFormData('showReviewPage', true);
+      return;
+    }
   };
 
   const prevStep = () => {
@@ -886,10 +890,10 @@ export default function PropertyDetails() {
       return (
         <div className="flex flex-col mt-8 md:mt-0 pr-2">
           <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
-            Basic Property Details Complete
+            {formData.editingFromReview ? 'Review of Basic Property Details Complete' : 'Basic Property Details Complete'}
           </h2>
           <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
-            Now a few questions about you... 
+            {formData.editingFromReview ? 'There may be some additional questions to answer based on your changes' : 'Now a few questions about you...'}
           </p>
         </div>
       );
@@ -1131,8 +1135,8 @@ export default function PropertyDetails() {
                     {...getInputButtonAnimation()}
                     className={`px-3 py-2 text-base font-medium rounded-lg border-2 text-center ${
                       formData.selectedState === state
-                        ? 'border-gray-800 bg-secondary text-white shadow-lg'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                        ? 'border-gray-800 cursor-pointer bg-secondary text-white shadow-lg'
+                        : 'border-gray-200 cursor-pointer text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     {state}
@@ -1180,8 +1184,8 @@ export default function PropertyDetails() {
                     {...getInputButtonAnimation()}
                     className={`py-2 px-3 rounded-lg border-2 flex flex-col items-center lg:items-start w-full ${
                       formData.isWA === option.value
-                        ? 'border-gray-800 bg-secondary text-white shadow-lg'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                        ? 'border-gray-800 cursor-pointer bg-secondary text-white shadow-lg'
+                        : 'border-gray-200 cursor-pointer text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     <div className="text-base font-medium mb-2 leading-none">{option.label}</div>
@@ -1254,8 +1258,8 @@ export default function PropertyDetails() {
                     {...getInputButtonAnimation()}
                     className={`py-3 px-3 rounded-lg border-2 flex justify-center w-32 ${
                       formData.propertyCategory === option.value
-                        ? 'border-gray-800 bg-secondary text-white shadow-lg'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                        ? 'border-gray-800 cursor-pointer bg-secondary text-white shadow-lg'
+                        : 'border-gray-200 cursor-pointer text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     <div className="text-base font-medium text-center">{option.label}</div>
@@ -1303,8 +1307,8 @@ export default function PropertyDetails() {
                       formData.propertyCategory === 'land' ? 'items-start' : 'items-center'
                     } ${
                       formData.propertyType === option.value
-                        ? 'border-gray-800 bg-secondary text-white shadow-lg'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                        ? 'border-gray-800 cursor-pointer bg-secondary text-white shadow-lg'
+                        : 'border-gray-200 cursor-pointer text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     <div className="text-base font-medium mb-2 leading-none">{option.label}</div>

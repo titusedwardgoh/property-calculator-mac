@@ -20,9 +20,16 @@ export default function Header() {
   // Re-check auth state when pathname changes (e.g., after login redirect)
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      // This will trigger the useAuth hook to update via onAuthStateChange
-      // We just need to ensure the session is checked
+      try {
+        await supabase.auth.getSession();
+        // This will trigger the useAuth hook to update via onAuthStateChange
+      } catch (err) {
+        // Ignore invalid refresh token errors - useAuth will redirect to login
+        const msg = err?.message || '';
+        if (!msg.includes('Refresh Token') && !msg.includes('refresh_token')) {
+          console.error('Auth check error:', err);
+        }
+      }
     };
     checkAuth();
   }, [pathname, supabase]);

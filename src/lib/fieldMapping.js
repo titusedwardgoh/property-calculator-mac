@@ -10,19 +10,19 @@ export const fieldLabels = {
   // Property fields
   propertyAddress: "Property Address",
   selectedState: "State",
-  propertyCategory: "Category",
-  propertyType: "Ownership Type",
+  propertyCategory: "Property Type",
+  propertyType: "New/Existing",
   propertyPrice: "Purchase Price",
   isWA: "WA Region",
   isWAMetro: "Metro Area",
   
   // Buyer fields
-  buyerType: "Buyer Entity",
-  isPPR: "Primary Residence",
-  isAustralianResident: "Residency Status",
+  buyerType: "Owner/Investor",
+  isPPR: "Principal Place of Residence",
+  isAustralianResident: "Australian Citizen/PR",
   isFirstHomeBuyer: "First Home Buyer",
   savingsAmount: "Available Savings",
-  needsLoan: "Finance Required",
+  needsLoan: "Loan Required",
   income: "Annual Income",
   dependants: "Dependants",
   ownedPropertyLast5Years: "Owned Property (5yrs)",
@@ -38,9 +38,9 @@ export const fieldLabels = {
   loanEstablishmentFee: "Bank Establishment Fee",
   
   // Seller fields
-  councilRates: "Council Rates",
-  waterRates: "Water Rates",
-  bodyCorp: "Body Corporate",
+  councilRates: "Annual Council Rates",
+  waterRates: "Annual Water Rates",
+  bodyCorp: "Annual Body Corporate",
   landTransferFee: "Land Transfer Fee",
   legalFees: "Legal Fees",
   buildingAndPestInspection: "Building/Pest Inspection",

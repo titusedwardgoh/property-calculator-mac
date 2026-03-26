@@ -63,7 +63,8 @@ export function getRequiredFields(formData) {
   // This prevents auto-suggested "no loan" from excluding fields before user confirms
   const isACT = formData.selectedState === 'ACT'
   const loanQuestionStep = isACT ? 10 : 7
-  const hasConfirmedLoanDecision = formData.buyerDetailsComplete || 
+  const hasConfirmedLoanDecision = formData.buyerDetailsComplete ||
+                                   formData.showReviewPage || // Trust the review page state
                                    (formData.buyerDetailsActiveStep > loanQuestionStep)
   
   // Only exclude loan fields if user has confirmed they don't need a loan
@@ -91,6 +92,36 @@ export function getRequiredFields(formData) {
   }
   
   return requiredFields
+}
+
+/**
+ * Loan term is complete when 1–30 years; for interest-only loans, interest-only period must also be valid (matches LoanDetails).
+ */
+function isLoanTermCompleteForProgress(formData) {
+  const term = formData.loanTerm
+  if (!isFieldAnswered(term)) return false
+  const t = parseInt(String(term), 10)
+  if (t < 1 || t > 30) return false
+  if (formData.loanType !== 'interest-only') return true
+  const ioRaw = formData.loanInterestOnlyPeriod
+  const io = parseInt(String(ioRaw ?? ''), 10) || 0
+  if (!ioRaw || ioRaw === '-') return false
+  return io >= 1 && io <= 5 && io <= t
+}
+
+/**
+ * Get field keys that are required but not yet answered (gaps for the Gap-Filler)
+ * @param {Object} formData - The current form state from Zustand store
+ * @returns {Array<string>} Array of required field keys where the value is empty/invalid
+ */
+export function getMissingFields(formData) {
+  const required = getRequiredFields(formData);
+  return required.filter((key) => {
+    if (key === 'loanTerm') {
+      return !isLoanTermCompleteForProgress(formData)
+    }
+    return !isFieldAnswered(formData[key])
+  })
 }
 
 /**
@@ -288,8 +319,13 @@ export function calculateGlobalProgress(formData, options = {}) {
       const isBuyerField = getBuyerFieldStep(fieldKey, formData) !== null
       const isSellerField = getSellerFieldStep(fieldKey, formData) !== null
       const value = formData[fieldKey]
-      
-      if (isFieldAnswered(value)) {
+
+      const fieldSatisfied =
+        fieldKey === 'loanTerm'
+          ? isLoanTermCompleteForProgress(formData)
+          : isFieldAnswered(value)
+
+      if (fieldSatisfied) {
         // For property detail fields, only count if user has passed that step
         if (isPropertyField) {
           if (isPropertyFieldPastStep(fieldKey, formData)) {

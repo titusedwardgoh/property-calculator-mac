@@ -165,6 +165,16 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
     });
   };
 
+  // Select all / unselect all based on current visible (sorted) list
+  const handleSelectAllChange = (visibleIds) => {
+    const allSelected = visibleIds.length > 0 && visibleIds.every(id => selectedProperties.has(id));
+    if (allSelected) {
+      setSelectedProperties(new Set());
+    } else {
+      setSelectedProperties(new Set(visibleIds));
+    }
+  };
+
   const handleBulkDelete = () => {
     if (selectedProperties.size === 0 || !user) return;
     
@@ -437,6 +447,18 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
               
               {/* Container with fixed height to prevent layout shift */}
               <div className="relative h-10 mb-6">
+                {/* Select-all checkbox - fixed position, not part of sliding animation */}
+                {sortedSurveys.length > 0 && (
+                  <label className="absolute right-6 top-0 bottom-0 flex items-center z-10 cursor-pointer select-none shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={sortedSurveys.every(s => selectedProperties.has(s.id))}
+                      onChange={() => handleSelectAllChange(sortedSurveys.map(s => s.id))}
+                      className="w-5 h-5 cursor-pointer text-primary border-gray-300 rounded focus:ring-0 focus:ring-offset-0 focus:outline-none"
+                      aria-label="Select or unselect all properties"
+                    />
+                  </label>
+                )}
                 {/* Search and Sort Bar - Hidden when properties are selected */}
                 <AnimatePresence mode="wait">
                   {selectedProperties.size === 0 && (
@@ -458,7 +480,7 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                           className="w-full h-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                         />
                       </div>
-                      <div className="relative">
+                      <div className="relative mr-14">
                         <button
                           onClick={() => setShowSortMenu(!showSortMenu)}
                           className="flex cursor-pointer items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
@@ -466,6 +488,7 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                         >
                           <ArrowUpDown className="w-5 h-5 text-gray-600" />
                         </button>
+                      </div>
                     
                     {/* Sort Dropdown Menu */}
                     <AnimatePresence>
@@ -537,7 +560,6 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                         </>
                       )}
                     </AnimatePresence>
-                  </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -555,7 +577,7 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                     >
                       <button
                         onClick={handleBulkDelete}
-                        className="flex cursor-pointer items-center justify-center gap-2 px-6 py-2 bg-error text-white rounded-lg hover:bg-error/90 transition-colors font-medium"
+                        className="flex cursor-pointer items-center justify-center gap-2 px-6 py-2 bg-error text-white rounded-lg hover:bg-error/90 transition-colors font-medium flex-shrink-0"
                       >
                         <Trash2 className="w-5 h-5 hidden sm:block" />
                         Delete {selectedProperties.size} {selectedProperties.size === 1 ? 'property' : 'properties'}
@@ -691,7 +713,7 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                                   e.stopPropagation();
                                   handleCheckboxChange(survey.id, e.target.checked);
                                 }}
-                                className="w-5 h-5 cursor-pointer text-primary border-gray-300 rounded focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                                className="w-5 h-5 cursor-pointer text-primary border-gray-300 rounded focus:ring-0 focus:ring-offset-0 focus:outline-none"
                                 onClick={(e) => e.stopPropagation()}
                               />
                             </div>

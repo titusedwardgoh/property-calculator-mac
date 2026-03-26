@@ -13,11 +13,13 @@ import LoanDetails from '../../components/LoanDetails';
 import SellerQuestions from '../../components/SellerQuestions';
 import WelcomePage from '../../components/WelcomePage';
 import ReviewSummary from '../../components/ReviewSummary';
+import AdditionalQuestions from '../../components/AdditionalQuestions';
 import SurveyHeaderOverlay from '../../components/SurveyHeaderOverlay';
 import NavigationWarning from '../../components/NavigationWarning';
 import EndOfSurveyPrompt from '../../components/EndOfSurveyPrompt';
 import EmailModal from '../../components/EmailModal';
 import { useFormStore } from '../../stores/formStore';
+import { getMissingFields, calculateGlobalProgress } from '../../lib/progressCalculation';
 import { useSupabaseSync } from '../../hooks/useSupabaseSync';
 import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency } from '../../states/shared/baseCalculations.js';
@@ -34,6 +36,7 @@ function CalculatorPageContent() {
     const searchParams = useSearchParams();
     const [isLoadingResume, setIsLoadingResume] = useState(false);
     const [isReturningToDashboard, setIsReturningToDashboard] = useState(false);
+    const [showReviewOverlay, setShowReviewOverlay] = useState(false);
     const [isEmailingPDF, setIsEmailingPDF] = useState(false);
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [showEmailSuccess, setShowEmailSuccess] = useState(false);
@@ -216,6 +219,8 @@ function CalculatorPageContent() {
                         updateFormData('sellerQuestionsComplete', true);
                         updateFormData('allFormsComplete', true);
                         updateFormData('showSummary', true);
+                        updateFormData('showReviewPage', false); // Land on All Forms Complete, not Review
+                        updateFormData('editingFromReview', false); // So Summary/Upfront/Ongoing dropdowns show
                     }
                     
                     console.log('✅ Form data updated from resume');
@@ -339,6 +344,10 @@ function CalculatorPageContent() {
     const sellerQuestionsComplete = formData.sellerQuestionsComplete;
     const allFormsComplete = formData.allFormsComplete;
     const showReviewPage = formData.showReviewPage;
+    const showAdditionalQuestions = formData.showAdditionalQuestions;
+    const editingFromReview = formData.editingFromReview;
+    const missingFields = getMissingFields(formData);
+    const showCostsSidebar = !showAdditionalQuestions && ((showReviewPage && missingFields.length === 0) || (allFormsComplete && !editingFromReview));
     const selectedState = formData.selectedState;
     const isACT = formData.isACT;
     const propertyType = formData.propertyType;
@@ -601,6 +610,16 @@ function CalculatorPageContent() {
                     </div>
                 </div>
             )}
+
+            {/* Overlay when clicking Review/Edit All Answers */}
+            {showReviewOverlay && (
+                <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+                        <p className="text-gray-600">Let&apos;s review your responses</p>
+                    </div>
+                </div>
+            )}
             
             {showWelcomePage && !isLoadingResume ? (
                 <WelcomePage />
@@ -630,6 +649,22 @@ function CalculatorPageContent() {
                                     transition={{ duration: 0.5, delay: 0.4 }}
                                     className="bg-primary h-1 transition-all duration-300 origin-top"
                                     style={{ width: `${(() => {
+                                        if (showReviewPage || editingFromReview) {
+                                            if (showAdditionalQuestions) {
+                                                const aqFields = formData.additionalQuestionsFields || [];
+                                                const frozen = { ...formData };
+                                                aqFields.forEach(k => { frozen[k] = ''; });
+                                                return calculateGlobalProgress(frozen, {});
+                                            }
+                                            if (missingFields.length === 0 && showReviewPage) {
+                                                return calculateGlobalProgress(formData, {});
+                                            }
+                                            const totalSections = needsLoan === 'yes' ? 4 : 3;
+                                            const propertyDone = propertyDetailsComplete || formData.propertyDetailsFormComplete;
+                                            let completeCount = (propertyDone ? 1 : 0) + (buyerDetailsComplete ? 1 : 0) + (sellerQuestionsComplete ? 1 : 0);
+                                            if (needsLoan === 'yes') completeCount += loanDetailsComplete ? 1 : 0;
+                                            return Math.round((completeCount / totalSections) * 100);
+                                        }
                                         if (!propertyDetailsComplete) return 0;
                                         if (!buyerDetailsComplete) return 25;
                                         if (buyerDetailsComplete && needsLoan === 'yes' && !loanDetailsComplete) return 50;
@@ -658,6 +693,15 @@ function CalculatorPageContent() {
                                     className="bg-primary h-1 transition-all duration-300 origin-top"
                                     style={{ width: `${(() => {
                                         let progress = 0;
+                                        
+                                        if (showReviewPage && !showAdditionalQuestions) return 0;
+                                        
+                                        if (showReviewPage && showAdditionalQuestions) {
+                                            const aqFields = formData.additionalQuestionsFields || [];
+                                            if (aqFields.length === 0) return 0;
+                                            const aqStep = formData.additionalQuestionsStep || 1;
+                                            return Math.round(((aqStep - 1) / aqFields.length) * 100);
+                                        }
                                         
                                         if (!propertyDetailsComplete) {
                                             // PropertyDetails progress - calculate based on display step and total steps
@@ -764,9 +808,9 @@ function CalculatorPageContent() {
                 </div>
 
                 <div className="flex flex-col md:flex-row">
-                    {/* Sidebar with costs - only on larger screens */}
+                    {/* Sidebar: Summary, Upfront and Ongoing Costs - only when on Review with no missing fields */}
+                    {showCostsSidebar && (
                     <div className="order-1 md:order-2 md:w-2/5 md:flex-shrink-0 md:p-6 md:rounded-r-lg md:mt-10">
-                        {/* Summary Component - appears when summary should be shown */}
                         <AnimatePresence>
                             {formData.showSummary && (
                                 <motion.div
@@ -780,8 +824,6 @@ function CalculatorPageContent() {
                                 </motion.div>
                             )}
                         </AnimatePresence>
-                        
-                        {/* Upfront and Ongoing Costs with layout animation */}
                         <motion.div
                             layout
                             transition={{ duration: 0.3, ease: "easeInOut" }}
@@ -796,28 +838,22 @@ function CalculatorPageContent() {
                             </div>
                         </motion.div>
                     </div>
+                    )}
                     
-                    {/* Main content area */}
+                    {/* Main content area - showReviewPage first so user stays on Review when branch resets create gaps */}
                     <div className="order-2 md:order-1 md:w-3/5">
-                        {showReviewPage ? (
-                            <ReviewSummary />
-                        ) : !propertyDetailsComplete ? (
-                            <PropertyDetails />
-                        ) : !buyerDetailsComplete ? (
-                            <BuyerDetails />
-                        ) : buyerDetailsComplete && showLoanDetails && !loanDetailsComplete ? (
-                            <LoanDetails />
-                        ) : buyerDetailsComplete && loanDetailsComplete && !showSellerQuestions ? (
-                            <LoanDetails />
-                        ) : buyerDetailsComplete && showSellerQuestions && !sellerQuestionsComplete ? (
-                            <SellerQuestions />
-                        ) : buyerDetailsComplete && sellerQuestionsComplete && !allFormsComplete ? (
-                            <SellerQuestions />
-                        ) : buyerDetailsComplete && !showLoanDetails && !showSellerQuestions && !formData.buyerDetailsCurrentStep ? (
-                            <BuyerDetails /> // This ensures BuyerDetails completion page remains visible
-                        ) : formData.buyerDetailsCurrentStep ? (
-                            <BuyerDetails /> // Show BuyerDetails when going back to a specific step
-                        ) : allFormsComplete ? (() => {
+                        {(() => {
+                            if (showReviewPage && showAdditionalQuestions) return <AdditionalQuestions />;
+                            if (showReviewPage) return <ReviewSummary />;
+                            if (!propertyDetailsComplete) return <PropertyDetails />;
+                            if (!buyerDetailsComplete) return <BuyerDetails />;
+                            if (buyerDetailsComplete && showLoanDetails && !loanDetailsComplete) return <LoanDetails />;
+                            if (buyerDetailsComplete && loanDetailsComplete && !showSellerQuestions) return <LoanDetails />;
+                            if (buyerDetailsComplete && showSellerQuestions && !sellerQuestionsComplete) return <SellerQuestions />;
+                            if (buyerDetailsComplete && sellerQuestionsComplete && !allFormsComplete && !editingFromReview) return <SellerQuestions />;
+                            if (buyerDetailsComplete && !showLoanDetails && !showSellerQuestions && !formData.buyerDetailsCurrentStep) return <BuyerDetails />;
+                            if (formData.buyerDetailsCurrentStep) return <BuyerDetails />;
+                            if (allFormsComplete) return (() => {
                             // Calculate stamp duty
                             const calculateStampDuty = () => {
                                 if (!stateFunctions || !formData.propertyPrice || !formData.selectedState || !formData.propertyType) {
@@ -1144,8 +1180,12 @@ function CalculatorPageContent() {
                                                         whileHover={{ scale: 1.05 }}
                                                         whileTap={{ scale: 0.95 }}
                                                         onClick={() => {
-                                                            formData.setShowReviewPage(true);
-                                                            window.scrollTo(0, 0);
+                                                            setShowReviewOverlay(true);
+                                                            setTimeout(() => {
+                                                                formData.setShowReviewPage(true);
+                                                                window.scrollTo(0, 0);
+                                                                setShowReviewOverlay(false);
+                                                            }, 2000);
                                                         }}
                                                         className="flex items-center cursor-pointer justify-center gap-2 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-lg font-medium shadow-sm transition-colors"
                                                     >
@@ -1204,7 +1244,9 @@ function CalculatorPageContent() {
                                 </motion.div>
                             </AnimatePresence>
                             );
-                        })() : null}
+                        })();
+                            return null;
+                        })()}
                     </div>
                 </div>
             </main>
