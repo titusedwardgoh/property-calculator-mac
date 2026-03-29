@@ -10,7 +10,71 @@ import { createClient } from '@/lib/supabase/client';
 import { useFormStore } from '@/stores/formStore';
 import { resetSessionAndForm } from '@/lib/sessionManager';
 
-export default function DashboardContent({ userEmail, userName, handleLogout }) {
+function SurveyInspectedToggle({ inspected, onToggle, compact }) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onToggle}
+      className={`relative inline-flex shrink-0 cursor-pointer items-center rounded-full focus:outline-none active:outline-none ${
+        compact ? 'h-6 w-12' : 'h-6 w-14'
+      }`}
+      animate={{
+        backgroundColor: inspected ? '#10b981' : '#ef4444',
+      }}
+      transition={{ duration: 0.3, ease: 'easeInOut' }}
+    >
+      <AnimatePresence>
+        {!inspected && (
+          <motion.span
+            key="no"
+            initial={{ opacity: 0, x: -5 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: 5 }}
+            transition={{ duration: 0.2 }}
+            className={`pointer-events-none absolute right-0 flex h-full items-center font-bold text-white z-10 ${
+              compact ? 'pr-2.5 text-[10px]' : 'pr-3 text-[10px]'
+            }`}
+          >
+            No
+          </motion.span>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {inspected && (
+          <motion.span
+            key="yes"
+            initial={{ opacity: 0, x: 5 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -5 }}
+            transition={{ duration: 0.2 }}
+            className={`pointer-events-none absolute left-0 flex h-full items-center font-bold text-white z-10 ${
+              compact ? 'pl-2 text-[10px]' : 'pl-2.5 text-[10px]'
+            }`}
+          >
+            Yes
+          </motion.span>
+        )}
+      </AnimatePresence>
+      <motion.span
+        className={`absolute rounded-full bg-white shadow-md ${
+          compact ? 'h-4 w-4' : 'h-4.5 w-4.5'
+        }`}
+        animate={{
+          left: inspected ? 'auto' : compact ? '0.15rem' : '0.225rem',
+          right: inspected ? (compact ? '0.125rem' : '0.155rem') : 'auto',
+        }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
+      />
+    </motion.button>
+  );
+}
+
+export default function DashboardContent({
+  userEmail,
+  userName,
+  profilePictureUrl,
+  handleLogout,
+}) {
   const [surveys, setSurveys] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState(null);
@@ -21,6 +85,7 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
   const [sortOption, setSortOption] = useState('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchPlaceholder, setSearchPlaceholder] = useState('Search by property address...');
   const [selectedProperties, setSelectedProperties] = useState(new Set());
   const router = useRouter();
   const { user } = useAuth();
@@ -30,6 +95,15 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
   useEffect(() => {
     loadSurveys();
   }, [user?.id]);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)');
+    const sync = () =>
+      setSearchPlaceholder(mq.matches ? 'Search address' : 'Search by property address...');
+    sync();
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
 
   const loadSurveys = async () => {
     if (!user) return;
@@ -307,11 +381,11 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
 
   const getCompletionStatus = (survey) => {
     if (survey.completion_status === 'complete') {
-      return { text: 'Completed', color: 'text-success', bg: 'bg-success/10' };
+      return { text: 'Survey Complete', color: 'text-success', bg: 'bg-success/10' };
     }
     const percentage = survey.completion_percentage || 0;
     return {
-      text: `${percentage}% Complete`,
+      text: `Survey ${percentage}% Complete`,
       color: 'text-warning',
       bg: 'bg-warning/10',
     };
@@ -377,7 +451,7 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
     <div className="min-h-screen bg-base-200">
       <main className="pb-24">
         {/* Hero Section */}
-        <section className="container bg-secondary mx-auto px-4 py-16 lg:py-20">
+        <section className="container bg-secondary mx-auto px-4 py-6 lg:py-10">
           <div className="max-w-3xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -385,15 +459,27 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
               transition={{ duration: 0.6, ease: "easeOut" }}
               className="flex items-center justify-center mb-6"
             >
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary">
-                <User className="w-8 h-8" />
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary overflow-hidden shrink-0 ring-2 ring-base-100/20">
+                {profilePictureUrl ? (
+                  <img
+                    src={profilePictureUrl}
+                    alt={
+                      userName || userEmail
+                        ? `Profile photo of ${userName || userEmail}`
+                        : 'Profile photo'
+                    }
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <User className="w-8 h-8" aria-hidden />
+                )}
               </div>
             </motion.div>
             <motion.h1
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-              className="text-4xl md:text-5xl font-bold text-base-100 leading-tight mb-6"
+              className="text-4xl md:text-5xl font-bold text-base-100 leading-tight mb-2"
             >
               Dashboard
             </motion.h1>
@@ -401,7 +487,7 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-              className="text-lg md:text-xl text-base-100 mb-8"
+              className="text-lg md:text-xl text-base-100 mb-1"
             >
               Welcome back, {userName || userEmail}
             </motion.p>
@@ -474,7 +560,7 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <input
                           type="text"
-                          placeholder="Search by property address..."
+                          placeholder={searchPlaceholder}
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           className="w-full h-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
@@ -573,21 +659,45 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
                       transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex items-center gap-3"
+                      className="absolute inset-0 flex items-center gap-3 pr-14"
                     >
                       <button
+                        type="button"
                         onClick={handleBulkDelete}
-                        className="flex cursor-pointer items-center justify-center gap-2 px-6 py-2 bg-error text-white rounded-lg hover:bg-error/90 transition-colors font-medium flex-shrink-0"
+                        aria-label={`Delete ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`}
+                        className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-error px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-white transition-colors hover:bg-error/90 sm:h-auto sm:min-h-0 sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
                       >
-                        <Trash2 className="w-5 h-5 hidden sm:block" />
-                        Delete {selectedProperties.size} {selectedProperties.size === 1 ? 'property' : 'properties'}
+                        <Trash2 className="hidden h-5 w-5 shrink-0 sm:block" />
+                        <span className="flex flex-col sm:hidden">
+                          <span>Delete</span>
+                          <span>
+                            {selectedProperties.size}{' '}
+                            {selectedProperties.size === 1 ? 'property' : 'properties'}
+                          </span>
+                        </span>
+                        <span className="hidden sm:inline">
+                          Delete {selectedProperties.size}{' '}
+                          {selectedProperties.size === 1 ? 'property' : 'properties'}
+                        </span>
                       </button>
                       <button
+                        type="button"
                         onClick={handleBulkInspected}
-                        className="flex cursor-pointer items-center justify-center gap-2 px-6 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors font-medium"
+                        aria-label={`Mark ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'} as inspected`}
+                        className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-primary px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-secondary transition-colors hover:bg-primary-focus sm:h-auto sm:min-h-0 sm:w-auto sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
                       >
-                        <Eye className="w-5 h-5 hidden sm:block" />
-                        Inspected {selectedProperties.size} {selectedProperties.size === 1 ? 'property' : 'properties'}
+                        <span className="flex flex-col sm:hidden">
+                          <span>Inspect</span>
+                          <span>
+                            {selectedProperties.size}{' '}
+                            {selectedProperties.size === 1 ? 'property' : 'properties'}
+                          </span>
+                        </span>
+                        <Eye className="hidden h-5 w-5 shrink-0 sm:block" aria-hidden />
+                        <span className="hidden sm:inline sm:text-base">
+                          Inspected {selectedProperties.size}{' '}
+                          {selectedProperties.size === 1 ? 'property' : 'properties'}
+                        </span>
                       </button>
                     </motion.div>
                   )}
@@ -626,11 +736,33 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                         transition={{ duration: 0.4, delay: index * 0.1 }}
                         className="border border-secondary rounded-xl p-6 hover:shadow-md transition-all"
                       >
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                          <div className="flex-1 min-w-0">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-2 max-w-2xl">
+                        <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-4 sm:grid-rows-[auto_1fr] sm:gap-x-4 sm:gap-y-2">
+                          <div className="col-start-1 row-start-1 min-w-0 self-start pr-1 sm:pr-0">
+                            <div className="mb-2 flex flex-wrap items-start gap-x-2 gap-y-1 sm:items-center">
+                              <h3 className="text-base font-semibold leading-snug text-gray-900 [overflow-wrap:anywhere] sm:text-lg sm:leading-normal">
                                 {survey.property_address || `Survey ${index + 1}`}
                               </h3>
+                              <span
+                                className={`inline-flex shrink-0 px-3 py-1 text-xs font-medium whitespace-nowrap rounded-full ${status.color} ${status.bg}`}
+                              >
+                                {status.text}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="col-start-2 row-start-1 justify-self-end self-start">
+                            <input
+                              type="checkbox"
+                              checked={selectedProperties.has(survey.id)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                handleCheckboxChange(survey.id, e.target.checked);
+                              }}
+                              className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border-gray-300 text-primary focus:outline-none focus:ring-0 focus:ring-offset-0 sm:mt-0"
+                              onClick={(e) => e.stopPropagation()}
+                              aria-label={`Select survey ${survey.property_address || index + 1}`}
+                            />
+                          </div>
+                          <div className="col-span-2 row-start-2 min-w-0 sm:col-span-1 sm:col-start-1 sm:row-start-2">
                             <div className="text-sm text-gray-600 space-y-1">
                               {survey.property_price && (
                                 <p>Property Price: ${survey.property_price.toLocaleString()}</p>
@@ -639,113 +771,65 @@ export default function DashboardContent({ userEmail, userName, handleLogout }) 
                                 <p>State: {survey.selected_state}</p>
                               )}
                               <p>Last updated: {formatDate(survey.updated_at)}</p>
-                              {/* Inspected Toggle */}
-                              <div className="flex items-center gap-2 mt-2">
+                              <div className="mt-2 hidden items-center gap-2 sm:flex">
                                 <span className="text-sm text-gray-600">Inspected:</span>
-                                <motion.button
-                                  onClick={(e) => {
+                                <SurveyInspectedToggle
+                                  inspected={!!survey.inspected}
+                                  compact={false}
+                                  onToggle={(e) => {
                                     e.stopPropagation();
                                     handleToggleInspected(survey.id, survey.inspected || false);
                                   }}
-                                  className={`relative inline-flex items-center h-6 cursor-pointer rounded-full w-14 focus:outline-none active:outline-none ${
-                                    survey.inspected 
-                                      ? 'bg-green-500' 
-                                      : 'bg-red-500'
-                                  }`}
-                                  animate={{
-                                    backgroundColor: survey.inspected ? '#10b981' : '#ef4444'
-                                  }}
-                                  transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                >
-                                  {/* NO text - shows on right when handle is on left (off state) */}
-                                  <AnimatePresence>
-                                    {!survey.inspected && (
-                                      <motion.span
-                                        key="no"
-                                        initial={{ opacity: 0, x: -5 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 5 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="absolute right-0 pr-3 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
-                                      >
-                                        No
-                                      </motion.span>
-                                    )}
-                                  </AnimatePresence>
-                                  {/* YES text - shows on left when handle is on right (on state) */}
-                                  <AnimatePresence>
-                                    {survey.inspected && (
-                                      <motion.span
-                                        key="yes"
-                                        initial={{ opacity: 0, x: 5 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: -5 }}
-                                        transition={{ duration: 0.2 }}
-                                        className="absolute left-0 pl-2.5 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
-                                      >
-                                        Yes
-                                      </motion.span>
-                                    )}
-                                  </AnimatePresence>
-                                  {/* White circle handle */}
-                                  <motion.span
-                                    className="absolute h-4.5 w-4.5 rounded-full bg-white shadow-md"
-                                    animate={{
-                                      left: survey.inspected ? 'auto' : '0.225rem',
-                                      right: survey.inspected ? '0.155rem' : 'auto'
-                                    }}
-                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                  />
-                                </motion.button>
+                                />
                               </div>
                             </div>
                           </div>
-                          
-                          <div className="flex flex-col items-end justify-between gap-2 sm:flex-shrink-0 sm:self-stretch">
-                          <div className="flex items-center gap-2">
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${status.color} ${status.bg}`}>
-                                {status.text}
-                              </span>
-                              <input
-                                type="checkbox"
-                                checked={selectedProperties.has(survey.id)}
-                                onChange={(e) => {
-                                  e.stopPropagation();
-                                  handleCheckboxChange(survey.id, e.target.checked);
-                                }}
-                                className="w-5 h-5 cursor-pointer text-primary border-gray-300 rounded focus:ring-0 focus:ring-offset-0 focus:outline-none"
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                            </div>
-                            <div className="flex items-center gap-2 mt-auto">
-                            {isComplete ? (
-                              <button
-                                onClick={() => handleResume(survey.id)}
-                                  className="flex cursor-pointer items-center gap-2 px-7 py-2 bg-primary/10 text-primary rounded-full hover:bg-primary/20 transition-colors"
-                              >
-                                <Eye className="w-4 h-4" />
-                                View
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => handleResume(survey.id)}
-                                className="flex cursor-pointer items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-focus text-secondary rounded-full transition-all hover:shadow-lg"
-                              >
-                                <Play className="w-4 h-4" />
-                                Resume
-                              </button>
-                            )}
-                            <button
-                              onClick={(e) => handleDeleteClick(survey.id, e)}
-                              disabled={deletingId === survey.id}
-                              className="flex cursor-pointer items-center gap-2 px-4 py-2 bg-error/10 text-error rounded-full hover:bg-error/20 transition-colors disabled:opacity-50"
-                            >
-                              {deletingId === survey.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
+                          <div className="col-span-2 row-start-3 justify-self-stretch sm:col-span-1 sm:col-start-2 sm:row-start-2 sm:flex sm:h-full sm:min-h-0 sm:justify-self-end sm:self-stretch sm:items-end">
+                            <div className="flex w-full min-w-0 flex-nowrap items-center gap-2 sm:w-auto sm:justify-end sm:gap-2">
+                              <div className="flex min-w-0 flex-1 items-center gap-1.5 sm:hidden">
+                                <span className="shrink-0 text-sm font-medium text-gray-600">
+                                  Inspected:
+                                </span>
+                                <SurveyInspectedToggle
+                                  inspected={!!survey.inspected}
+                                  compact
+                                  onToggle={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleInspected(survey.id, survey.inspected || false);
+                                  }}
+                                />
+                              </div>
+                              {isComplete ? (
+                                <button
+                                  onClick={() => handleResume(survey.id)}
+                                  type="button"
+                                  className="flex shrink-0 cursor-pointer items-center justify-center gap-0 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/20 transition-colors sm:gap-2 sm:px-7 sm:py-2 sm:text-base"
+                                >
+                                  <Eye className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden />
+                                  View
+                                </button>
                               ) : (
-                                <Trash2 className="w-4 h-4" />
+                                <button
+                                  onClick={() => handleResume(survey.id)}
+                                  type="button"
+                                  className="flex shrink-0 cursor-pointer items-center justify-center gap-0 rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-secondary transition-all hover:bg-primary-focus hover:shadow-lg sm:gap-2 sm:px-4 sm:py-2 sm:text-base"
+                                >
+                                  <Play className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden />
+                                  Resume
+                                </button>
                               )}
-                            </button>
+                              <button
+                                type="button"
+                                onClick={(e) => handleDeleteClick(survey.id, e)}
+                                disabled={deletingId === survey.id}
+                                className="flex shrink-0 cursor-pointer items-center gap-0 rounded-full bg-error/10 px-3 py-2 text-error hover:bg-error/20 transition-colors disabled:opacity-50 sm:gap-2 sm:px-4 sm:py-2"
+                              >
+                                {deletingId === survey.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin sm:h-4 sm:w-4" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4 sm:h-4 sm:w-4" />
+                                )}
+                              </button>
                             </div>
                           </div>
                         </div>

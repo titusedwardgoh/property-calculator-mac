@@ -1,26 +1,55 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useFormStore } from '../stores/formStore';
 import { createNewSession } from '../lib/sessionManager';
 import Image from 'next/image';
 
+const LOADING_QUESTIONS_MS = 1500;
+const HERE_WE_GO_MS = 1500;
+
 export default function WelcomePage() {
-    const formData = useFormStore();
     const updateFormData = useFormStore(state => state.updateFormData);
     const resetForm = useFormStore(state => state.resetForm);
     const [isExiting, setIsExiting] = useState(false);
+    const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
+    const [overlayPhase, setOverlayPhase] = useState('loading'); // 'loading' | 'here'
+    const transitionTimeoutsRef = useRef([]);
 
-    const handleGetStarted = () => {
+    const clearTransitionTimeouts = useCallback(() => {
+        transitionTimeoutsRef.current.forEach(clearTimeout);
+        transitionTimeoutsRef.current = [];
+    }, []);
+
+    const handleGetStarted = useCallback(() => {
+        if (showLoadingOverlay) return;
+
+        setShowLoadingOverlay(true);
+        setOverlayPhase('loading');
         setIsExiting(true);
-        // Clear all form data and start fresh
         resetForm();
-        // Create a new session ID for this survey attempt
         createNewSession();
-        // Delay the actual navigation to allow exit animation to complete
-        setTimeout(() => {
-            updateFormData('showWelcomePage', false);
-        }, 500); // Match the exit animation duration
-    };
+
+        clearTransitionTimeouts();
+
+        transitionTimeoutsRef.current.push(
+            setTimeout(() => {
+                setOverlayPhase('here');
+            }, LOADING_QUESTIONS_MS)
+        );
+
+        transitionTimeoutsRef.current.push(
+            setTimeout(() => {
+                updateFormData('showWelcomePage', false);
+            }, LOADING_QUESTIONS_MS + HERE_WE_GO_MS)
+        );
+    }, [
+        showLoadingOverlay,
+        resetForm,
+        updateFormData,
+        clearTransitionTimeouts,
+    ]);
+
+    useEffect(() => () => clearTransitionTimeouts(), [clearTransitionTimeouts]);
 
     // Handle Enter key press
     useEffect(() => {
@@ -38,6 +67,36 @@ export default function WelcomePage() {
 
     return (
         <div className="mt-40 ml-0 md:ml-10 bg-base-200">
+            {showLoadingOverlay && (
+                <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+                    <div className="text-center min-h-[2.5rem] flex flex-col items-center justify-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+                        <AnimatePresence mode="wait">
+                            {overlayPhase === 'loading' ? (
+                                <motion.p
+                                    key="loading"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="text-gray-600"
+                                >
+                                    Loading questions
+                                </motion.p>
+                            ) : (
+                                <motion.p
+                                    key="here"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="text-gray-600"
+                                >
+                                    Here we go!
+                                </motion.p>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </div>
+            )}
             <main className="container mx-auto px-4 py-4 lg:py-10 max-w-7xl">
                 <div className="flex flex-col md:flex-row">
                     {/* Main content area */}

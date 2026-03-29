@@ -1,196 +1,153 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
-const IDLE_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours in milliseconds
-const WARNING_TIME = 1 * 60 * 1000; // 1 minute before logout (warning shown at 1h 59m)
+const IDLE_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours
+const WARNING_TIME = 1 * 60 * 1000; // warning in the final minute before logout
+const STORAGE_KEY = "propwiz_last_activity";
+const ACTIVITY_DEBOUNCE_MS = 1500; // 1–2s: avoid hammering localStorage
+const HEARTBEAT_MS = 30 * 1000;
 
-// Debounce function to limit how often we reset the timer
 function debounce(func, wait) {
   let timeout;
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout);
-      func(...args);
-    };
+  const executedFunction = (...args) => {
     clearTimeout(timeout);
-    timeout = setTimeout(later, wait);
+    timeout = setTimeout(() => func(...args), wait);
   };
+  executedFunction.cancel = () => clearTimeout(timeout);
+  return executedFunction;
+}
+
+function readStoredActivityMs() {
+  if (typeof window === "undefined") return null;
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw == null) return null;
+  const n = parseInt(raw, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+function writeStoredActivityMs(ts = Date.now()) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(STORAGE_KEY, String(ts));
 }
 
 export function useIdleTimeout(user, onWarning, onLogout) {
   const router = useRouter();
-  const timeoutRef = useRef(null);
-  const warningTimeoutRef = useRef(null);
-  const lastActivityRef = useRef(Date.now());
-  const warningShownRef = useRef(false);
   const supabase = createClient();
+  const warningShownRef = useRef(false);
+  const logoutInProgressRef = useRef(false);
+  const debouncedRecordRef = useRef(null);
+  const callbacksRef = useRef({ onWarning, onLogout });
 
-  // Reset idle timer on user activity
-  const resetIdleTimer = useCallback(() => {
-    if (!user) return; // Only track for authenticated users
+  callbacksRef.current = { onWarning, onLogout };
 
-    const now = Date.now();
-    lastActivityRef.current = now;
-    warningShownRef.current = false;
-
-    // Clear existing timeouts
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+  const performLogout = useCallback(async () => {
+    if (logoutInProgressRef.current) return;
+    logoutInProgressRef.current = true;
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      await supabase.auth.signOut();
+      callbacksRef.current.onLogout?.();
+      router.push("/login");
+    } catch (error) {
+      console.error("Auto-logout error:", error);
+      router.push("/login");
     }
-    if (warningTimeoutRef.current) {
-      clearTimeout(warningTimeoutRef.current);
-      warningTimeoutRef.current = null;
-    }
+  }, [router, supabase]);
 
-    // Set warning timeout (1 minute before logout)
-    warningTimeoutRef.current = setTimeout(() => {
-      if (onWarning) {
-        warningShownRef.current = true;
-        onWarning();
-      }
-    }, IDLE_TIMEOUT - WARNING_TIME);
+  /** Wall clock vs persisted last activity (reliable after sleep — setTimeout is not). */
+  const checkActivity = useCallback(() => {
+    if (!user) return;
 
-    // Set logout timeout
-    timeoutRef.current = setTimeout(async () => {
-      // Perform logout
-      try {
-        await fetch('/api/auth/logout', { method: 'POST' });
-        await supabase.auth.signOut();
-        if (onLogout) {
-          onLogout();
-        }
-        router.push('/login');
-      } catch (error) {
-        console.error('Auto-logout error:', error);
-        // Force redirect even if logout fails
-        router.push('/login');
-      }
-    }, IDLE_TIMEOUT);
-  }, [user, onWarning, onLogout, router, supabase]);
+    const stored = readStoredActivityMs();
+    const last = stored ?? Date.now();
+    const elapsed = Date.now() - last;
 
-  // Handle user staying logged in (from warning modal)
-  const stayLoggedIn = useCallback(() => {
-    resetIdleTimer();
-  }, [resetIdleTimer]);
-
-  // Create debounced activity handler using ref to persist across renders
-  const debouncedResetRef = useRef(null);
-  
-  useEffect(() => {
-    // Create debounced function that calls resetIdleTimer
-    debouncedResetRef.current = debounce(() => {
-      resetIdleTimer();
-    }, 1000); // Debounce to 1 second
-    
-    return () => {
-      // Cleanup on unmount
-      if (debouncedResetRef.current) {
-        // Clear any pending debounced calls
-        debouncedResetRef.current.cancel?.();
-      }
-    };
-  }, [resetIdleTimer]);
-
-  useEffect(() => {
-    if (!user) {
-      // Clear timeouts if user logs out
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
-      if (warningTimeoutRef.current) {
-        clearTimeout(warningTimeoutRef.current);
-        warningTimeoutRef.current = null;
-      }
+    if (elapsed >= IDLE_TIMEOUT) {
+      performLogout();
       return;
     }
 
-    // Initialize timer on mount
-    resetIdleTimer();
-
-    // Track mouse movements (debounced)
-    const handleMouseMove = () => {
-      if (debouncedResetRef.current) {
-        debouncedResetRef.current();
+    if (elapsed >= IDLE_TIMEOUT - WARNING_TIME) {
+      const cb = callbacksRef.current.onWarning;
+      if (cb && !warningShownRef.current) {
+        warningShownRef.current = true;
+        cb();
       }
-    };
-    
-    // Track clicks
-    const handleClick = () => {
-      resetIdleTimer();
-    };
-    
-    // Track keyboard input
-    const handleKeyDown = () => {
-      resetIdleTimer();
-    };
-    
-    // Track scrolling (debounced)
-    const handleScroll = () => {
-      if (debouncedResetRef.current) {
-        debouncedResetRef.current();
-      }
-    };
-    
-    // Track page visibility (when tab becomes visible again)
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        // When tab becomes visible again, check if user has been inactive for the full timeout
-        // Only log out if they've been inactive for the ENTIRE timeout period
-        const timeSinceLastActivity = Date.now() - lastActivityRef.current;
-        if (timeSinceLastActivity >= IDLE_TIMEOUT) {
-          // User has been away for the full timeout period, log them out
-          supabase.auth.signOut().then(() => {
-            router.push('/login');
-          });
-        } else {
-          // Reset timer if they haven't been away too long
-          // This allows users to switch tabs/websites and come back without being logged out
-          resetIdleTimer();
-        }
-      } else {
-        // Tab is hidden - don't do anything, let the idle timeout handle it
-        // The timer will continue running and log out if they're inactive for 2 hours
-      }
-    };
-    
-    // Track window focus
-    const handleFocus = () => {
-      resetIdleTimer();
-    };
+    } else {
+      warningShownRef.current = false;
+    }
+  }, [user, performLogout]);
 
-    // Add event listeners
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mousedown', handleClick);
-    window.addEventListener('click', handleClick);
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('scroll', handleScroll, true); // Use capture phase for all scroll events
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
+  const stayLoggedIn = useCallback(() => {
+    if (!user) return;
+    writeStoredActivityMs();
+    warningShownRef.current = false;
+  }, [user]);
 
-    // Cleanup
+  useEffect(() => {
+    debouncedRecordRef.current = debounce(() => {
+      if (!user) return;
+      writeStoredActivityMs();
+      warningShownRef.current = false;
+    }, ACTIVITY_DEBOUNCE_MS);
+
     return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mousedown', handleClick);
-      window.removeEventListener('click', handleClick);
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('scroll', handleScroll, true);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-      
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+      debouncedRecordRef.current?.cancel?.();
+    };
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) {
+      debouncedRecordRef.current?.cancel?.();
+      if (typeof window !== "undefined") {
+        localStorage.removeItem(STORAGE_KEY);
       }
-      if (warningTimeoutRef.current) {
-        clearTimeout(warningTimeoutRef.current);
+      warningShownRef.current = false;
+      logoutInProgressRef.current = false;
+      return;
+    }
+
+    if (typeof window !== "undefined" && readStoredActivityMs() === null) {
+      writeStoredActivityMs();
+    }
+
+    const bumpDebounced = () => debouncedRecordRef.current?.();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        checkActivity();
       }
     };
-  }, [user, resetIdleTimer, router, supabase]);
+
+    const handleFocus = () => {
+      checkActivity();
+    };
+
+    window.addEventListener("mousemove", bumpDebounced);
+    window.addEventListener("mousedown", bumpDebounced);
+    window.addEventListener("click", bumpDebounced);
+    window.addEventListener("keydown", bumpDebounced);
+    window.addEventListener("scroll", bumpDebounced, true);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("focus", handleFocus);
+
+    checkActivity();
+    const heartbeat = window.setInterval(checkActivity, HEARTBEAT_MS);
+
+    return () => {
+      window.removeEventListener("mousemove", bumpDebounced);
+      window.removeEventListener("mousedown", bumpDebounced);
+      window.removeEventListener("click", bumpDebounced);
+      window.removeEventListener("keydown", bumpDebounced);
+      window.removeEventListener("scroll", bumpDebounced, true);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("focus", handleFocus);
+      window.clearInterval(heartbeat);
+    };
+  }, [user, checkActivity]);
 
   return { stayLoggedIn };
 }
-

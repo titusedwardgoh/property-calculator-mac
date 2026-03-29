@@ -13,15 +13,21 @@ export default async function DashboardPage() {
   // Load user profile to get name - non-blocking (won't delay page render if it fails)
   // Profile query is wrapped in try-catch to ensure failures don't block page render
   let userName = null;
+  let profilePictureUrl = null;
   try {
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('first_name, last_name')
+      .select('first_name, last_name, profile_picture_url')
       .eq('id', user.id)
       .single();
 
-    if (!profileError && profile && profile.first_name && profile.last_name) {
-      userName = `${profile.first_name} ${profile.last_name}`;
+    if (!profileError && profile) {
+      if (profile.first_name && profile.last_name) {
+        userName = `${profile.first_name} ${profile.last_name}`;
+      }
+      if (profile.profile_picture_url) {
+        profilePictureUrl = profile.profile_picture_url;
+      }
     }
   } catch (error) {
     // If profile doesn't exist or error, userName will remain null
@@ -36,6 +42,13 @@ export default async function DashboardPage() {
     redirect('/login');
   };
 
-  return <DashboardContent userEmail={user.email} userName={userName} handleLogout={handleLogout} />;
+  return (
+    <DashboardContent
+      userEmail={user.email}
+      userName={userName}
+      profilePictureUrl={profilePictureUrl}
+      handleLogout={handleLogout}
+    />
+  );
 }
 
