@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFormStore } from '../stores/formStore';
 import { getRequiredFields, getMissingFields, calculateGlobalProgress } from '../lib/progressCalculation';
-import { getFieldLabel, formatFieldValue } from '../lib/fieldMapping';
+import { getFieldLabel, formatFieldValue, parsePropertyAddressForReview } from '../lib/fieldMapping';
 import ReviewGapFiller from './ReviewGapFiller';
 
 export default function ReviewSummary() {
@@ -124,16 +124,58 @@ export default function ReviewSummary() {
     }, 3500);
   };
   
+  /** Property section rows: split address into street / suburb / postcode when parseable. */
+  const buildPropertyReviewRows = (fields) => {
+    const rows = [];
+    const parsed =
+      fields.includes('propertyAddress') && formData.propertyAddress
+        ? parsePropertyAddressForReview(formData.propertyAddress)
+        : null;
+
+    if (fields.includes('propertyAddress')) {
+      if (parsed) {
+        rows.push({ key: 'propertyAddress-street', label: 'Property Address', value: parsed.street });
+        rows.push({ key: 'propertyAddress-suburb', label: 'Suburb', value: parsed.suburb });
+        rows.push({ key: 'propertyAddress-postcode', label: 'Postcode', value: parsed.postcode });
+      } else {
+        rows.push({
+          key: 'propertyAddress',
+          label: getFieldLabel('propertyAddress'),
+          value: formatFieldValue('propertyAddress', formData.propertyAddress),
+        });
+      }
+    }
+
+    for (const field of fields) {
+      if (field === 'propertyAddress') continue;
+      rows.push({
+        key: field,
+        label: getFieldLabel(field),
+        value: formatFieldValue(field, formData[field]),
+      });
+    }
+    return rows;
+  };
+
   // Render section card
   const renderSection = (title, fields, onEdit, index) => {
     if (fields.length === 0) return null;
-    
+
+    const rows =
+      title === 'Property Details'
+        ? buildPropertyReviewRows(fields)
+        : fields.map((field) => ({
+            key: field,
+            label: getFieldLabel(field),
+            value: formatFieldValue(field, formData[field]),
+          }));
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 + (index * 0.1), ease: "easeOut" }}
-        className="border border-gray-200 rounded-lg p-6 mb-6 bg-white shadow-sm"
+        className="border border-gray-200 rounded-lg p-4 sm:p-5 md:p-6 mb-6 bg-white shadow-sm"
       >
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-semibold text-gray-800">{title}</h3>
@@ -147,17 +189,17 @@ export default function ReviewSummary() {
           </motion.button>
         </div>
         <div className="space-y-3">
-          {fields.map((field, fieldIndex) => (
+          {rows.map((row, fieldIndex) => (
             <motion.div
-              key={field}
+              key={row.key}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4, delay: 0.3 + (index * 0.1) + (fieldIndex * 0.05), ease: "easeOut" }}
               className="flex justify-between items-center py-2 border-b border-gray-100 last:border-b-0"
             >
               <span className="text-gray-600 flex items-center gap-2">
-                {getFieldLabel(field)}
-                {field === 'needsLoan' && (
+                {row.label}
+                {row.key === 'needsLoan' && (
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -168,7 +210,7 @@ export default function ReviewSummary() {
                   </motion.button>
                 )}
               </span>
-              <span className="text-gray-900 font-medium text-right">{formatFieldValue(field, formData[field])}</span>
+              <span className="text-gray-900 font-medium text-right">{row.value}</span>
             </motion.div>
           ))}
         </div>
@@ -225,7 +267,7 @@ export default function ReviewSummary() {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.5, ease: "easeInOut" }}
-        className="max-w-4xl mx-auto p-6"
+        className="max-w-4xl mx-auto py-6 px-3 sm:px-4 md:p-6"
       >
         <ReviewGapFiller missingFields={missingFields} />
 
@@ -233,7 +275,7 @@ export default function ReviewSummary() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-          className="mb-8"
+          className="mb-8 mt-8 md:mt-0"
         >
           <h2 className="text-3xl font-bold text-gray-900 mb-2">Review Your Information</h2>
           <p className="text-gray-600">Please review your information below. Click Edit on any section to make changes.</p>
@@ -242,7 +284,7 @@ export default function ReviewSummary() {
         {renderSection('Property Details', propertyFieldsToShow, handlePropertyEdit, 0)}
         {renderSection('Your Information', buyerFieldsToShow, handleBuyerEdit, 1)}
         {renderSection('Loan Details', loanFieldsToShow, handleLoanEdit, 2)}
-        {renderSection('Additional Hidden Costs', sellerFieldsToShow, handleSellerEdit, 3)}
+        {renderSection('Additional Costs', sellerFieldsToShow, handleSellerEdit, 3)}
         
         <motion.div
           initial={{ opacity: 0, y: 20 }}

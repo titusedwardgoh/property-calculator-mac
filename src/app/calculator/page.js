@@ -631,7 +631,7 @@ function CalculatorPageContent() {
                     </div>
                 </div>
             ) : (
-                <main className="container mx-auto px-4 py-4 lg:py-10 max-w-7xl">
+                <main className="container mx-auto px-3 sm:px-4 py-4 lg:py-10 max-w-7xl">
                 {/* Progress Bars - above questions on larger screens */}
                 <div className="hidden md:block mb-0 md:w-[57%]">
                     <div className="space-y-4 ml-10">

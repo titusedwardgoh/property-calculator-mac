@@ -60,14 +60,21 @@ export function useIdleTimeout(user, onWarning, onLogout) {
   /**
    * Wall-clock check (localStorage). Timestamps frozen while the machine sleeps;
    * timers do not — use this on visibility, focus, interval, and mount.
-   * Null / missing storage → last = 0 → forces logout (no ghost sessions).
+   * Missing / null storage: baseline this session (do not logout — avoids login ↔ app loops).
    */
   const checkActivity = useCallback(() => {
     if (!user) return;
 
+    hadAuthenticatedUserRef.current = true;
+
     const stored = readStoredActivityMs();
-    const last = stored === null ? 0 : stored;
-    const elapsed = Date.now() - last;
+    if (stored === null) {
+      syncActivityTimestamp();
+      warningShownRef.current = false;
+      return;
+    }
+
+    const elapsed = Date.now() - stored;
 
     if (elapsed >= IDLE_TIMEOUT) {
       void performLogout();
@@ -93,6 +100,10 @@ export function useIdleTimeout(user, onWarning, onLogout) {
 
   useLayoutEffect(() => {
     if (!user) return;
+    hadAuthenticatedUserRef.current = true;
+    if (readStoredActivityMs() === null) {
+      syncActivityTimestamp();
+    }
     checkActivity();
   }, [user, checkActivity]);
 
@@ -121,6 +132,9 @@ export function useIdleTimeout(user, onWarning, onLogout) {
     }
 
     hadAuthenticatedUserRef.current = true;
+    if (readStoredActivityMs() === null) {
+      syncActivityTimestamp();
+    }
 
     const bumpDebounced = () => debouncedRecordRef.current?.();
 

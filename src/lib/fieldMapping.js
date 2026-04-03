@@ -119,6 +119,38 @@ function formatCurrency(amount) {
 }
 
 /**
+ * Split a typical AU-formatted single-line address for review display.
+ * e.g. "123 Pitt St, Redfern NSW 2016" → street, suburb, postcode (state is shown via selectedState).
+ */
+export function parsePropertyAddressForReview(fullAddress) {
+  if (fullAddress == null || String(fullAddress).trim() === "") return null;
+  const s = String(fullAddress).trim();
+
+  const comma = s.match(/^(.+?),\s*(.+?)\s+([A-Z]{2,3})\s+(\d{4})\s*$/);
+  if (comma) {
+    return {
+      street: comma[1].trim(),
+      suburb: comma[2].trim(),
+      postcode: comma[4],
+    };
+  }
+
+  const tail = s.match(/\s+([A-Z]{2,3})\s+(\d{4})\s*$/);
+  if (tail) {
+    const before = s.slice(0, tail.index).trim();
+    const postcode = tail[2];
+    const lastSpace = before.lastIndexOf(" ");
+    if (lastSpace === -1) return null;
+    const suburb = before.slice(lastSpace + 1).trim();
+    const street = before.slice(0, lastSpace).trim();
+    if (!street || !suburb) return null;
+    return { street, suburb, postcode };
+  }
+
+  return null;
+}
+
+/**
  * Format a field value for display in the Review Summary
  * @param {string} key - The field key
  * @param {*} value - The field value

@@ -109,9 +109,10 @@ function LoginPageContent() {
           return;
         }
         
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          // User is already logged in, redirect to dashboard or next URL
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (!error && user) {
+          // Matches server-side getUser() validation — avoids redirecting when session
+          // cookies are stale or only in memory (common without middleware refresh).
           router.replace(nextUrl);
         }
       } catch (err) {
