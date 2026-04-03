@@ -11,6 +11,8 @@ import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 import { calculateGlobalProgress, getMissingFields } from '../lib/progressCalculation';
+import QuestionInfoTooltip from './shared/QuestionInfoTooltip';
+import { QUESTION_TOOLTIPS } from '../lib/questionTooltips';
 
 export default function BuyerDetails() {
     const formData = useFormStore();
@@ -521,8 +523,11 @@ export default function BuyerDetails() {
       case 1:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+            <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
               Are you an Owner or Investor?
+              <QuestionInfoTooltip ariaLabel="Help: owner or investor">
+                {QUESTION_TOOLTIPS.buyerType}
+              </QuestionInfoTooltip>
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
               This affects your eligibility for concessions and grants
@@ -561,13 +566,16 @@ export default function BuyerDetails() {
       case 2:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
-              Will you live in this property?
+            <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              Will this be your main home?
+              <QuestionInfoTooltip ariaLabel="Help: principal place of residence">
+                {QUESTION_TOOLTIPS.isPPR}
+              </QuestionInfoTooltip>
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
               {formData.buyerType === 'investor' 
                 ? "You have indicated you are an investor"
-                : "This affects your eligibility for some concessions"
+                : "i.e. will this be your principal place of residence?"
               }
             </p>
             <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex gap-2 mb-8">
@@ -610,8 +618,11 @@ export default function BuyerDetails() {
       case 3:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+            <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
               Australian citizen or permanent resident?
+              <QuestionInfoTooltip ariaLabel="Help: Australian citizen or resident">
+                {QUESTION_TOOLTIPS.isAustralianResident}
+              </QuestionInfoTooltip>
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
               Residents may have additional concessions and foreigners extra duties
@@ -650,8 +661,11 @@ export default function BuyerDetails() {
       case 4:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+            <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
               Is this your first home purchase?
+              <QuestionInfoTooltip ariaLabel="Help: first home buyer">
+                {QUESTION_TOOLTIPS.isFirstHomeBuyer}
+              </QuestionInfoTooltip>
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
               First home buyers may have additional concessions and grants.
@@ -691,8 +705,11 @@ export default function BuyerDetails() {
         if (formData.isACT) {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 Have you owned any other property in the last 5 years?
+                <QuestionInfoTooltip ariaLabel="Help: property ownership in last 5 years">
+                  {QUESTION_TOOLTIPS.ownedPropertyLast5Years}
+                </QuestionInfoTooltip>
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
                 {formData.isFirstHomeBuyer === 'yes' 
@@ -741,8 +758,11 @@ export default function BuyerDetails() {
         } else {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 Are you a holder of a pensioneer card?
+                <QuestionInfoTooltip ariaLabel="Help: pensioner concession card">
+                  {QUESTION_TOOLTIPS.hasPensionCard}
+                </QuestionInfoTooltip>
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
                 {formData.isAustralianResident !== 'yes' 
@@ -794,8 +814,11 @@ export default function BuyerDetails() {
         if (formData.isACT) {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 Are you a holder of a pensioneer card?
+                <QuestionInfoTooltip ariaLabel="Help: pensioner concession card">
+                  {QUESTION_TOOLTIPS.hasPensionCard}
+                </QuestionInfoTooltip>
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
                 {formData.isAustralianResident !== 'yes' 
@@ -844,8 +867,11 @@ export default function BuyerDetails() {
         } else {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 How much savings do you have?
+                <QuestionInfoTooltip ariaLabel="Help: savings amount">
+                  {QUESTION_TOOLTIPS.savingsAmount}
+                </QuestionInfoTooltip>
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8 ">
                 You will need savings to cover the deposit and other upfront costs.
@@ -877,8 +903,11 @@ export default function BuyerDetails() {
         if (formData.isACT) {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 What is your income?
+                <QuestionInfoTooltip ariaLabel="Help: annual income">
+                  {QUESTION_TOOLTIPS.income}
+                </QuestionInfoTooltip>
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
                 In ACT the Home Buyer Concession Scheme (HBCS) is income tested.
@@ -907,8 +936,11 @@ export default function BuyerDetails() {
         } else {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 Do you need a loan to purchase?
+                <QuestionInfoTooltip ariaLabel="Help: need a loan">
+                  {QUESTION_TOOLTIPS.needsLoan}
+                </QuestionInfoTooltip>
               </h2>
               <p className={`lg:text-lg xl:text-xl lg:mb-20 leading-relaxed mb-8 ${
                 formData.needsLoan && formData.needsLoan !== '' && formData.needsLoan !== getSuggestedLoanDecision() 
@@ -953,8 +985,11 @@ export default function BuyerDetails() {
         if (formData.isACT) {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 How many dependants do you have?
+                <QuestionInfoTooltip ariaLabel="Help: number of dependants">
+                  {QUESTION_TOOLTIPS.dependants}
+                </QuestionInfoTooltip>
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
                 This affects your eligibility for the Home Buyer Concession Scheme (HBCS) in ACT.
@@ -983,8 +1018,11 @@ export default function BuyerDetails() {
         if (formData.isACT) {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 How much savings do you have?
+                <QuestionInfoTooltip ariaLabel="Help: savings amount">
+                  {QUESTION_TOOLTIPS.savingsAmount}
+                </QuestionInfoTooltip>
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8 ">
               You will need savings to cover the deposit and other upfront costs.
@@ -1018,8 +1056,11 @@ export default function BuyerDetails() {
         if (formData.isACT) {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 Do you need a loan to purchase?
+                <QuestionInfoTooltip ariaLabel="Help: need a loan">
+                  {QUESTION_TOOLTIPS.needsLoan}
+                </QuestionInfoTooltip>
               </h2>
               <p className={`lg:text-lg xl:text-xl lg:mb-20 leading-relaxed mb-8 ${
                 formData.needsLoan && formData.needsLoan !== '' && formData.needsLoan !== getSuggestedLoanDecision() 
@@ -1101,7 +1142,7 @@ export default function BuyerDetails() {
           </div>
         </div>
       )}
-    <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
+    <div className="bg-base-100 rounded-lg overflow-visible mt-15">
       <div className="flex">
         <AnimatePresence mode="wait">
           <motion.span
@@ -1116,17 +1157,19 @@ export default function BuyerDetails() {
             <span className={`text-xs ${formData.buyerDetailsComplete ? 'text-primary' : ''}`}>→</span>
           </motion.span>
         </AnimatePresence>
-        <div className="pb-6 pb-24 md:pb-8 flex">
-          {/* Step Content */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`content-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
-              {...getQuestionSlideAnimation(direction, formData.buyerDetailsComplete || (currentStep === 1 && isInitialEntry), 0.5, 0.3)}
-              className="h-80"
-            >
-              {renderStep()}
-            </motion.div>
-          </AnimatePresence>
+        <div className="flex pb-6 pb-24 md:pb-8">
+          {/* Step Content — overflow-visible + relative wrapper matches PropertyDetails so (i) tooltips aren't clipped */}
+          <div className="relative min-h-[20rem] overflow-visible">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`content-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
+                {...getQuestionSlideAnimation(direction, formData.buyerDetailsComplete || (currentStep === 1 && isInitialEntry), 0.5, 0.3)}
+                className="overflow-visible"
+              >
+                {renderStep()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 

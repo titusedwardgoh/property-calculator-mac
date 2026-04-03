@@ -1,13 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useCallback,
+} from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import {
+  LAST_ACTIVITY_STORAGE_KEY,
+  readStoredActivityMs,
+  syncActivityTimestamp,
+  clearActivityTimestamp,
+} from "@/lib/lastActivity";
 
 const IDLE_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours
 const WARNING_TIME = 1 * 60 * 1000; // warning in the final minute before logout
-const STORAGE_KEY = "propwiz_last_activity";
-const ACTIVITY_DEBOUNCE_MS = 1500; // 1–2s: avoid hammering localStorage
+const ACTIVITY_DEBOUNCE_MS = 1500;
 const HEARTBEAT_MS = 30 * 1000;
 
 function debounce(func, wait) {
@@ -20,25 +30,14 @@ function debounce(func, wait) {
   return executedFunction;
 }
 
-function readStoredActivityMs() {
-  if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (raw == null) return null;
-  const n = parseInt(raw, 10);
-  return Number.isFinite(n) ? n : null;
-}
-
-function writeStoredActivityMs(ts = Date.now()) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(STORAGE_KEY, String(ts));
-}
-
 export function useIdleTimeout(user, onWarning, onLogout) {
   const router = useRouter();
   const supabase = createClient();
   const warningShownRef = useRef(false);
   const logoutInProgressRef = useRef(false);
   const debouncedRecordRef = useRef(null);
+  /** Avoid clearing storage on first paint while `user` is still null (auth loading). */
+  const hadAuthenticatedUserRef = useRef(false);
   const callbacksRef = useRef({ onWarning, onLogout });
 
   callbacksRef.current = { onWarning, onLogout };
@@ -46,6 +45,7 @@ export function useIdleTimeout(user, onWarning, onLogout) {
   const performLogout = useCallback(async () => {
     if (logoutInProgressRef.current) return;
     logoutInProgressRef.current = true;
+    clearActivityTimestamp();
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       await supabase.auth.signOut();
@@ -57,16 +57,20 @@ export function useIdleTimeout(user, onWarning, onLogout) {
     }
   }, [router, supabase]);
 
-  /** Wall clock vs persisted last activity (reliable after sleep — setTimeout is not). */
+  /**
+   * Wall-clock check (localStorage). Timestamps frozen while the machine sleeps;
+   * timers do not — use this on visibility, focus, interval, and mount.
+   * Null / missing storage → last = 0 → forces logout (no ghost sessions).
+   */
   const checkActivity = useCallback(() => {
     if (!user) return;
 
     const stored = readStoredActivityMs();
-    const last = stored ?? Date.now();
+    const last = stored === null ? 0 : stored;
     const elapsed = Date.now() - last;
 
     if (elapsed >= IDLE_TIMEOUT) {
-      performLogout();
+      void performLogout();
       return;
     }
 
@@ -83,14 +87,19 @@ export function useIdleTimeout(user, onWarning, onLogout) {
 
   const stayLoggedIn = useCallback(() => {
     if (!user) return;
-    writeStoredActivityMs();
+    syncActivityTimestamp();
     warningShownRef.current = false;
   }, [user]);
+
+  useLayoutEffect(() => {
+    if (!user) return;
+    checkActivity();
+  }, [user, checkActivity]);
 
   useEffect(() => {
     debouncedRecordRef.current = debounce(() => {
       if (!user) return;
-      writeStoredActivityMs();
+      syncActivityTimestamp();
       warningShownRef.current = false;
     }, ACTIVITY_DEBOUNCE_MS);
 
@@ -102,17 +111,16 @@ export function useIdleTimeout(user, onWarning, onLogout) {
   useEffect(() => {
     if (!user) {
       debouncedRecordRef.current?.cancel?.();
-      if (typeof window !== "undefined") {
-        localStorage.removeItem(STORAGE_KEY);
+      if (hadAuthenticatedUserRef.current) {
+        clearActivityTimestamp();
       }
+      hadAuthenticatedUserRef.current = false;
       warningShownRef.current = false;
       logoutInProgressRef.current = false;
       return;
     }
 
-    if (typeof window !== "undefined" && readStoredActivityMs() === null) {
-      writeStoredActivityMs();
-    }
+    hadAuthenticatedUserRef.current = true;
 
     const bumpDebounced = () => debouncedRecordRef.current?.();
 
@@ -126,6 +134,13 @@ export function useIdleTimeout(user, onWarning, onLogout) {
       checkActivity();
     };
 
+    const handleStorage = (e) => {
+      if (e.key !== LAST_ACTIVITY_STORAGE_KEY) return;
+      warningShownRef.current = false;
+      checkActivity();
+    };
+
+    window.addEventListener("storage", handleStorage);
     window.addEventListener("mousemove", bumpDebounced);
     window.addEventListener("mousedown", bumpDebounced);
     window.addEventListener("click", bumpDebounced);
@@ -138,6 +153,7 @@ export function useIdleTimeout(user, onWarning, onLogout) {
     const heartbeat = window.setInterval(checkActivity, HEARTBEAT_MS);
 
     return () => {
+      window.removeEventListener("storage", handleStorage);
       window.removeEventListener("mousemove", bumpDebounced);
       window.removeEventListener("mousedown", bumpDebounced);
       window.removeEventListener("click", bumpDebounced);

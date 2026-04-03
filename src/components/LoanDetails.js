@@ -500,7 +500,7 @@ export default function LoanDetails() {
           </div>
         </div>
       )}
-    <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
+    <div className="bg-base-100 rounded-lg overflow-visible mt-15">
       <div className="flex">
         <AnimatePresence mode="wait">
           <motion.span
@@ -512,17 +512,18 @@ export default function LoanDetails() {
             <span className={`text-xs ${formData.loanDetailsComplete ? 'text-primary' : ''}`}>→</span>
           </motion.span>
         </AnimatePresence>
-        <div className="pb-6 pb-24 md:pb-8 flex">
-          {/* Step Content */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`content-${formData.loanDetailsComplete ? 'complete' : currentStep}`}
-              {...getQuestionSlideAnimation(direction, formData.loanDetailsComplete || (currentStep === 1 && isInitialEntry), 0.5, 0.3)}
-              className="h-80"
-            >
-              {renderStep()}
-            </motion.div>
-          </AnimatePresence>
+        <div className="flex pb-6 pb-24 md:pb-8">
+          <div className="relative min-h-[20rem] overflow-visible">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`content-${formData.loanDetailsComplete ? 'complete' : currentStep}`}
+                {...getQuestionSlideAnimation(direction, formData.loanDetailsComplete || (currentStep === 1 && isInitialEntry), 0.5, 0.3)}
+                className="overflow-visible"
+              >
+                {renderStep()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 

@@ -9,6 +9,8 @@ import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 import { calculateGlobalProgress, getMissingFields } from '../lib/progressCalculation';
+import QuestionInfoTooltip from './shared/QuestionInfoTooltip';
+import { QUESTION_TOOLTIPS } from '../lib/questionTooltips';
 
 export default function PropertyDetails() {
   const formData = useFormStore();
@@ -903,9 +905,14 @@ export default function PropertyDetails() {
       case 1:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
-              What&apos;s the property address?
-            </h2>
+            <div className="mb-4">
+              <h2 className="inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+                <span>What&apos;s the property address?</span>
+                <QuestionInfoTooltip ariaLabel="Why we ask for property address">
+                  {QUESTION_TOOLTIPS.propertyAddress}
+                </QuestionInfoTooltip>
+              </h2>
+            </div>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
               This helps us determine the state and provide accurate calculations
             </p>
@@ -1106,8 +1113,11 @@ export default function PropertyDetails() {
       case 2:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">  
+            <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
               Which state is the property in?
+              <QuestionInfoTooltip ariaLabel="Help: which state">
+                {QUESTION_TOOLTIPS.selectedState}
+              </QuestionInfoTooltip>
             </h2>
             <p className={`lg:text-lg xl:text-xl lg:mb-20 leading-relaxed mb-8 ${
               formData.detectedState && formData.selectedState && formData.detectedState !== formData.selectedState
@@ -1151,8 +1161,11 @@ export default function PropertyDetails() {
         if (formData.selectedState === 'WA') {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 Where is the Property
+                <QuestionInfoTooltip ariaLabel="Help: Western Australia property location">
+                  {QUESTION_TOOLTIPS.propertyWARegion}
+                </QuestionInfoTooltip>
               </h2>
               <p className={`lg:text-lg xl:text-xl lg:mb-20 leading-relaxed mb-8 ${
                 (formData.detectedWALocation && formData.isWA && formData.detectedWALocation !== formData.isWA) ||
@@ -1239,8 +1252,11 @@ export default function PropertyDetails() {
         case 4:
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 What type of property is it?
+                <QuestionInfoTooltip ariaLabel="Help: property type">
+                  {QUESTION_TOOLTIPS.propertyCategory}
+                </QuestionInfoTooltip>
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
                 This affects your stamp duty concessions and ongoing costs
@@ -1272,11 +1288,16 @@ export default function PropertyDetails() {
         case 5:
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 {formData.propertyCategory === 'land' 
                   ? 'Is this a house and land package?' 
                   : 'Is this property new or existing?'
                 }
+                <QuestionInfoTooltip ariaLabel="Help: new build or house and land">
+                  {formData.propertyCategory === 'land'
+                    ? QUESTION_TOOLTIPS.propertyTypeLand
+                    : QUESTION_TOOLTIPS.propertyType}
+                </QuestionInfoTooltip>
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
                 {formData.propertyCategory === 'land' 
@@ -1326,8 +1347,11 @@ export default function PropertyDetails() {
         case 6:
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 What is the property&apos;s price?
+                <QuestionInfoTooltip ariaLabel="Help: property price">
+                  {QUESTION_TOOLTIPS.propertyPrice}
+                </QuestionInfoTooltip>
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
                 This will help us calculate your stamp duty and other costs
@@ -1393,7 +1417,7 @@ export default function PropertyDetails() {
           </div>
         </div>
       )}
-    <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
+    <div className="bg-base-100 rounded-lg overflow-visible mt-15">
         <div className="flex">
          <div className="ml-2 md:ml-3 lg:ml-2 flex items-center text-xs -mt-113 md:-mt-113 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap relative overflow-hidden min-w-[3ch]">
            <span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span>

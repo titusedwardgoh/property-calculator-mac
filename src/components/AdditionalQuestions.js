@@ -33,6 +33,8 @@ import {
   getInputFieldAnimation,
   getInputButtonAnimation,
 } from "./shared/animations/inputAnimations";
+import QuestionInfoTooltip from "./shared/QuestionInfoTooltip";
+import { QUESTION_TOOLTIPS } from "../lib/questionTooltips";
 
 export default function AdditionalQuestions() {
   const formData = useFormStore();
@@ -479,7 +481,7 @@ export default function AdditionalQuestions() {
   }
 
   return (
-    <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
+    <div className="bg-base-100 rounded-lg overflow-visible mt-15">
       <div className="flex">
         <AnimatePresence mode="wait">
           <motion.span
@@ -491,19 +493,27 @@ export default function AdditionalQuestions() {
             <span className="text-xs">→</span>
           </motion.span>
         </AnimatePresence>
-        <div className="pb-6 pb-24 md:pb-8 flex">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`content-${currentStep}`}
-              {...getQuestionSlideAnimation(direction, false, 0.5, 0.3)}
-              className="h-80"
-            >
+        <div className="flex pb-6 pb-24 md:pb-8">
+          <div className="relative min-h-[20rem] overflow-visible">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`content-${currentStep}`}
+                {...getQuestionSlideAnimation(direction, false, 0.5, 0.3)}
+                className="overflow-visible"
+              >
               {isLoanField ? (
                 renderLoanField()
               ) : (
                 <div className="flex flex-col mt-8 md:mt-0 pr-2">
-                  <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+                  <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                     {config.title || config.label}
+                    {currentFieldKey && QUESTION_TOOLTIPS[currentFieldKey] ? (
+                      <QuestionInfoTooltip
+                        ariaLabel={`Help: ${config.label || config.title || currentFieldKey}`}
+                      >
+                        {QUESTION_TOOLTIPS[currentFieldKey]}
+                      </QuestionInfoTooltip>
+                    ) : null}
                   </h2>
                   <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
                     {config.description ||
@@ -514,6 +524,7 @@ export default function AdditionalQuestions() {
               )}
             </motion.div>
           </AnimatePresence>
+          </div>
         </div>
       </div>
 

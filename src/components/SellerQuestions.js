@@ -7,6 +7,8 @@ import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 import { calculateGlobalProgress } from '../lib/progressCalculation';
+import QuestionInfoTooltip from './shared/QuestionInfoTooltip';
+import { QUESTION_TOOLTIPS } from '../lib/questionTooltips';
 
 export default function SellerQuestions() {
   const formData = useFormStore();
@@ -551,8 +553,12 @@ export default function SellerQuestions() {
       case 1:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+            <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
               Ask the seller: What are the annual council rates?
+              {" "}
+              <QuestionInfoTooltip ariaLabel="Help: council rates">
+                {QUESTION_TOOLTIPS.councilRates}
+              </QuestionInfoTooltip>
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
               Below is an estimate only based on the property price
@@ -582,8 +588,12 @@ export default function SellerQuestions() {
       case 2:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
-            Ask the seller: What are the annual water rates?
+            <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              Ask the seller: What are the annual water rates?
+              {" "}
+              <QuestionInfoTooltip ariaLabel="Help: water rates">
+                {QUESTION_TOOLTIPS.waterRates}
+              </QuestionInfoTooltip>
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
               Annual water rates and service charges
@@ -615,8 +625,12 @@ export default function SellerQuestions() {
         if (formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land') {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 Has construction already started on the property?
+                {" "}
+                <QuestionInfoTooltip ariaLabel="Help: construction started">
+                  {QUESTION_TOOLTIPS.constructionStarted}
+                </QuestionInfoTooltip>
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
                 Determine if construction work has begun
@@ -666,8 +680,12 @@ export default function SellerQuestions() {
           // Show dutiable value question for VIC off-the-plan or house-and-land
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 What is the dutiable value of the property?
+                {" "}
+                <QuestionInfoTooltip ariaLabel="Help: dutiable value">
+                  {QUESTION_TOOLTIPS.dutiableValue}
+                </QuestionInfoTooltip>
               </h2>
               <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
                 The value used to calculate stamp duty and transfer duty
@@ -701,8 +719,12 @@ export default function SellerQuestions() {
       case 5:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+            <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
               Ask the seller: Is there body corporate or strata fees?
+              {" "}
+              <QuestionInfoTooltip ariaLabel="Help: body corporate or strata">
+                {QUESTION_TOOLTIPS.bodyCorp}
+              </QuestionInfoTooltip>
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
               Annual body corporate or strata fees
@@ -732,8 +754,12 @@ export default function SellerQuestions() {
       case 6:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+            <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
               What is the Land Transfer Fee?
+              {" "}
+              <QuestionInfoTooltip ariaLabel="Help: land transfer fee">
+                {QUESTION_TOOLTIPS.landTransferFee}
+              </QuestionInfoTooltip>
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
               Official registration of property ownership
@@ -763,8 +789,12 @@ export default function SellerQuestions() {
       case 7:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+            <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
               What is the cost for Legal & Conveyancing Services?
+              {" "}
+              <QuestionInfoTooltip ariaLabel="Help: legal and conveyancing">
+                {QUESTION_TOOLTIPS.legalFees}
+              </QuestionInfoTooltip>
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
               Professional legal services for property transfer
@@ -794,8 +824,12 @@ export default function SellerQuestions() {
       case 8:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+            <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
               What is the cost for Building and Pest Inspection?
+              {" "}
+              <QuestionInfoTooltip ariaLabel="Help: building and pest inspection">
+                {QUESTION_TOOLTIPS.buildingAndPestInspection}
+              </QuestionInfoTooltip>
             </h2>
             <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
               Professional inspection of property condition and pest assessment
@@ -858,7 +892,7 @@ export default function SellerQuestions() {
           </div>
         </div>
       )}
-    <div className="bg-base-100 rounded-lg overflow-hidden mt-15">
+    <div className="bg-base-100 rounded-lg overflow-visible mt-15">
       <div className="flex">
         <AnimatePresence mode="wait">
           <motion.span
@@ -877,17 +911,18 @@ export default function SellerQuestions() {
             </span>
           </motion.span>
         </AnimatePresence>
-        <div className="pb-6 pb-24 md:pb-8 flex">
-          {/* Step Content */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`content-${isExiting ? 'exiting' : (formData.sellerQuestionsComplete ? 'complete' : currentStep)}`}
-              {...getQuestionSlideAnimation(direction, false, 0.5, 0.3)}
-              className="h-80"
-            >
-              {renderStep()}
-            </motion.div>
-          </AnimatePresence>
+        <div className="flex pb-6 pb-24 md:pb-8">
+          <div className="relative min-h-[20rem] overflow-visible">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`content-${isExiting ? 'exiting' : (formData.sellerQuestionsComplete ? 'complete' : currentStep)}`}
+                {...getQuestionSlideAnimation(direction, false, 0.5, 0.3)}
+                className="overflow-visible"
+              >
+                {renderStep()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 

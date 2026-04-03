@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { useStateSelector } from "../../states/useStateSelector.js";
 import { formatCurrency } from "../../states/shared/baseCalculations.js";
 import { getInputFieldAnimation, getInputButtonAnimation } from "./animations/inputAnimations.js";
+import QuestionInfoTooltip from "./QuestionInfoTooltip.jsx";
+import { QUESTION_TOOLTIPS } from "../../lib/questionTooltips.js";
 
 export const LOAN_GAP_FIELD_KEYS = [
   "loanDeposit",
@@ -133,8 +135,12 @@ export function LoanDepositStep({ depositValue, onDepositChange, formData, netSt
 
   return (
     <div className="flex flex-col mt-8 md:mt-0 pr-2">
-      <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+      <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
         What is your deposit amount?
+        {" "}
+        <QuestionInfoTooltip ariaLabel="Help: deposit amount">
+          {QUESTION_TOOLTIPS.loanDeposit}
+        </QuestionInfoTooltip>
       </h2>
       <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
         {`You will need a minimum of $${formattedMinimumDeposit} which is 5% of the Property's Price of $${formattedPropertyPrice}`}
@@ -207,8 +213,12 @@ const LOAN_TYPE_OPTIONS = [
 export function LoanTypeStep({ loanType, onLoanTypeChange }) {
   return (
     <div className="flex flex-col mt-8 md:mt-0 pr-2">
-      <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+      <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
         What type of loan do you need?
+        {" "}
+        <QuestionInfoTooltip ariaLabel="Help: loan type">
+          {QUESTION_TOOLTIPS.loanType}
+        </QuestionInfoTooltip>
       </h2>
       <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
         This affects your monthly payments and loan structure
@@ -254,8 +264,12 @@ export function LoanTermStep({
 
   return (
     <div className="flex flex-col mt-8 md:mt-0 pr-2">
-      <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
-        How long do you want your mortgage for?
+      <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+        How long is your mortgage for?
+        {" "}
+        <QuestionInfoTooltip ariaLabel="Help: loan term">
+          {QUESTION_TOOLTIPS.loanTerm}
+        </QuestionInfoTooltip>
       </h2>
       <p className="lg:text-lg xl:text-xl lg:mb-10 text-gray-500 leading-relaxed mb-8">
         Enter the number of years for your loan (1-30 years)
@@ -316,8 +330,12 @@ export function LoanTermStep({
 export function LoanRateStep({ loanRate, onLoanRateChange }) {
   return (
     <div className="flex flex-col mt-8 md:mt-0 pr-2">
-      <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+      <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
         What is your interest rate are you paying?
+        {" "}
+        <QuestionInfoTooltip ariaLabel="Help: interest rate">
+          {QUESTION_TOOLTIPS.loanRate}
+        </QuestionInfoTooltip>
       </h2>
       <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
         Enter the annual interest rate percentage for your loan
@@ -359,13 +377,17 @@ export function LoanLMIStep({ loanLMI, onLoanLMIChange, LVR }) {
   const lvrPercentage = Math.round(lvr * 100);
   const sub =
     lvr < 0.8
-      ? "You are unlikely to need LMI as your Loan-to-Value ratio is less than 80%."
-      : `You would typically need LMI as your Loan-to-Value ratio is ${lvrPercentage}%.`;
+      ? "You are unlikely to need LMI as your Loan-to-Value ratio is less than 80%"
+      : `You would typically need LMI as your Loan-to-Value ratio is ${lvrPercentage}%`;
 
   return (
     <div className="flex flex-col mt-8 md:mt-0 pr-2">
-      <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+      <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
         Do you need Lenders Mortgage Insurance?
+        {" "}
+        <QuestionInfoTooltip ariaLabel="Help: Lenders Mortgage Insurance">
+          {QUESTION_TOOLTIPS.loanLMI}
+        </QuestionInfoTooltip>
       </h2>
       <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">{sub}</p>
       <div className="grid grid-cols-1 lg:grid-cols-2 lg:flex gap-2 mb-8">
@@ -402,8 +424,12 @@ export function LoanLMIStep({ loanLMI, onLoanLMIChange, LVR }) {
 export function LoanSettlementFeesStep({ value, onChange }) {
   return (
     <div className="flex flex-col mt-8 md:mt-0 pr-2">
-      <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+      <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
         Banks usually charge a Settlement Fee
+        {" "}
+        <QuestionInfoTooltip ariaLabel="Help: settlement fee">
+          {QUESTION_TOOLTIPS.loanSettlementFees}
+        </QuestionInfoTooltip>
       </h2>
       <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
         Fee charged by the bank for settlement processing
@@ -439,8 +465,12 @@ export function LoanSettlementFeesStep({ value, onChange }) {
 export function LoanEstablishmentFeeStep({ value, onChange }) {
   return (
     <div className="flex flex-col mt-8 md:mt-0 pr-2">
-      <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
+      <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
         Banks usually charge an Establishment Fee
+        {" "}
+        <QuestionInfoTooltip ariaLabel="Help: establishment fee">
+          {QUESTION_TOOLTIPS.loanEstablishmentFee}
+        </QuestionInfoTooltip>
       </h2>
       <p className="lg:text-lg xl:text-xl lg:mb-20 text-gray-500 leading-relaxed mb-8">
         Fee charged by the bank for setting up your loan
