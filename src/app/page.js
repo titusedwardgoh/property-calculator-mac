@@ -74,7 +74,7 @@ export default function HomePage() {
                             transition={{ duration: 0.6, ease: "easeOut" }}
                             className="flex justify-center"
                         >
-                            <div className="w-full max-w-lg">
+                            <div className="w-full max-w-[28.5rem]">
                                 <Image
                                     src="/hook.png"
                                     alt="Person contemplating home buying costs"
@@ -117,7 +117,7 @@ export default function HomePage() {
             </section>
 
             {/* How It Works Section */}
-            <section className="container mx-auto px-4 py-16 bg-base-100">
+            <section className="container mx-auto px-4 py-16 bg-base-200">
                 <div className="max-w-6xl mx-auto">
                     <motion.h2
                         initial={{ opacity: 0, y: 20 }}
@@ -155,13 +155,13 @@ export default function HomePage() {
                                 transition={{ duration: 0.6, delay: index * 0.1 }}
                                 className="text-center"
                             >
-                                <div className="w-50 h-50 mx-auto mb-4 flex items-center justify-center relative">
+                                <div className="w-55 h-55 mx-auto mb-4 relative overflow-hidden rounded-full bg-gray-100">
                                     <Image
                                         src={`/hero${step.number}.png`}
                                         alt={`Step ${step.number}`}
                                         width={1024}
                                         height={1024}
-                                        className="object-contain"
+                                        className="h-full w-full scale-110 object-cover object-center"
                                         unoptimized
                                     />
                                 </div>
@@ -215,7 +215,7 @@ export default function HomePage() {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.6, delay: index * 0.1 }}
-                                className="bg-base-100 rounded-lg p-6 shadow-sm"
+                                className="bg-base-200 rounded-lg p-6 shadow-sm"
                             >
                                 <p className="text-gray-700 italic mb-4">
                                     &quot;{testimonial.quote}&quot;
@@ -233,7 +233,7 @@ export default function HomePage() {
             </section>
 
             {/* Feature Preview Section */}
-            <section className="container mx-auto px-4 py-16 bg-base-100">
+            <section className="container mx-auto px-4 py-16 bg-base-200">
                 <div className="max-w-6xl mx-auto">
                     <motion.h2
                         initial={{ opacity: 0, y: 20 }}
@@ -279,7 +279,7 @@ export default function HomePage() {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.6, delay: index * 0.05 }}
-                                className="bg-base-200 rounded-lg p-6 border border-gray-200 hover:border-primary transition-colors"
+                                className="bg-base-100 rounded-lg p-6 border border-gray-200 hover:border-primary transition-colors"
                             >
                                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                                     {feature.title}
@@ -332,7 +332,7 @@ export default function HomePage() {
             </section>
 
             {/* Final CTA Section */}
-            <section className="px-4 py-16 bg-accent">
+            <section className="px-4 py-16 bg-base-100">
                 <div className="max-w-3xl mx-auto text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}

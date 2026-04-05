@@ -3,15 +3,15 @@
 
 /* Custom CSS variables for flyingwizard theme */
 :root[data-theme="flyingwizard"] {
-  --color-base-100: #fef6e4;
-  --color-base-200: #fef6e4;
+  --color-base-100: #f2FFE5;
+  --color-base-200: #ffffff;
   --color-base-300: #fef6e4;
-  --color-base-content: #001858;
-  --color-primary: #f582ae;
+  --color-base-content: #453F3C;
+  --color-primary: #E29578;
   --color-primary-content: oklch(98% 0.003 247.858);
-  --color-secondary: #172c66;
+  --color-secondary: #453F3C;
   --color-secondary-content: oklch(98% 0.003 247.858);
-  --color-accent: #8bd3dd;
+  --color-accent: #439775;
   --color-accent-content: oklch(0.2209 0.0663 297.89);
   --color-neutral: #f3d2c1;
   --color-neutral-content: oklch(0.2209 0.0663 297.89);
