@@ -1,8 +1,9 @@
 "use client";
 
 import React from 'react';
-import { Home, Info, HelpCircle, Mail, ExternalLink } from 'lucide-react';
+import { Info, HelpCircle, Mail } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 export default function Footer() {
@@ -24,24 +25,24 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Section */}
           <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <Home className="w-6 h-6 text-primary" />
+            <Link
+              href="/"
+              onClick={(e) => handleLinkClick(e, '/')}
+              className="inline-flex items-center gap-2 mb-4 hover:opacity-90 transition-opacity"
+            >
+              <Image
+                src="/favicon.png"
+                alt="PropWiz"
+                width={24}
+                height={24}
+                className="w-6 h-6 object-contain"
+              />
               <h3 className="text-xl font-bold text-base-200">PropWiz</h3>
-            </div>
+            </Link>
             <p className="text-base-200/80 mb-4 max-w-md leading-relaxed">
-              Comprehensive property investment calculator for Australian real estate. 
+              Comprehensive calculator for Australian real estate. 
               Calculate stamp duty, LMI, loan repayments, and all associated costs.
             </p>
-            <div className="flex gap-4">
-              <a 
-                href="https://github.com" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-base-200/70 hover:text-primary transition-colors"
-              >
-                <ExternalLink className="w-5 h-5" />
-              </a>
-            </div>
           </div>
 
           {/* Quick Links */}
@@ -116,7 +117,7 @@ export default function Footer() {
         <div className="border-t border-base-200/20 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-base-200/60 text-sm">
-              © 2024 Australian Property Calculator. All rights reserved.
+              © 2024 PropWiz. All rights reserved.
             </p>
             <p className="text-base-200/60 text-sm mt-2 md:mt-0">
               Made to be simple and easy to use 

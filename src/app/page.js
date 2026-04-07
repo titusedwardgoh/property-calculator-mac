@@ -99,7 +99,7 @@ export default function HomePage() {
                             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-5">
                                 Tired of guessing how much you need for a home?
                             </h2>
-                            <p className="text-lg md:text-xl text-gray-600 leading-relaxed mb-10">
+                            <p className="text-lg md:text-xl text-white leading-relaxed mb-10">
                             You could be missing out on thousands of dollars back in your pocket. Don’t budget with multiple tools—get the full financial picture in one place. We calculate every fee and uncover every saving, so you know exactly what you’ll pay and exactly what you’ll keep. Accurate, free, and zero surprises.
                             </p>
                             <motion.button

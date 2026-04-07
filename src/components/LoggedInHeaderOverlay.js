@@ -73,7 +73,7 @@ export default function LoggedInHeaderOverlay() {
                             <Link href="/dashboard" onClick={() => setIsNavigatingToDashboard(true)} className="flex items-center">
                                 <div className="w-12 h-12 flex items-center">
                                     <Image
-                                        src="/Icon2.png"
+                                        src="/icon.png"
                                         alt="PropWiz"
                                         width={447}
                                         height={444}
@@ -89,7 +89,7 @@ export default function LoggedInHeaderOverlay() {
                             <Link href="/dashboard" onClick={() => setIsNavigatingToDashboard(true)} className="flex items-center">
                                 <div className="h-12 flex items-center">
                                     <Image
-                                        src="/Icon3.png"
+                                        src="/icon2.png"
                                         alt="PropWiz"
                                         width={447}
                                         height={444}

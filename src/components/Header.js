@@ -90,7 +90,7 @@ export default function Header() {
                 {/* Mobile: Show Icon2.png */}
                 <div className="w-12 h-12 md:hidden flex items-center">
                   <Image
-                    src="/Icon2.png"
+                    src="/icon.png"
                     alt="PropWiz"
                     width={447}
                     height={444}
@@ -101,7 +101,7 @@ export default function Header() {
                 {/* Desktop: Show Icon3.png */}
                 <div className="hidden md:flex md:items-center md:h-12">
                   <Image
-                    src="/Icon3.png"
+                    src="/icon2.png"
                     alt="PropWiz"
                     width={447}
                     height={444}

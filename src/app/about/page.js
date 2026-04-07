@@ -2,11 +2,9 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import {
     ArrowLeft,
-    Calculator,
-    Shield,
-    DollarSign,
     TrendingUp,
     Users,
     Sparkles
@@ -16,17 +14,17 @@ const featureCards = [
     {
         title: "Comprehensive Calculations",
         description: "Stamp duty, LMI, ongoing fees, loan costs, and more—modelled with the same engine that powers our calculator experience.",
-        icon: Calculator
+        icon: "/calculator.png"
     },
     {
         title: "Live State Coverage",
         description: "Every state and territory is supported with up-to-date concessions, thresholds, and policy changes monitored weekly.",
-        icon: Shield
+        icon: "/state.png"
     },
     {
         title: "Financial Clarity",
         description: "Uncover hidden costs before they appear at settlement even if you're a first-time buyer, investor, or purchasing interstate.",
-        icon: DollarSign
+        icon: "/clarity.png"
     }
 ];
 
@@ -93,7 +91,6 @@ export default function AboutPage() {
                     <div className="container mx-auto px-4 py-16">
                         <div className="grid gap-8 md:grid-cols-3">
                             {featureCards.map((feature, index) => {
-                                const Icon = feature.icon;
                                 return (
                                     <motion.div
                                         key={feature.title}
@@ -103,8 +100,14 @@ export default function AboutPage() {
                                         transition={{ duration: 0.6, delay: index * 0.1, ease: "easeOut" }}
                                         className="bg-base-100 rounded-2xl border border-base-200 shadow-sm p-8"
                                     >
-                                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-primary/10 text-primary mb-5">
-                                            <Icon className="w-6 h-6" />
+                                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 text-primary mb-5">
+                                            <Image
+                                                src={feature.icon}
+                                                alt={feature.title}
+                                                width={56}
+                                                height={56}
+                                                className="w-14 h-14 object-contain"
+                                            />
                                         </div>
                                         <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
                                         <p className="text-gray-600 leading-relaxed">{feature.description}</p>
