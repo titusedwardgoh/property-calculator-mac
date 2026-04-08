@@ -67,7 +67,7 @@ export default function AboutPage() {
                             transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
                             className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-8"
                         >
-                            Australian Property Calculator combines verified data, responsive design, and a guided journey so you can plan with confidence—no spreadsheets, no jargon, no paywall.
+                            PropWiz combines verified data, responsive design, and a guided journey so you can plan with confidence—no spreadsheets, no jargon, no paywall.
                         </motion.p>
 
                         <motion.div
@@ -159,7 +159,7 @@ export default function AboutPage() {
                     <div className="bg-warning/20 border border-warning rounded-2xl p-6 md:p-8">
                         <h3 className="text-lg font-semibold text-gray-900 mb-2">Important disclaimer</h3>
                         <p className="text-gray-700 text-sm md:text-base leading-relaxed">
-                            Australian Property Calculator delivers indicative estimates based on current public information. We recommend confirming figures with your conveyancer, lender, or licensed financial advisor before committing to any property purchase.
+                            PropWiz delivers indicative estimates based on current public information. We recommend confirming figures with your conveyancer, lender, or licensed financial advisor before committing to any property purchase.
                         </p>
                     </div>
                 </section>

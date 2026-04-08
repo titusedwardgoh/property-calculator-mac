@@ -31,11 +31,11 @@ export default function Footer() {
               className="inline-flex items-center gap-2 mb-4 hover:opacity-90 transition-opacity"
             >
               <Image
-                src="/favicon.png"
+                src="/icon.png"
                 alt="PropWiz"
-                width={24}
-                height={24}
-                className="w-6 h-6 object-contain"
+                width={40}
+                height={40}
+                className="w-10 h-10 object-contain"
               />
               <h3 className="text-xl font-bold text-base-200">PropWiz</h3>
             </Link>
