@@ -134,12 +134,25 @@ function SignupPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200 flex items-start justify-center px-4 py-16 lg:py-12">
+    <div className="min-h-screen w-full relative flex items-start justify-center px-4 py-16 lg:py-12">
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          background: `
+            radial-gradient(ellipse 90% 68% at 84% 22%, rgba(67, 151, 117, 0.30), transparent 69%),
+            radial-gradient(ellipse 82% 60% at 20% 24%, rgba(242, 255, 229, 0.56), transparent 70%),
+            radial-gradient(ellipse 76% 58% at 12% 78%, rgba(226, 149, 120, 0.22), transparent 72%),
+            radial-gradient(ellipse 88% 66% at 70% 82%, rgba(67, 151, 117, 0.18), transparent 74%),
+            radial-gradient(ellipse 64% 50% at 56% 52%, rgba(226, 149, 120, 0.14), transparent 75%),
+            linear-gradient(165deg, #ffffff 0%, #ffffff 34%, #f2ffe5 100%)
+          `,
+        }}
+      />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-base-100 rounded-lg w-full max-w-md md:max-w-xl p-8"
+        className="relative z-10 bg-white/80 backdrop-blur-sm border border-white/60 shadow-md rounded-lg w-full max-w-md md:max-w-xl p-8"
       >
         {showSuccessMessage ? (
           /* Success Message */
@@ -150,7 +163,7 @@ function SignupPageContent() {
               transition={{ duration: 0.5, ease: "easeOut" }}
               className="flex items-center justify-center mb-6"
             >
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-100 text-green-600">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 text-green-600">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
             </motion.div>
@@ -195,7 +208,7 @@ function SignupPageContent() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="flex items-center justify-center mb-6"
           >
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary">
               <UserPlus className="w-8 h-8" />
             </div>
           </motion.div>
@@ -224,7 +237,7 @@ function SignupPageContent() {
         <form onSubmit={handleSignup} className="space-y-6">
           {/* Email Field */}
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="email" className="block text-sm font-medium text-gray-800 mb-2">
               Your email address
             </label>
             <input
@@ -234,14 +247,14 @@ function SignupPageContent() {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
-              className="w-full px-4 py-3 border border-base-300 rounded-lg bg-base-200 focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50"
+              className="w-full px-4 py-3 border border-primary rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-primary transition-all disabled:opacity-50"
               placeholder="you@example.com"
             />
           </div>
 
           {/* Password Field */}
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="password" className="block text-sm font-medium text-gray-800 mb-2">
               Your password
             </label>
             <div className="relative">
@@ -252,7 +265,7 @@ function SignupPageContent() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full px-4 py-3 pr-12 border border-base-300 rounded-lg bg-base-200 focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50"
+                className="w-full px-4 py-3 pr-12 border border-primary rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-primary transition-all disabled:opacity-50"
                 placeholder="Enter your password"
               />
               <button
@@ -273,7 +286,7 @@ function SignupPageContent() {
 
           {/* Confirm Password Field */}
           <div>
-            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-800 mb-2">
               Confirm your password
             </label>
             <div className="relative">
@@ -284,7 +297,7 @@ function SignupPageContent() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full px-4 py-3 pr-12 border border-base-300 rounded-lg bg-base-200 focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50"
+                className="w-full px-4 py-3 pr-12 border border-primary rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-primary transition-all disabled:opacity-50"
                 placeholder="Confirm your password"
               />
               <button
@@ -335,7 +348,7 @@ function SignupPageContent() {
             <div className="w-full border-t border-gray-300"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-base-100 text-gray-500">Or sign up with</span>
+            <span className="px-3 py-0.5 rounded-full bg-white text-gray-700 border border-gray-300 shadow-sm">Or sign up with</span>
           </div>
         </div>
 
@@ -347,7 +360,7 @@ function SignupPageContent() {
             whileTap={{ scale: 0.95 }}
             onClick={() => handleOAuthLogin('google')}
             disabled={loading}
-            className="flex items-center justify-center w-12 h-12 border-2 border-base-300 rounded-full hover:border-primary hover:bg-primary/10 transition-all disabled:opacity-50"
+            className="flex items-center justify-center w-12 h-12 border-2 border-primary/35 bg-white rounded-full shadow-sm hover:border-primary hover:bg-primary/10 transition-all disabled:opacity-50"
             aria-label="Continue with Google"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -358,33 +371,6 @@ function SignupPageContent() {
             </svg>
           </motion.button>
 
-          {/* Facebook */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => handleOAuthLogin('facebook')}
-            disabled={loading}
-            className="flex items-center justify-center w-12 h-12 border-2 border-base-300 rounded-full hover:border-primary hover:bg-primary/10 transition-all disabled:opacity-50"
-            aria-label="Continue with Facebook"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
-              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-            </svg>
-          </motion.button>
-
-          {/* Apple */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => handleOAuthLogin('apple')}
-            disabled={loading}
-            className="flex items-center justify-center w-12 h-12 border-2 border-base-300 rounded-full hover:border-primary hover:bg-primary/10 transition-all disabled:opacity-50"
-            aria-label="Continue with Apple"
-          >
-            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
-            </svg>
-          </motion.button>
         </div>
           </>
         )}

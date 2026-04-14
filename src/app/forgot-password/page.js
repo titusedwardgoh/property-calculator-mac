@@ -55,12 +55,25 @@ function ForgotPasswordPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-base-200 flex items-start justify-center px-4 py-16 lg:py-12">
+    <div className="min-h-screen w-full relative flex items-start justify-center px-4 py-16 lg:py-12">
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          background: `
+            radial-gradient(ellipse 92% 70% at 18% 16%, rgba(242, 255, 229, 0.58), transparent 69%),
+            radial-gradient(ellipse 88% 66% at 86% 34%, rgba(67, 151, 117, 0.30), transparent 71%),
+            radial-gradient(ellipse 76% 58% at 66% 82%, rgba(226, 149, 120, 0.24), transparent 73%),
+            radial-gradient(ellipse 70% 54% at 12% 76%, rgba(67, 151, 117, 0.16), transparent 75%),
+            radial-gradient(ellipse 62% 50% at 52% 56%, rgba(226, 149, 120, 0.14), transparent 76%),
+            linear-gradient(200deg, #ffffff 0%, #ffffff 30%, #f2ffe5 100%)
+          `,
+        }}
+      />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="bg-base-100 rounded-lg w-full max-w-md md:max-w-xl p-8"
+        className="relative z-10 bg-white/80 backdrop-blur-sm border border-white/60 shadow-md rounded-lg w-full max-w-md md:max-w-xl p-8"
       >
         {/* Header */}
         <div className="text-center mb-8">
@@ -70,7 +83,7 @@ function ForgotPasswordPageContent() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="flex items-center justify-center mb-6"
           >
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 text-primary">
               <Mail className="w-8 h-8" />
             </div>
           </motion.div>
@@ -131,7 +144,7 @@ function ForgotPasswordPageContent() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 disabled={loading}
-                className="w-full px-4 py-3 border border-base-300 rounded-lg bg-base-200 focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50"
+                className="w-full px-4 py-3 border border-primary rounded-lg bg-white focus:ring-2 focus:ring-primary focus:border-primary transition-all disabled:opacity-50"
                 placeholder="you@example.com"
               />
             </div>
@@ -165,7 +178,7 @@ function ForgotPasswordPageContent() {
             <div className="text-center">
               <Link 
                 href="/login" 
-                className="text-md font-medium text-gray-600 hover:text-primary hover:underline transition-colors"
+                className="text-md font-medium text-gray-700 hover:text-primary hover:underline transition-colors"
               >
                 Back to login
               </Link>

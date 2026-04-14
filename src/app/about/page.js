@@ -124,7 +124,7 @@ export default function AboutPage() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6, ease: "easeOut" }}
-                        className="bg-base-100 border border-base-200 rounded-3xl shadow-sm p-8 md:p-12"
+                        className="bg-primary/30 border border-base-200 rounded-3xl shadow-sm p-8 md:p-12"
                     >
                         <div className="md:flex md:items-start md:justify-between md:gap-12">
                             <div className="max-w-2xl">
@@ -134,7 +134,7 @@ export default function AboutPage() {
                                 </p>
                             </div>
                             <div className="mt-8 md:mt-0">
-                                <div className="bg-primary/10 text-primary rounded-2xl px-6 py-5 font-semibold text-lg">
+                                <div className="bg-base-200 text-primary rounded-2xl px-6 py-5 font-semibold text-lg">
                                     Trusted by thousands of Australians in 2025
                                 </div>
                             </div>

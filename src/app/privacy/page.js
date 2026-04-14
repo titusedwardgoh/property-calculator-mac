@@ -5,8 +5,21 @@ import { Shield, FileText } from 'lucide-react';
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-base-200">
-      <main className="pb-24">
+    <div className="min-h-screen w-full relative">
+      <div
+        className="absolute inset-0 z-0"
+        style={{
+          background: `
+            radial-gradient(ellipse 92% 68% at 8% 24%, rgba(67, 151, 117, 0.30), transparent 70%),
+            radial-gradient(ellipse 86% 62% at 72% 18%, rgba(242, 255, 229, 0.54), transparent 71%),
+            radial-gradient(ellipse 74% 56% at 88% 74%, rgba(226, 149, 120, 0.2), transparent 74%),
+            radial-gradient(ellipse 82% 60% at 24% 84%, rgba(226, 149, 120, 0.14), transparent 76%),
+            radial-gradient(ellipse 76% 58% at 62% 46%, rgba(67, 151, 117, 0.12), transparent 76%),
+            linear-gradient(170deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.94) 40%, rgba(242,255,229,0.95) 100%)
+          `,
+        }}
+      />
+      <main className="pb-24 relative z-10">
         {/* Hero Section */}
         <section className="container mx-auto px-4 py-16 lg:py-20">
           <div className="max-w-3xl mx-auto text-center">
@@ -54,7 +67,7 @@ export default function PrivacyPage() {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
-              className="bg-base-100 border border-base-200 rounded-3xl shadow-sm p-8 md:p-12 space-y-8"
+              className="bg-white/80 backdrop-blur-sm border border-white/60 rounded-3xl shadow-md p-8 md:p-12 space-y-8"
             >
               {/* Introduction */}
               <div>
