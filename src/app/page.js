@@ -117,8 +117,20 @@ export default function HomePage() {
             </section>
 
             {/* How It Works Section */}
-            <section className="container mx-auto px-4 py-16 bg-base-200">
-                <div className="max-w-6xl mx-auto">
+            <section className="px-4 py-16 relative overflow-hidden">
+                <div
+                    className="absolute inset-0 z-0"
+                    style={{
+                        background: `
+                            radial-gradient(ellipse 98% 74% at 10% 24%, rgba(152, 233, 201, 0.26), transparent 74%),
+                            radial-gradient(ellipse 92% 68% at 84% 28%, rgba(255, 186, 160, 0.24), transparent 74%),
+                            radial-gradient(ellipse 88% 66% at 82% 82%, rgba(196, 245, 223, 0.20), transparent 76%),
+                            radial-gradient(ellipse 94% 72% at 26% 76%, rgba(255, 205, 184, 0.18), transparent 77%),
+                            linear-gradient(180deg, rgba(255,255,255,0.995) 0%, rgba(255,255,255,0.985) 56%, rgba(255,255,255,0.97) 100%)
+                        `,
+                    }}
+                />
+                <div className="max-w-6xl mx-auto relative z-10">
                     <motion.h2
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}

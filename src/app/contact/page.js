@@ -139,18 +139,18 @@ export default function ContactPage() {
               </motion.div>
 
               <motion.div
-                className="rounded-2xl bg-primary border border-base-300 p-5 lg:mt-auto"
+                className="rounded-2xl bg-primary/20 border border-warning p-5 lg:mt-auto"
                 {...drop(t.before)}
               >
-                <h2 className="text-sm font-semibold text-white mb-2">
+                <h2 className="text-sm font-semibold text-gray-900 mb-2">
                   Before you reach out
                 </h2>
-                <ul className="text-gray-600 text-sm space-y-2 leading-relaxed">
+                <ul className="text-gray-700 text-sm space-y-2 leading-relaxed">
                   <li>
                     Check the{" "}
                     <Link
                       href="/faq"
-                      className="text-white hover:text-primary-focus underline"
+                      className="text-primary hover:text-primary-focus underline"
                     >
                       FAQ
                     </Link>{" "}

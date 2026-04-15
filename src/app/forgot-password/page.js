@@ -73,7 +73,7 @@ function ForgotPasswordPageContent() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="relative z-10 bg-white/80 backdrop-blur-sm border border-white/60 shadow-md rounded-lg w-full max-w-md md:max-w-xl p-8"
+        className="relative z-10 bg-white/80 backdrop-blur-sm border border-white/60 shadow-[0_10px_24px_rgba(15,23,42,0.12),-4px_-4px_14px_rgba(255,255,255,0.78)] rounded-3xl w-full max-w-md md:max-w-xl p-8"
       >
         {/* Header */}
         <div className="text-center mb-8">
