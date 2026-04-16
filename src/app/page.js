@@ -91,7 +91,7 @@ export default function HomePage() {
                             whileInView={{ opacity: 1, x: 0 }}
                             viewport={{ once: true, amount: 0.3 }}
                             transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                            className="max-w-xl"
+                            className="max-w-xl text-center md:text-left"
                         >
                             <p className="text-sm font-semibold tracking-wide uppercase text-primary mb-3">
                                 
@@ -102,15 +102,17 @@ export default function HomePage() {
                             <p className="text-lg md:text-xl text-white leading-relaxed mb-10">
                             You could be missing out on thousands of dollars back in your pocket. Don’t budget with multiple tools—get the full financial picture in one place. We calculate every fee and uncover every saving, so you know exactly what you’ll pay and exactly what you’ll keep. Accurate, free, and zero surprises.
                             </p>
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleGetStarted}
-                                className="bg-primary hover:bg-primary-focus cursor-pointer text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg inline-flex items-center gap-2"
-                            >
-                                Start Free Calculator
-                                <span aria-hidden="true">→</span>
-                            </motion.button>
+                            <div className="flex justify-center md:justify-start">
+                                <motion.button
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    onClick={handleGetStarted}
+                                    className="bg-primary hover:bg-primary-focus cursor-pointer text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg inline-flex items-center gap-2"
+                                >
+                                    Start Free Calculator
+                                    <span aria-hidden="true">→</span>
+                                </motion.button>
+                            </div>
                         </motion.div>
                     </div>
                 </div>
@@ -304,10 +306,10 @@ export default function HomePage() {
                                     `,
                                 }}
                             >
-                                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center md:text-left">
                                     {feature.title}
                                 </h3>
-                                <p className="text-gray-600">
+                                <p className="text-gray-600 text-center md:text-left">
                                     {feature.description}
                                 </p>
                             </motion.div>

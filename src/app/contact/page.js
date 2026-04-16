@@ -106,7 +106,7 @@ export default function ContactPage() {
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 lg:items-stretch">
             {/* Left: intro + contact — bottom card aligns with form / Send on large screens */}
-            <div className="flex flex-col gap-8 lg:h-full lg:min-h-0 lg:pr-4">
+            <div className="flex flex-col gap-8 lg:h-full lg:min-h-0 lg:pr-4 text-center md:text-left">
               <motion.div {...drop(t.intro)}>
                 <h1 className="text-3xl md:text-4xl font-bold text-primary mb-2">
                   Get in touch
@@ -120,7 +120,10 @@ export default function ContactPage() {
                 </p>
               </motion.div>
 
-              <motion.div className="flex items-start gap-3" {...drop(t.email)}>
+              <motion.div
+                className="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left"
+                {...drop(t.email)}
+              >
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                   <Mail className="w-5 h-5" aria-hidden />
                 </div>
@@ -138,30 +141,6 @@ export default function ContactPage() {
                 </div>
               </motion.div>
 
-              <motion.div
-                className="rounded-2xl bg-primary/20 border border-warning p-5 lg:mt-auto"
-                {...drop(t.before)}
-              >
-                <h2 className="text-sm font-semibold text-gray-900 mb-2">
-                  Before you reach out
-                </h2>
-                <ul className="text-gray-700 text-sm space-y-2 leading-relaxed">
-                  <li>
-                    Check the{" "}
-                    <Link
-                      href="/faq"
-                      className="text-primary hover:text-primary-focus underline"
-                    >
-                      FAQ
-                    </Link>{" "}
-                    for quick answers.
-                  </li>
-                  <li>
-                    Figures from the calculator are estimates—confirm with your
-                    conveyancer or adviser.
-                  </li>
-                </ul>
-              </motion.div>
             </div>
 
             {/* Right: form */}
@@ -287,7 +266,7 @@ export default function ContactPage() {
                   ) : null}
 
                   <motion.div
-                    className="flex justify-end pt-2"
+                    className="flex justify-stretch sm:justify-end pt-2"
                     {...drop(t.send)}
                   >
                     <motion.button
@@ -295,7 +274,7 @@ export default function ContactPage() {
                       disabled={isSubmitting}
                       whileHover={isSubmitting ? undefined : { scale: 1.02 }}
                       whileTap={isSubmitting ? undefined : { scale: 0.98 }}
-                      className="inline-flex items-center cursor-pointer justify-center gap-2 px-8 py-3 bg-primary hover:bg-primary-focus text-secondary rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-60 disabled:pointer-events-none"
+                      className="inline-flex w-full sm:w-auto items-center cursor-pointer justify-center gap-2 px-8 py-3 bg-primary hover:bg-primary-focus text-secondary rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-60 disabled:pointer-events-none"
                     >
                       <Send className="w-4 h-4" />
                       {isSubmitting ? "Sending…" : "Send"}
@@ -303,6 +282,31 @@ export default function ContactPage() {
                   </motion.div>
                 </form>
               )}
+
+              <motion.div
+                className="rounded-2xl bg-primary/20 border border-warning p-5 mt-6 text-center md:text-left"
+                {...drop(t.before)}
+              >
+                <h2 className="text-sm font-semibold text-gray-900 mb-2">
+                  Before you reach out
+                </h2>
+                <ul className="text-gray-700 text-sm space-y-2 leading-relaxed">
+                  <li>
+                    Check the{" "}
+                    <Link
+                      href="/faq"
+                      className="text-primary hover:text-primary-focus underline"
+                    >
+                      FAQ
+                    </Link>{" "}
+                    for quick answers.
+                  </li>
+                  <li>
+                    Figures from the calculator are estimates—confirm with your
+                    conveyancer or adviser.
+                  </li>
+                </ul>
+              </motion.div>
             </div>
           </div>
         </motion.div>

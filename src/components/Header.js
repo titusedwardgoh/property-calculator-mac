@@ -87,14 +87,14 @@ export default function Header() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Link href="/" className="flex items-center">
-                {/* Mobile: Show Icon2.png */}
-                <div className="w-12 h-12 md:hidden flex items-center">
+                {/* Mobile: Show icon2.png */}
+                <div className="w-28 h-9 md:hidden flex items-center">
                   <Image
-                    src="/icon.png"
+                    src="/icon2.png"
                     alt="PropWiz"
                     width={447}
                     height={444}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-contain object-left"
                     priority
                   />
                 </div>
@@ -235,7 +235,15 @@ export default function Header() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'tween', duration: 0.3 }}
-              className="fixed top-[73px] right-0 bottom-0 left-0 bg-base-100 shadow-xl z-[200] md:hidden"
+              className="fixed top-[73px] right-0 bottom-0 left-0 shadow-xl z-[200] md:hidden"
+              style={{
+                background: `
+                  radial-gradient(ellipse 92% 68% at 12% 26%, rgba(67, 151, 117, 0.06), transparent 74%),
+                  radial-gradient(ellipse 82% 60% at 82% 24%, rgba(226, 149, 120, 0.06), transparent 76%),
+                  radial-gradient(ellipse 78% 58% at 76% 78%, rgba(67, 151, 117, 0.04), transparent 78%),
+                  linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.96) 70%, rgba(248,255,241,0.95) 100%)
+                `,
+              }}
             >
               <div className="flex flex-col h-full pt-4">
                 {/* Menu items */}
