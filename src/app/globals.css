@@ -95,3 +95,96 @@
 .pac-item-selected .pac-item-query {
   color: #fef6e4 !important;
 }
+
+/* Dashboard main area — soft aurora behind content (stays mostly white) */
+.dashboard-aurora-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background-color: #ffffff;
+  z-index: 0;
+}
+
+.dashboard-aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(72px);
+  will-change: transform;
+}
+
+.dashboard-aurora-blob--1 {
+  width: min(70vw, 32rem);
+  height: min(55vw, 26rem);
+  background: rgba(226, 149, 120, 0.22);
+  top: -12%;
+  left: -8%;
+  animation: dashboard-aurora-float-a 24s ease-in-out infinite;
+}
+
+.dashboard-aurora-blob--2 {
+  width: min(65vw, 28rem);
+  height: min(50vw, 24rem);
+  background: rgba(67, 151, 117, 0.14);
+  top: 35%;
+  right: -12%;
+  animation: dashboard-aurora-float-b 28s ease-in-out infinite;
+}
+
+.dashboard-aurora-blob--3 {
+  width: min(75vw, 36rem);
+  height: min(45vw, 22rem);
+  background: rgba(226, 149, 120, 0.1);
+  bottom: -18%;
+  left: 20%;
+  animation: dashboard-aurora-float-c 32s ease-in-out infinite;
+}
+
+/* Softer wash near the bottom so the aurora does not “stop” above the footer */
+.dashboard-aurora-blob--bottom {
+  width: min(90vw, 42rem);
+  height: min(35vw, 16rem);
+  background: rgba(67, 151, 117, 0.09);
+  bottom: -8%;
+  left: 12%;
+  animation: dashboard-aurora-float-b 30s ease-in-out infinite reverse;
+}
+
+@keyframes dashboard-aurora-float-a {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  40% {
+    transform: translate(4%, 3%) scale(1.04);
+  }
+  70% {
+    transform: translate(-2%, 5%) scale(0.98);
+  }
+}
+
+@keyframes dashboard-aurora-float-b {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  45% {
+    transform: translate(-5%, -4%) scale(1.06);
+  }
+  75% {
+    transform: translate(3%, 2%) scale(0.97);
+  }
+}
+
+@keyframes dashboard-aurora-float-c {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  35% {
+    transform: translate(-4%, -3%) scale(1.03);
+  }
+  65% {
+    transform: translate(5%, -2%) scale(1.05);
+  }
+}
