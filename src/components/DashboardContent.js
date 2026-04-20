@@ -72,6 +72,10 @@ function SurveyInspectedToggle({ inspected, onToggle, compact }) {
 const AUSTRALIA_CENTER = { lat: -25.2744, lng: 133.7751 };
 /** Zoom when a marker is clicked (property-level view) */
 const MARKER_FOCUS_ZOOM = 17;
+const MAP_CONSTRUCTOR_RETRY_DELAY_MS = 150;
+const MAP_CONSTRUCTOR_RETRY_ATTEMPTS = 20;
+const GEOCODE_CACHE_SESSION_KEY = 'dashboardGeocodeCacheV1';
+const GEOCODE_REQUEST_GAP_MS = 120;
 
 const sanitizeAddressPart = (value) => {
   if (!value) return '';
@@ -81,11 +85,94 @@ const sanitizeAddressPart = (value) => {
 const buildSurveyAddress = (survey) => {
   const address = sanitizeAddressPart(survey?.property_address);
   const state = sanitizeAddressPart(survey?.selected_state);
-  const parts = [address, state, 'Australia'].filter(Boolean);
+  if (!address) return '';
+  const addressLower = address.toLowerCase();
+  const hasStateAlready = state ? addressLower.includes(state.toLowerCase()) : false;
+  const hasCountryAlready = addressLower.includes('australia');
+  const parts = [address];
+  if (state && !hasStateAlready) {
+    parts.push(state);
+  }
+  if (!hasCountryAlready) {
+    parts.push('Australia');
+  }
   return parts.join(', ');
 };
 
 const createMapCacheKey = (surveyId, queryAddress) => `${surveyId}::${queryAddress}`;
+
+const AU_STATE_POSTCODE_RE = /\b(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s+(\d{4})\b/i;
+
+/**
+ * Splits an Australian-style address into a street/suburb line and a
+ * state/postcode line. Falls back to `fallbackState` when the address
+ * string doesn't contain a state + postcode.
+ */
+const splitPropertyAddress = (address, fallbackState = '') => {
+  const trimmed = (address || '').trim();
+  if (!trimmed) return { primary: '', secondary: fallbackState || '' };
+
+  const match = trimmed.match(AU_STATE_POSTCODE_RE);
+  if (match) {
+    const state = match[1].toUpperCase();
+    const postcode = match[2];
+    let primary = trimmed.slice(0, match.index).trim();
+    primary = primary.replace(/,\s*$/, '').trim();
+    return { primary: primary || trimmed, secondary: `${state} ${postcode}` };
+  }
+
+  return { primary: trimmed, secondary: fallbackState || '' };
+};
+
+/**
+ * Approximate distance (in km) between two lat/lng points using equirectangular projection.
+ * Accurate enough for clustering decisions at city/country scale.
+ */
+const approxDistanceKm = (a, b) => {
+  const latRad = ((a.lat + b.lat) / 2) * (Math.PI / 180);
+  const dLat = (b.lat - a.lat) * 111;
+  const dLng = (b.lng - a.lng) * 111 * Math.cos(latRad);
+  return Math.sqrt(dLat * dLat + dLng * dLng);
+};
+
+/**
+ * Finds the densest cluster of points within `radiusKm` of a center point.
+ * Returns the subset that would make the "best" default view, or null if
+ * everything already fits tightly (caller should just fit all points).
+ */
+const findDensestClusterPoints = (points, radiusKm = 60) => {
+  if (!points || points.length <= 1) return null;
+
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  points.forEach((p) => {
+    if (p.lat < minLat) minLat = p.lat;
+    if (p.lat > maxLat) maxLat = p.lat;
+    if (p.lng < minLng) minLng = p.lng;
+    if (p.lng > maxLng) maxLng = p.lng;
+  });
+
+  const overallSpanKm = approxDistanceKm(
+    { lat: minLat, lng: minLng },
+    { lat: maxLat, lng: maxLng }
+  );
+
+  if (overallSpanKm < radiusKm * 2.5) return null;
+
+  let bestCluster = [];
+  points.forEach((center) => {
+    const cluster = points.filter((p) => approxDistanceKm(center, p) <= radiusKm);
+    if (cluster.length > bestCluster.length) {
+      bestCluster = cluster;
+    }
+  });
+
+  if (bestCluster.length < 2) return null;
+  if (bestCluster.length === points.length) return null;
+  return bestCluster;
+};
 
 const escapeHtml = (value) => {
   if (value == null) return '';
@@ -128,20 +215,65 @@ const buildMarkerInfoHtml = (point) => {
   `;
 };
 
+const GEOCODE_TERMINAL_FAILURE_STATUSES = new Set([
+  'ZERO_RESULTS',
+  'INVALID_REQUEST',
+  'REQUEST_DENIED',
+]);
+const GEOCODE_RETRYABLE_STATUSES = new Set([
+  'OVER_QUERY_LIMIT',
+  'UNKNOWN_ERROR',
+  'ERROR',
+]);
+const GEOCODE_MAX_ATTEMPTS = 4;
+// First-load map/geocoder availability can be delayed by network + Google script readiness.
+// Keep retrying long enough so user interactions are not needed to "kick" the map.
+const GEOCODE_SYNC_RETRY_DELAY_MS = 1000;
+const GEOCODE_SYNC_MAX_RETRIES = 20;
+
 const geocodeAddress = (geocoder, address) =>
   new Promise((resolve) => {
     geocoder.geocode({ address }, (results, status) => {
       if (status === 'OK' && results && results[0] && results[0].geometry?.location) {
         const location = results[0].geometry.location;
         resolve({
-          lat: location.lat(),
-          lng: location.lng(),
+          status,
+          coordinates: {
+            lat: location.lat(),
+            lng: location.lng(),
+          },
         });
         return;
       }
-      resolve(null);
+      resolve({
+        status,
+        coordinates: null,
+      });
     });
   });
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+const geocodeAddressWithRetry = async (geocoder, address) => {
+  let lastResult = null;
+  for (let attempt = 1; attempt <= GEOCODE_MAX_ATTEMPTS; attempt += 1) {
+    const result = await geocodeAddress(geocoder, address);
+    lastResult = result;
+
+    if (result.coordinates) {
+      return result;
+    }
+    if (!GEOCODE_RETRYABLE_STATUSES.has(result.status)) {
+      return result;
+    }
+
+    // Exponential-ish backoff helps with quota bursts / transient backend hiccups.
+    const delayMs = Math.min(1200, 200 * attempt * attempt);
+    await sleep(delayMs);
+  }
+
+  return lastResult || { status: 'UNKNOWN_ERROR', coordinates: null };
+};
 
 const ensureGoogleMapsLoaded = async () => {
   if (typeof window === 'undefined') {
@@ -198,20 +330,26 @@ const ensureGoogleMapsLoaded = async () => {
 };
 
 const resolveMapConstructor = async () => {
-  if (!(window.google && window.google.maps)) {
-    throw new Error('Google Maps is not available yet');
+  for (let attempt = 0; attempt < MAP_CONSTRUCTOR_RETRY_ATTEMPTS; attempt += 1) {
+    if (window.google && window.google.maps) {
+      let MapConstructor = window.google.maps.Map;
+      if (typeof MapConstructor !== 'function' && typeof window.google.maps.importLibrary === 'function') {
+        try {
+          const mapsLib = await window.google.maps.importLibrary('maps');
+          MapConstructor = mapsLib?.Map;
+        } catch (error) {
+          // Retry below; Google loader can be briefly unavailable on first load.
+        }
+      }
+      if (typeof MapConstructor === 'function') {
+        return MapConstructor;
+      }
+    }
+
+    await sleep(MAP_CONSTRUCTOR_RETRY_DELAY_MS);
   }
 
-  let MapConstructor = window.google.maps.Map;
-  if (typeof MapConstructor !== 'function' && typeof window.google.maps.importLibrary === 'function') {
-    const mapsLib = await window.google.maps.importLibrary('maps');
-    MapConstructor = mapsLib?.Map;
-  }
-  if (typeof MapConstructor !== 'function') {
-    throw new Error('Google Maps Map constructor unavailable');
-  }
-
-  return MapConstructor;
+  throw new Error('Google Maps Map constructor unavailable');
 };
 
 const resolveGeocoderConstructor = async () => {
@@ -244,11 +382,17 @@ function DashboardGoogleMapPanel({
   const geocoderRef = useRef(null);
   const markersRef = useRef([]);
   const infoWindowRef = useRef(null);
+  const persistedCoordinateKeysRef = useRef(new Set());
+  const initialFitDoneRef = useRef(false);
   const [scriptReady, setScriptReady] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
   const [isLoadingMap, setIsLoadingMap] = useState(false);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const [mapError, setMapError] = useState('');
   const [mappedCount, setMappedCount] = useState(0);
+  const [geocodeSyncRetryTick, setGeocodeSyncRetryTick] = useState(0);
+  const geocodeSyncRetryCountRef = useRef(0);
+  const geocodeSyncRetryTimerRef = useRef(null);
 
   useEffect(() => {
     if (!shouldLoadMap || scriptReady) return;
@@ -300,6 +444,9 @@ function DashboardGoogleMapPanel({
         if (!cancelled && GeocoderConstructor) {
           geocoderRef.current = new GeocoderConstructor();
         }
+        if (!cancelled) {
+          setMapReady(true);
+        }
       } catch (error) {
         if (!cancelled) {
           setMapError('Unable to initialize Google Map. Please refresh and try again.');
@@ -314,7 +461,7 @@ function DashboardGoogleMapPanel({
   }, [shouldLoadMap, scriptReady]);
 
   useEffect(() => {
-    if (!shouldLoadMap || !scriptReady || !mapRef.current) return;
+    if (!shouldLoadMap || !scriptReady || !mapReady || !mapRef.current) return;
 
     let cancelled = false;
     const map = mapRef.current;
@@ -336,7 +483,6 @@ function DashboardGoogleMapPanel({
         return;
       }
 
-      const bounds = new window.google.maps.LatLngBounds();
       pointsToRender.forEach(point => {
         const marker = new window.google.maps.Marker({
           map,
@@ -356,16 +502,23 @@ function DashboardGoogleMapPanel({
         };
         marker.addListener('click', focusMarker);
         markersRef.current.push({ propertyId: point.propertyId, marker, focusMarker });
-        bounds.extend(marker.getPosition());
       });
 
-      map.fitBounds(bounds, 72);
       if (focusedPropertyId) {
         const focusedEntry = markersRef.current.find(entry => entry.propertyId === focusedPropertyId);
         if (focusedEntry) {
           focusedEntry.focusMarker();
+          initialFitDoneRef.current = true;
         }
+      } else if (!initialFitDoneRef.current) {
+        const densestCluster = findDensestClusterPoints(pointsToRender);
+        const pointsForView = densestCluster || pointsToRender;
+        const bounds = new window.google.maps.LatLngBounds();
+        pointsForView.forEach(point => bounds.extend({ lat: point.lat, lng: point.lng }));
+        map.fitBounds(bounds, 72);
+        initialFitDoneRef.current = true;
       }
+
       setMappedCount(pointsToRender.length);
     };
 
@@ -373,27 +526,37 @@ function DashboardGoogleMapPanel({
       setIsGeocoding(true);
       setMapError('');
       try {
-        if (!geocoderRef.current) {
-          const GeocoderConstructor = await resolveGeocoderConstructor();
-          if (GeocoderConstructor) {
-            geocoderRef.current = new GeocoderConstructor();
+        const scheduleSyncRetry = () => {
+          if (geocodeSyncRetryCountRef.current >= GEOCODE_SYNC_MAX_RETRIES) {
+            return;
           }
-        }
-
-        const geocoder = geocoderRef.current;
-        if (!geocoder) {
-          if (!cancelled) {
-            setMapError('Map loaded, but geocoding is unavailable right now.');
-            renderMarkers([]);
+          geocodeSyncRetryCountRef.current += 1;
+          if (geocodeSyncRetryTimerRef.current) {
+            clearTimeout(geocodeSyncRetryTimerRef.current);
           }
-          return;
-        }
+          geocodeSyncRetryTimerRef.current = setTimeout(() => {
+            setGeocodeSyncRetryTick(prev => prev + 1);
+          }, GEOCODE_SYNC_RETRY_DELAY_MS);
+        };
 
         const nextCacheValues = {};
         const pointsToRender = [];
+        const pointsNeedingGeocode = [];
+        let sawTransientGeocodeFailure = false;
+        const coordinatesToPersist = [];
 
         for (const point of mapPoints) {
           if (cancelled) return;
+
+          if (point.storedCoordinates) {
+            pointsToRender.push({
+              ...point,
+              lat: point.storedCoordinates.lat,
+              lng: point.storedCoordinates.lng,
+            });
+            continue;
+          }
+
           const cached = geocodeCache[point.cacheKey];
           if (cached === null) {
             continue;
@@ -407,23 +570,118 @@ function DashboardGoogleMapPanel({
             continue;
           }
 
-          const geocoded = await geocodeAddress(geocoder, point.queryAddress);
-          nextCacheValues[point.cacheKey] = geocoded;
-          if (geocoded) {
-            pointsToRender.push({
-              ...point,
-              lat: geocoded.lat,
-              lng: geocoded.lng,
-            });
+          pointsNeedingGeocode.push(point);
+        }
+
+        let geocoder = geocoderRef.current;
+        if (pointsNeedingGeocode.length > 0 && !geocoder) {
+          const GeocoderConstructor = await resolveGeocoderConstructor();
+          if (GeocoderConstructor) {
+            geocoderRef.current = new GeocoderConstructor();
+            geocoder = geocoderRef.current;
           }
         }
 
+        if (!geocoder && pointsNeedingGeocode.length > 0) {
+          if (!cancelled) {
+            setMapError(pointsToRender.length > 0 ? '' : 'Map loaded, but geocoding is unavailable right now.');
+            renderMarkers(pointsToRender);
+            scheduleSyncRetry();
+          }
+          return;
+        }
+
+        for (const point of pointsNeedingGeocode) {
+          if (cancelled) return;
+          const geocoded = await geocodeAddressWithRetry(geocoder, point.queryAddress);
+          if (geocoded.coordinates) {
+            nextCacheValues[point.cacheKey] = geocoded.coordinates;
+            pointsToRender.push({
+              ...point,
+              lat: geocoded.coordinates.lat,
+              lng: geocoded.coordinates.lng,
+            });
+            if (
+              point.propertyId &&
+              !persistedCoordinateKeysRef.current.has(point.cacheKey)
+            ) {
+              coordinatesToPersist.push({
+                propertyId: point.propertyId,
+                cacheKey: point.cacheKey,
+                latitude: geocoded.coordinates.lat,
+                longitude: geocoded.coordinates.lng,
+              });
+            }
+          } else if (GEOCODE_TERMINAL_FAILURE_STATUSES.has(geocoded.status)) {
+            // Cache only permanent failures; transient failures should retry next sync.
+            nextCacheValues[point.cacheKey] = null;
+          } else {
+            // Any non-terminal failure should trigger sync-level retry.
+            // Some Google statuses are environment-specific and not always in our known list.
+            sawTransientGeocodeFailure = true;
+          }
+
+          // Small gap between requests to reduce OVER_QUERY_LIMIT bursts.
+          await sleep(GEOCODE_REQUEST_GAP_MS);
+        }
+
         if (Object.keys(nextCacheValues).length > 0) {
-          setGeocodeCache(prev => ({ ...prev, ...nextCacheValues }));
+          setGeocodeCache(prev => {
+            let hasChanges = false;
+            const next = { ...prev };
+            Object.entries(nextCacheValues).forEach(([cacheKey, value]) => {
+              const existing = prev[cacheKey];
+              const changed =
+                value === null
+                  ? existing !== null
+                  : !existing || existing.lat !== value.lat || existing.lng !== value.lng;
+              if (changed) {
+                next[cacheKey] = value;
+                hasChanges = true;
+              }
+            });
+            return hasChanges ? next : prev;
+          });
+        }
+
+        if (coordinatesToPersist.length > 0) {
+          for (const coordinate of coordinatesToPersist) {
+            try {
+              const response = await fetch('/api/supabase', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  action: 'updatePropertyCoordinates',
+                  propertyId: coordinate.propertyId,
+                  latitude: coordinate.latitude,
+                  longitude: coordinate.longitude,
+                }),
+              });
+
+              if (response.ok) {
+                persistedCoordinateKeysRef.current.add(coordinate.cacheKey);
+              }
+            } catch {
+              // Best-effort persistence; map should still work even if this fails.
+            }
+          }
         }
 
         if (!cancelled) {
           renderMarkers(pointsToRender);
+          const shouldScheduleRetry =
+            sawTransientGeocodeFailure &&
+            mapPoints.length > 0 &&
+            pointsToRender.length === 0 &&
+            geocodeSyncRetryCountRef.current < GEOCODE_SYNC_MAX_RETRIES;
+
+          if (shouldScheduleRetry) {
+            scheduleSyncRetry();
+          } else {
+            geocodeSyncRetryCountRef.current = 0;
+          }
         }
       } catch (error) {
         if (!cancelled) {
@@ -440,11 +698,17 @@ function DashboardGoogleMapPanel({
     syncMarkers();
     return () => {
       cancelled = true;
+      if (geocodeSyncRetryTimerRef.current) {
+        clearTimeout(geocodeSyncRetryTimerRef.current);
+      }
     };
-  }, [focusedPropertyId, mapPoints, geocodeCache, scriptReady, setGeocodeCache, shouldLoadMap]);
+  }, [focusedPropertyId, geocodeSyncRetryTick, mapPoints, geocodeCache, mapReady, scriptReady, setGeocodeCache, shouldLoadMap]);
 
   useEffect(() => {
     return () => {
+      if (geocodeSyncRetryTimerRef.current) {
+        clearTimeout(geocodeSyncRetryTimerRef.current);
+      }
       if (infoWindowRef.current) {
         infoWindowRef.current.close();
       }
@@ -513,7 +777,17 @@ export default function DashboardContent({
   const [isMapHiddenDesktop, setIsMapHiddenDesktop] = useState(false);
   const [focusedPropertyId, setFocusedPropertyId] = useState(null);
   const [mobileViewMode, setMobileViewMode] = useState('list');
-  const [geocodeCache, setGeocodeCache] = useState({});
+  const [geocodeCache, setGeocodeCache] = useState(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = sessionStorage.getItem(GEOCODE_CACHE_SESSION_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  });
   const router = useRouter();
   const { user } = useAuth();
   const supabase = createClient();
@@ -531,6 +805,15 @@ export default function DashboardContent({
     mq.addEventListener('change', sync);
     return () => mq.removeEventListener('change', sync);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      sessionStorage.setItem(GEOCODE_CACHE_SESSION_KEY, JSON.stringify(geocodeCache));
+    } catch {
+      // Ignore storage quota / privacy mode errors.
+    }
+  }, [geocodeCache]);
 
   const loadSurveys = async () => {
     if (!user) return;
@@ -740,7 +1023,7 @@ export default function DashboardContent({
     const propertyIds = Array.from(selectedProperties);
     
     // Store original inspected status for rollback
-    const originalInspectedStatus = new Map();
+    const originalInspectedStatus = new globalThis.Map();
     surveys.forEach(survey => {
       if (selectedProperties.has(survey.id)) {
         originalInspectedStatus.set(survey.id, survey.inspected || false);
@@ -882,6 +1165,13 @@ export default function DashboardContent({
           cacheKey: createMapCacheKey(survey.id, queryAddress),
           queryAddress,
           label: survey.property_address || `Survey ${index + 1}`,
+          storedCoordinates:
+            survey.latitude != null && survey.longitude != null
+              ? {
+                  lat: Number(survey.latitude),
+                  lng: Number(survey.longitude),
+                }
+              : null,
           address: survey.property_address || '',
           state: survey.selected_state || '',
           price: survey.property_price,
@@ -918,8 +1208,22 @@ export default function DashboardContent({
         <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-4 sm:grid-rows-[auto_1fr] sm:gap-x-4 sm:gap-y-2">
           <div className="col-start-1 row-start-1 min-w-0 self-start pr-1 sm:pr-0">
             <div className="mb-2 flex flex-wrap items-start gap-x-2 gap-y-1 sm:items-center">
-              <h3 className="text-[17px] font-semibold leading-snug text-gray-900 [overflow-wrap:anywhere] sm:text-lg sm:leading-normal">
-                {survey.property_address || `Survey ${index + 1}`}
+              <h3 className="text-[16px] font-semibold leading-snug text-gray-900 sm:text-[20px] sm:leading-normal">
+                {(() => {
+                  if (!survey.property_address) return `Survey ${index + 1}`;
+                  const { primary, secondary } = splitPropertyAddress(
+                    survey.property_address,
+                    survey.selected_state || ''
+                  );
+                  return (
+                    <>
+                      <span className="block truncate" title={primary}>
+                        {primary}
+                      </span>
+                      {secondary && <span className="block truncate">{secondary}</span>}
+                    </>
+                  );
+                })()}
               </h3>
               <span
                 className={`inline-flex shrink-0 px-2.5 py-1 text-[11px] font-medium whitespace-nowrap rounded-full ${status.color} ${status.bg}`}
@@ -934,6 +1238,7 @@ export default function DashboardContent({
               checked={selectedProperties.has(survey.id)}
               onChange={(e) => {
                 e.stopPropagation();
+                handleCardClick();
                 handleCheckboxChange(survey.id, e.target.checked);
               }}
               className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border-gray-300 text-primary focus:outline-none focus:ring-0 focus:ring-offset-0 sm:mt-0"
@@ -960,6 +1265,7 @@ export default function DashboardContent({
                   compact={false}
                   onToggle={(e) => {
                     e.stopPropagation();
+                    handleCardClick();
                     handleToggleInspected(survey.id, survey.inspected || false);
                   }}
                 />
@@ -977,6 +1283,7 @@ export default function DashboardContent({
                   compact
                   onToggle={(e) => {
                     e.stopPropagation();
+                    handleCardClick();
                     handleToggleInspected(survey.id, survey.inspected || false);
                   }}
                 />
@@ -1002,7 +1309,10 @@ export default function DashboardContent({
               )}
               <button
                 type="button"
-                onClick={(e) => handleDeleteClick(survey.id, e)}
+                onClick={(e) => {
+                  handleCardClick();
+                  handleDeleteClick(survey.id, e);
+                }}
                 disabled={deletingId === survey.id}
                 className="flex shrink-0 cursor-pointer items-center gap-0 rounded-full bg-error/10 px-3 py-2 text-error hover:bg-error/20 transition-colors disabled:opacity-50 sm:gap-2 sm:px-4 sm:py-2"
               >

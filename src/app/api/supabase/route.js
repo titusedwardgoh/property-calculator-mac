@@ -28,7 +28,7 @@ const supabase = createServiceClient(supabaseUrl, supabaseServiceKey, {
 
 export async function POST(request) {
   try {
-    const { action, sessionId, deviceId, userId, data, propertyId, userSaved, inspected, propertyIds, linkedUserId } = await request.json()
+    const { action, sessionId, deviceId, userId, data, propertyId, userSaved, inspected, propertyIds, linkedUserId, latitude, longitude } = await request.json()
 
     switch (action) {
       case 'save':
@@ -49,12 +49,64 @@ export async function POST(request) {
         return await bulkDeleteProperties(propertyIds)
       case 'bulkUpdateInspected':
         return await bulkUpdateInspected(propertyIds)
+      case 'updatePropertyCoordinates':
+        return await updatePropertyCoordinates(propertyId, latitude, longitude)
       default:
         return Response.json({ error: 'Invalid action' }, { status: 400 })
     }
   } catch (error) {
     console.error('API Error:', error)
     return Response.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
+async function updatePropertyCoordinates(propertyId, latitude, longitude) {
+  try {
+    if (!propertyId || latitude == null || longitude == null) {
+      return Response.json({ error: 'Property ID and coordinates are required' }, { status: 400 })
+    }
+
+    const parsedLatitude = Number(latitude)
+    const parsedLongitude = Number(longitude)
+    if (!Number.isFinite(parsedLatitude) || !Number.isFinite(parsedLongitude)) {
+      return Response.json({ error: 'Invalid coordinates' }, { status: 400 })
+    }
+
+    // Verify authenticated user owns this property
+    const serverClient = await createServerClient()
+    const { data: { user }, error: authError } = await serverClient.auth.getUser()
+    if (authError || !user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: property, error: fetchError } = await supabase
+      .from('properties')
+      .select('id, user_id')
+      .eq('id', propertyId)
+      .maybeSingle()
+
+    if (fetchError) throw fetchError
+    if (!property || property.user_id !== user.id) {
+      return Response.json({ error: 'Unauthorized property access' }, { status: 403 })
+    }
+
+    const { error: updateError } = await supabase
+      .from('properties')
+      .update({
+        latitude: parsedLatitude,
+        longitude: parsedLongitude,
+        geocode_status: 'OK',
+        geocode_source: 'google_maps_js',
+        geocoded_at: new Date().toISOString(),
+      })
+      .eq('id', propertyId)
+
+    if (updateError) throw updateError
+
+    return Response.json({ success: true })
+  } catch (error) {
+    console.error('Update property coordinates error:', error)
+    return Response.json({ error: error.message }, { status: 500 })
   }
 }
 
