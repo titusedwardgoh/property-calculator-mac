@@ -393,6 +393,8 @@ function DashboardGoogleMapPanel({
   const [geocodeSyncRetryTick, setGeocodeSyncRetryTick] = useState(0);
   const geocodeSyncRetryCountRef = useRef(0);
   const geocodeSyncRetryTimerRef = useRef(null);
+  const renderedMarkerSignatureRef = useRef('');
+  const lastFocusedPropertyIdRef = useRef(null);
 
   useEffect(() => {
     if (!shouldLoadMap || scriptReady) return;
@@ -465,6 +467,10 @@ function DashboardGoogleMapPanel({
 
     let cancelled = false;
     const map = mapRef.current;
+    const buildMarkerSignature = (points) =>
+      points
+        .map(point => `${point.propertyId}:${point.lat}:${point.lng}:${point.label || ''}`)
+        .join('|');
 
     const clearMarkers = () => {
       if (infoWindowRef.current) {
@@ -472,14 +478,43 @@ function DashboardGoogleMapPanel({
       }
       markersRef.current.forEach(({ marker }) => marker.setMap(null));
       markersRef.current = [];
+      renderedMarkerSignatureRef.current = '';
     };
 
     const renderMarkers = (pointsToRender) => {
+      const markerSignature = buildMarkerSignature(pointsToRender);
+      const sameMarkerSet = markerSignature === renderedMarkerSignatureRef.current;
+      const focusedPropertyChanged = focusedPropertyId !== lastFocusedPropertyIdRef.current;
+
+      if (sameMarkerSet) {
+        const latestPointById = new globalThis.Map(
+          pointsToRender.map(point => [point.propertyId, point])
+        );
+        markersRef.current.forEach(entry => {
+          entry.point = latestPointById.get(entry.propertyId) || entry.point;
+        });
+
+        if (focusedPropertyId && focusedPropertyChanged) {
+          const focusedEntry = markersRef.current.find(entry => entry.propertyId === focusedPropertyId);
+          focusedEntry?.focusMarker();
+        } else if (focusedPropertyId && infoWindowRef.current) {
+          const focusedEntry = markersRef.current.find(entry => entry.propertyId === focusedPropertyId);
+          if (focusedEntry?.point) {
+            infoWindowRef.current.setContent(buildMarkerInfoHtml(focusedEntry.point));
+          }
+        }
+
+        setMappedCount(pointsToRender.length);
+        lastFocusedPropertyIdRef.current = focusedPropertyId;
+        return;
+      }
+
       clearMarkers();
       if (!pointsToRender.length) {
         map.setCenter(AUSTRALIA_CENTER);
         map.setZoom(4);
         setMappedCount(0);
+        lastFocusedPropertyIdRef.current = focusedPropertyId;
         return;
       }
 
@@ -497,11 +532,12 @@ function DashboardGoogleMapPanel({
               maxWidth: 280,
             });
           }
-          infoWindowRef.current.setContent(buildMarkerInfoHtml(point));
+          const currentPoint = markersRef.current.find(entry => entry.propertyId === point.propertyId)?.point || point;
+          infoWindowRef.current.setContent(buildMarkerInfoHtml(currentPoint));
           infoWindowRef.current.open({ map, anchor: marker });
         };
         marker.addListener('click', focusMarker);
-        markersRef.current.push({ propertyId: point.propertyId, marker, focusMarker });
+        markersRef.current.push({ propertyId: point.propertyId, marker, focusMarker, point });
       });
 
       if (focusedPropertyId) {
@@ -520,6 +556,8 @@ function DashboardGoogleMapPanel({
       }
 
       setMappedCount(pointsToRender.length);
+      renderedMarkerSignatureRef.current = markerSignature;
+      lastFocusedPropertyIdRef.current = focusedPropertyId;
     };
 
     const syncMarkers = async () => {
@@ -775,6 +813,7 @@ export default function DashboardContent({
   const [searchPlaceholder, setSearchPlaceholder] = useState('Search by property address...');
   const [selectedProperties, setSelectedProperties] = useState(new Set());
   const [isMapHiddenDesktop, setIsMapHiddenDesktop] = useState(false);
+  const [isDesktopMapExiting, setIsDesktopMapExiting] = useState(false);
   const [focusedPropertyId, setFocusedPropertyId] = useState(null);
   const [mobileViewMode, setMobileViewMode] = useState('list');
   const [geocodeCache, setGeocodeCache] = useState(() => {
@@ -1183,6 +1222,16 @@ export default function DashboardContent({
       })
       .filter(Boolean);
   }, [sortedSurveys]);
+  const isDesktopMapVisible = !isMapHiddenDesktop || isDesktopMapExiting;
+
+  const handleDesktopMapToggle = () => {
+    if (isDesktopMapExiting) return;
+    if (isMapHiddenDesktop) {
+      setIsMapHiddenDesktop(false);
+      return;
+    }
+    setIsDesktopMapExiting(true);
+  };
 
   const surveyCards = sortedSurveys.map((survey, index) => {
     const status = getCompletionStatus(survey);
@@ -1191,17 +1240,12 @@ export default function DashboardContent({
     const handleCardClick = () => {
       setFocusedPropertyId(survey.id);
       setIsMapHiddenDesktop(false);
-      if (typeof window !== 'undefined' && window.innerWidth < 1024) {
-        setMobileViewMode('map');
-      }
     };
 
     return (
       <motion.div
         key={survey.id}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: index * 0.1 }}
+        initial={false}
         onClick={handleCardClick}
         className="h-full min-h-[230px] cursor-pointer rounded-2xl border border-secondary p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-xl lg:p-5 xl:p-6"
       >
@@ -1400,8 +1444,8 @@ export default function DashboardContent({
             >
               <div
                 className={`mb-5 flex flex-wrap items-center justify-between gap-2.5 ${
-                  !isMapHiddenDesktop ? 'lg:w-[75%] lg:pr-3 xl:pr-4' : ''
-                }`}
+                  isDesktopMapVisible ? 'lg:max-w-[75%] lg:pr-3 xl:pr-4' : 'lg:max-w-full'
+                } w-full transition-[max-width] duration-300 ease-in-out`}
               >
                 <div className="flex items-center gap-3">
                   <h2 className="text-2xl font-bold text-gray-900">Saved Surveys</h2>
@@ -1447,7 +1491,7 @@ export default function DashboardContent({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setIsMapHiddenDesktop(prev => !prev)}
+                  onClick={handleDesktopMapToggle}
                   className="hidden cursor-pointer items-center gap-2 rounded-full border border-base-300 bg-white px-4 py-1.5 text-sm font-medium text-gray-800 shadow-sm transition-colors hover:bg-base-200 lg:inline-flex"
                 >
                   <Map className="h-4 w-4" />
@@ -1471,12 +1515,12 @@ export default function DashboardContent({
               {/* Container with fixed height to prevent layout shift */}
               <div
                 className={`relative mb-6 h-10 ${
-                  !isMapHiddenDesktop ? 'lg:w-[75%] lg:pr-3 xl:pr-4' : ''
-                }`}
+                  isDesktopMapVisible ? 'lg:max-w-[74.3%] lg:pr-3 xl:pr-4' : 'lg:max-w-full'
+                } w-full overflow-hidden transition-[max-width] duration-300 ease-in-out`}
               >
                 {/* Select-all checkbox - fixed position, not part of sliding animation */}
                 {sortedSurveys.length > 0 && (
-                  <label className="absolute right-6 top-0 bottom-0 flex items-center z-10 cursor-pointer select-none shrink-0">
+                  <label className="absolute right-4 top-0 bottom-0 flex items-center z-10 cursor-pointer select-none shrink-0">
                     <input
                       type="checkbox"
                       checked={sortedSurveys.every(s => selectedProperties.has(s.id))}
@@ -1666,41 +1710,72 @@ export default function DashboardContent({
               ) : (
                 <>
                   <div className="hidden lg:grid lg:grid-cols-12 lg:gap-3 xl:gap-4">
-                    <div className={isMapHiddenDesktop ? 'lg:col-span-12' : 'lg:col-span-9'}>
-                      <div className={`grid gap-3 xl:gap-4 ${isMapHiddenDesktop ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
+                    <div className={isDesktopMapVisible ? 'lg:col-span-9' : 'lg:col-span-12'}>
+                      <div className={`grid gap-3 xl:gap-4 ${isDesktopMapVisible ? 'lg:grid-cols-2 2xl:grid-cols-3' : 'lg:grid-cols-3 2xl:grid-cols-4'}`}>
                         {surveyCards}
                       </div>
                     </div>
-                    {!isMapHiddenDesktop && (
-                      <div className="lg:col-span-3 lg:-mt-[7.75rem] lg:-mr-3 xl:-mr-4">
+                    <AnimatePresence initial={false}>
+                      {isDesktopMapVisible && (
+                        <motion.div
+                          key="desktop-map-panel"
+                          initial={{ opacity: 0, x: 120, y: 0 }}
+                          animate={isDesktopMapExiting ? { opacity: 0, x: 120, y: 0 } : { opacity: 1, x: 0, y: 0 }}
+                          exit={{ opacity: 0, x: 120, y: 0 }}
+                          transition={{ duration: 0.32, ease: 'easeInOut', type: 'tween' }}
+                          onAnimationComplete={() => {
+                            if (isDesktopMapExiting) {
+                              setIsDesktopMapExiting(false);
+                              setIsMapHiddenDesktop(true);
+                            }
+                          }}
+                          className="lg:col-span-3 lg:-mt-[7.75rem] lg:-mr-3 xl:-mr-4"
+                        >
                         <div className="sticky top-24 flex h-[calc(100vh-8.5rem)] min-h-[560px] flex-col rounded-2xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
                           <DashboardGoogleMapPanel
                             mapPoints={mapPoints}
                             geocodeCache={geocodeCache}
                             setGeocodeCache={setGeocodeCache}
                             focusedPropertyId={focusedPropertyId}
-                            shouldLoadMap={!isMapHiddenDesktop}
+                            shouldLoadMap={isDesktopMapVisible}
                           />
                         </div>
-                      </div>
-                    )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
-                  <div className="lg:hidden">
-                    {mobileViewMode === 'map' ? (
-                      <div className="flex h-[60vh] min-h-[420px] flex-col rounded-2xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
-                        <DashboardGoogleMapPanel
-                          mapPoints={mapPoints}
-                          geocodeCache={geocodeCache}
-                          setGeocodeCache={setGeocodeCache}
-                          focusedPropertyId={focusedPropertyId}
-                          shouldLoadMap={mobileViewMode === 'map'}
-                        />
-                      </div>
-                    ) : (
-                      <div className="space-y-3 sm:space-y-4">
-                        {surveyCards}
-                      </div>
-                    )}
+                  <div className="relative lg:hidden">
+                    <AnimatePresence initial={false}>
+                      {mobileViewMode === 'map' && (
+                        <motion.div
+                          key="mobile-map-panel"
+                          initial={{ opacity: 0, y: 28 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 28 }}
+                          transition={{ duration: 0.28, ease: 'easeInOut' }}
+                          className="relative z-10 flex h-[60vh] min-h-[420px] flex-col rounded-2xl border border-base-300 bg-base-100 shadow-sm overflow-hidden"
+                        >
+                          <DashboardGoogleMapPanel
+                            mapPoints={mapPoints}
+                            geocodeCache={geocodeCache}
+                            setGeocodeCache={setGeocodeCache}
+                            focusedPropertyId={focusedPropertyId}
+                            shouldLoadMap={mobileViewMode === 'map'}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                    <motion.div
+                      initial={false}
+                      animate={{
+                        opacity: mobileViewMode === 'list' ? 1 : 0,
+                        y: mobileViewMode === 'list' ? 0 : 24,
+                      }}
+                      transition={{ duration: 0.28, ease: 'easeInOut' }}
+                      className={`${mobileViewMode === 'map' ? 'pointer-events-none absolute inset-x-0 top-0' : 'relative'} space-y-3 sm:space-y-4`}
+                    >
+                      {surveyCards}
+                    </motion.div>
                   </div>
                 </>
               )}
