@@ -81,9 +81,18 @@ export default function Header() {
   return (
     <>
       <header
-        className={`bg-base-100 backdrop-blur-sm shadow-sm sticky top-0 z-100 ${shouldHideHeader ? 'md:invisible md:pointer-events-none md:opacity-0' : ''}`}
+        className={`sticky top-0 z-100 ${shouldHideHeader ? 'md:invisible md:pointer-events-none md:opacity-0' : ''}`}
+        style={{
+          background: 'rgba(255, 255, 255, 0.15)',
+          backdropFilter: 'blur(20px) saturate(180%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          border: '1px solid rgba(255, 255, 255, 0.25)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          boxShadow:
+            '0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.4)'
+        }}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Link href="/" className="flex items-center">
@@ -350,7 +359,7 @@ export default function Header() {
 
       {/* Loading overlay when navigating to dashboard */}
       {isNavigatingToDashboard && (
-        <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+        <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-gray-600">Loading dashboard...</p>

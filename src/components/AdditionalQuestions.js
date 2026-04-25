@@ -436,7 +436,7 @@ export default function AdditionalQuestions() {
 
   if (showEntryOverlay) {
     return (
-      <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+      <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-gray-600">A few more questions...</p>
@@ -447,7 +447,7 @@ export default function AdditionalQuestions() {
 
   if (showCompletionOverlay) {
     return (
-      <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+      <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <div className="min-h-[2.5rem] flex items-center justify-center">
@@ -481,7 +481,7 @@ export default function AdditionalQuestions() {
   }
 
   return (
-    <div className="bg-base-100 rounded-lg overflow-visible mt-15">
+    <div className="bg-transparent rounded-lg overflow-visible mt-15">
       <div className="flex">
         <AnimatePresence mode="wait">
           <motion.span
@@ -528,7 +528,7 @@ export default function AdditionalQuestions() {
         </div>
       </div>
 
-      <div className="md:pl-8 xl:text-lg fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-base-100 md:bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:mt-8 md:px-6 md:pb-8 lg:mt-15 xl:mt-15">
+      <div className="md:pl-8 xl:text-lg fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:mt-8 md:px-6 md:pb-8 lg:mt-15 xl:mt-15">
         <div className="flex justify-start mx-auto mt-4">
           {currentStep === 1 ? (
             <>

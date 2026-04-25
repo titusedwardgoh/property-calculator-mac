@@ -28,7 +28,22 @@ const supabase = createServiceClient(supabaseUrl, supabaseServiceKey, {
 
 export async function POST(request) {
   try {
-    const { action, sessionId, deviceId, userId, data, propertyId, userSaved, inspected, propertyIds, linkedUserId, latitude, longitude } = await request.json()
+    const {
+      action,
+      sessionId,
+      deviceId,
+      userId,
+      data,
+      propertyId,
+      userSaved,
+      inspected,
+      propertyIds,
+      linkedUserId,
+      latitude,
+      longitude,
+      photoUrl,
+      photoSource,
+    } = await request.json()
 
     switch (action) {
       case 'save':
@@ -51,6 +66,8 @@ export async function POST(request) {
         return await bulkUpdateInspected(propertyIds)
       case 'updatePropertyCoordinates':
         return await updatePropertyCoordinates(propertyId, latitude, longitude)
+      case 'updatePropertyPhoto':
+        return await updatePropertyPhoto(propertyId, photoUrl, photoSource)
       default:
         return Response.json({ error: 'Invalid action' }, { status: 400 })
     }
@@ -106,6 +123,51 @@ async function updatePropertyCoordinates(propertyId, latitude, longitude) {
     return Response.json({ success: true })
   } catch (error) {
     console.error('Update property coordinates error:', error)
+    return Response.json({ error: error.message }, { status: 500 })
+  }
+}
+
+async function updatePropertyPhoto(propertyId, photoUrl, photoSource) {
+  try {
+    if (!propertyId || !photoUrl) {
+      return Response.json({ error: 'Property ID and photo URL are required' }, { status: 400 })
+    }
+
+    const serverClient = await createServerClient()
+    const { data: { user }, error: authError } = await serverClient.auth.getUser()
+    if (authError || !user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const { data: property, error: fetchError } = await supabase
+      .from('properties')
+      .select('id, user_id')
+      .eq('id', propertyId)
+      .maybeSingle()
+
+    if (fetchError) throw fetchError
+    if (!property || property.user_id !== user.id) {
+      return Response.json({ error: 'Unauthorized property access' }, { status: 403 })
+    }
+
+    const updatePayload = {
+      photo_url: String(photoUrl),
+      photo_updated_at: new Date().toISOString(),
+    }
+    if (photoSource) {
+      updatePayload.photo_source = String(photoSource)
+    }
+
+    const { error: updateError } = await supabase
+      .from('properties')
+      .update(updatePayload)
+      .eq('id', propertyId)
+
+    if (updateError) throw updateError
+
+    return Response.json({ success: true })
+  } catch (error) {
+    console.error('Update property photo error:', error)
     return Response.json({ error: error.message }, { status: 500 })
   }
 }

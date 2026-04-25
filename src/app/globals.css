@@ -102,7 +102,11 @@
   inset: 0;
   pointer-events: none;
   overflow: hidden;
-  background-color: #ffffff;
+  background:
+    radial-gradient(22rem 16rem at 18% 22%, rgba(67, 151, 117, 0.11), transparent 68%),
+    radial-gradient(20rem 14rem at 82% 30%, rgba(226, 149, 120, 0.08), transparent 70%),
+    radial-gradient(18rem 13rem at 58% 78%, rgba(67, 151, 117, 0.06), transparent 72%),
+    #ffffff;
   z-index: 0;
 }
 
@@ -114,39 +118,39 @@
 }
 
 .dashboard-aurora-blob--1 {
-  width: min(70vw, 32rem);
-  height: min(55vw, 26rem);
-  background: rgba(226, 149, 120, 0.22);
-  top: -12%;
-  left: -8%;
+  width: min(58vw, 30rem);
+  height: min(48vw, 24rem);
+  background: rgba(67, 151, 117, 0.16);
+  top: -10%;
+  left: -6%;
   animation: dashboard-aurora-float-a 24s ease-in-out infinite;
 }
 
 .dashboard-aurora-blob--2 {
-  width: min(65vw, 28rem);
-  height: min(50vw, 24rem);
-  background: rgba(67, 151, 117, 0.14);
-  top: 35%;
-  right: -12%;
+  width: min(72vw, 34rem);
+  height: min(50vw, 25rem);
+  background: rgba(67, 151, 117, 0.18);
+  top: 28%;
+  right: -14%;
   animation: dashboard-aurora-float-b 28s ease-in-out infinite;
 }
 
 .dashboard-aurora-blob--3 {
-  width: min(75vw, 36rem);
-  height: min(45vw, 22rem);
-  background: rgba(226, 149, 120, 0.1);
-  bottom: -18%;
-  left: 20%;
+  width: min(62vw, 32rem);
+  height: min(40vw, 20rem);
+  background: rgba(67, 151, 117, 0.14);
+  bottom: -16%;
+  left: 8%;
   animation: dashboard-aurora-float-c 32s ease-in-out infinite;
 }
 
 /* Softer wash near the bottom so the aurora does not “stop” above the footer */
 .dashboard-aurora-blob--bottom {
-  width: min(90vw, 42rem);
-  height: min(35vw, 16rem);
-  background: rgba(67, 151, 117, 0.09);
-  bottom: -8%;
-  left: 12%;
+  width: min(80vw, 40rem);
+  height: min(34vw, 16rem);
+  background: rgba(226, 149, 120, 0.12);
+  bottom: -10%;
+  left: 30%;
   animation: dashboard-aurora-float-b 30s ease-in-out infinite reverse;
 }
 
@@ -187,4 +191,36 @@
   65% {
     transform: translate(5%, -2%) scale(1.05);
   }
+}
+
+/* Full-screen loading overlays - aurora treatment */
+.aurora-loading-overlay {
+  background:
+    radial-gradient(50rem 30rem at 10% 10%, rgba(226, 149, 120, 0.2), transparent 60%),
+    radial-gradient(45rem 28rem at 90% 20%, rgba(67, 151, 117, 0.22), transparent 62%),
+    radial-gradient(42rem 26rem at 55% 95%, rgba(226, 149, 120, 0.14), transparent 64%),
+    radial-gradient(40rem 24rem at 40% 55%, rgba(90, 170, 130, 0.12), transparent 66%),
+    #ffffff;
+  backdrop-filter: blur(14px);
+}
+
+/* Page background aurora (non-overlay) */
+.aurora-page-bg {
+  background:
+    radial-gradient(56rem 34rem at 10% 8%, rgba(226, 149, 120, 0.14), transparent 62%),
+    radial-gradient(50rem 30rem at 92% 16%, rgba(67, 151, 117, 0.16), transparent 64%),
+    radial-gradient(46rem 28rem at 52% 95%, rgba(226, 149, 120, 0.1), transparent 66%),
+    radial-gradient(40rem 24rem at 34% 58%, rgba(90, 170, 130, 0.1), transparent 68%),
+    #ffffff;
+}
+
+/* Google Maps marker info window spacing */
+.gm-style .gm-style-iw-c {
+  padding-bottom: 1px !important;
+}
+
+.gm-style .gm-style-iw-d {
+  overflow: visible !important;
+  padding-left: 4px !important;
+  padding-bottom: 1px !important;
 }

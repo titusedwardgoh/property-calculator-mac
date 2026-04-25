@@ -3,12 +3,19 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle, Search, ArrowUpDown, Map, List } from 'lucide-react';
+import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle, Search, ArrowUpDown, Map as MapIcon, List } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { useFormStore } from '@/stores/formStore';
 import { resetSessionAndForm } from '@/lib/sessionManager';
+import {
+  getPropertyPhotoUrl,
+  getStreetViewPhotoUrl,
+  getStreetViewMetadataStatus,
+  PROPWIZ_BRANDED_PLACEHOLDER_URL,
+} from '@/lib/propertyPhotos';
 
 function SurveyInspectedToggle({ inspected, onToggle, compact }) {
   return (
@@ -72,10 +79,13 @@ function SurveyInspectedToggle({ inspected, onToggle, compact }) {
 const AUSTRALIA_CENTER = { lat: -25.2744, lng: 133.7751 };
 /** Zoom when a marker is clicked (property-level view) */
 const MARKER_FOCUS_ZOOM = 17;
+const MAP_INFO_WINDOW_CLOSE_HANDLER = '__dashboardCloseInfoWindow';
 const MAP_CONSTRUCTOR_RETRY_DELAY_MS = 150;
 const MAP_CONSTRUCTOR_RETRY_ATTEMPTS = 20;
 const GEOCODE_CACHE_SESSION_KEY = 'dashboardGeocodeCacheV1';
+const PHOTO_CACHE_SESSION_KEY = 'dashboardPropertyPhotoCacheV1';
 const GEOCODE_REQUEST_GAP_MS = 120;
+const PHOTO_REQUEST_GAP_MS = 150;
 
 const sanitizeAddressPart = (value) => {
   if (!value) return '';
@@ -100,6 +110,18 @@ const buildSurveyAddress = (survey) => {
 };
 
 const createMapCacheKey = (surveyId, queryAddress) => `${surveyId}::${queryAddress}`;
+const getPhotoCacheKey = (survey) =>
+  `${survey?.id || 'unknown'}::${buildSurveyAddress(survey) || 'no-address'}`;
+
+const extractGoogleApiKeyFromScriptUrl = (scriptUrl) => {
+  if (!scriptUrl) return '';
+  try {
+    const parsed = new URL(scriptUrl);
+    return parsed.searchParams.get('key') || '';
+  } catch {
+    return '';
+  }
+};
 
 const AU_STATE_POSTCODE_RE = /\b(NSW|VIC|QLD|WA|SA|TAS|ACT|NT)\s+(\d{4})\b/i;
 
@@ -197,20 +219,43 @@ const formatMapInfoDate = (dateString) => {
 };
 
 const buildMarkerInfoHtml = (point) => {
-  const title = escapeHtml(point.address || point.label || 'Property');
-  const stateLine = point.state
-    ? `<div style="color:#4b5563;margin-bottom:8px;"><span style="color:#6b7280;">State:</span> ${escapeHtml(point.state)}</div>`
-    : '';
+  const { primary, secondary } = splitPropertyAddress(point.address || point.label || 'Property', point.state || '');
+  const addressTitle = `
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px;">
+      <div style="font-weight:600;line-height:1.45;flex:1;min-width:0;">
+        <div>${escapeHtml(primary)}</div>
+        ${secondary ? `<div>${escapeHtml(secondary)}</div>` : ''}
+      </div>
+      <button
+        type="button"
+        aria-label="Close"
+        onclick="window.${MAP_INFO_WINDOW_CLOSE_HANDLER} && window.${MAP_INFO_WINDOW_CLOSE_HANDLER}()"
+        style="flex-shrink:0;width:24px;height:24px;border:1px solid #9ca3af;border-radius:4px;background:#fff;color:#6b7280;font-size:16px;line-height:1;cursor:pointer;"
+      >&#215;</button>
+    </div>
+  `;
   const priceText =
     point.price != null && point.price !== ''
       ? `$${Number(point.price).toLocaleString()}`
       : 'TBD';
+  const thumbnailUrl = point.photoUrl || PROPWIZ_BRANDED_PLACEHOLDER_URL;
   return `
-    <div style="max-width:280px;padding-right:8px;font-family:system-ui,-apple-system,sans-serif;font-size:13px;line-height:1.5;color:#111827;">
-      <div style="font-weight:600;margin-bottom:6px;">${title}</div>
-      ${stateLine}
-      <div style="margin-bottom:4px;"><span style="color:#6b7280;">Price:</span> ${escapeHtml(priceText)}</div>
-      <div><span style="color:#6b7280;">Inspected:</span> ${point.inspected ? 'Yes' : 'No'}</div>
+    <div style="min-width:360px;max-width:440px;padding-right:4px;padding-bottom:20px;font-family:system-ui,-apple-system,sans-serif;font-size:13px;line-height:1.5;color:#111827;">
+      <div style="display:flex;align-items:stretch;overflow:hidden;border-radius:12px;background:#ffffff;">
+        <div style="width:40%;flex-shrink:0;background:#f3f4f6;">
+          <img
+            src="${escapeHtml(thumbnailUrl)}"
+            alt="Property preview"
+            style="display:block;width:100%;height:100%;min-height:132px;object-fit:cover;"
+            loading="lazy"
+          />
+        </div>
+        <div style="width:60%;min-width:0;padding:12px 14px;">
+          ${addressTitle}
+          <div style="margin-bottom:4px;"><span style="color:#6b7280;">Price:</span> ${escapeHtml(priceText)}</div>
+          <div><span style="color:#6b7280;">Inspected:</span> ${point.inspected ? 'Yes' : 'No'}</div>
+        </div>
+      </div>
     </div>
   `;
 };
@@ -238,6 +283,7 @@ const geocodeAddress = (geocoder, address) =>
         const location = results[0].geometry.location;
         resolve({
           status,
+          placeId: results[0].place_id || null,
           coordinates: {
             lat: location.lat(),
             lng: location.lng(),
@@ -247,6 +293,7 @@ const geocodeAddress = (geocoder, address) =>
       }
       resolve({
         status,
+        placeId: null,
         coordinates: null,
       });
     });
@@ -397,6 +444,16 @@ function DashboardGoogleMapPanel({
   const lastFocusedPropertyIdRef = useRef(null);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    window[MAP_INFO_WINDOW_CLOSE_HANDLER] = () => {
+      infoWindowRef.current?.close();
+    };
+    return () => {
+      delete window[MAP_INFO_WINDOW_CLOSE_HANDLER];
+    };
+  }, []);
+
+  useEffect(() => {
     if (!shouldLoadMap || scriptReady) return;
 
     let cancelled = false;
@@ -529,12 +586,18 @@ function DashboardGoogleMapPanel({
           map.setZoom(MARKER_FOCUS_ZOOM);
           if (!infoWindowRef.current) {
             infoWindowRef.current = new window.google.maps.InfoWindow({
-              maxWidth: 280,
+              maxWidth: 360,
             });
           }
           const currentPoint = markersRef.current.find(entry => entry.propertyId === point.propertyId)?.point || point;
           infoWindowRef.current.setContent(buildMarkerInfoHtml(currentPoint));
           infoWindowRef.current.open({ map, anchor: marker });
+          window.google.maps.event.addListenerOnce(infoWindowRef.current, 'domready', () => {
+            const defaultCloseButton = document.querySelector('.gm-ui-hover-effect');
+            if (defaultCloseButton instanceof HTMLElement) {
+              defaultCloseButton.style.display = 'none';
+            }
+          });
         };
         marker.addListener('click', focusMarker);
         markersRef.current.push({ propertyId: point.propertyId, marker, focusMarker, point });
@@ -764,7 +827,7 @@ function DashboardGoogleMapPanel({
         <div ref={mapContainerRef} className="absolute inset-0" />
 
         {(isLoadingMap || isGeocoding) && (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-white/70 px-6 text-center text-sm text-gray-600">
+          <div className="aurora-loading-overlay pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center text-sm text-gray-600">
             <span className="inline-flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
               {isLoadingMap ? 'Loading map...' : 'Mapping property addresses...'}
@@ -827,6 +890,24 @@ export default function DashboardContent({
       return {};
     }
   });
+  const [propertyPhotoCache, setPropertyPhotoCache] = useState(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = sessionStorage.getItem(PHOTO_CACHE_SESSION_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  });
+  const [imageLoadedByPropertyId, setImageLoadedByPropertyId] = useState({});
+  const photoInflightRef = useRef(new Map());
+  const photoAttemptedKeysRef = useRef(new Set());
+  const placesServiceRef = useRef(null);
+  const geocoderForPhotosRef = useRef(null);
+  const persistedPhotoKeysRef = useRef(new Set());
+  const googleApiKeyRef = useRef('');
   const router = useRouter();
   const { user } = useAuth();
   const supabase = createClient();
@@ -854,6 +935,15 @@ export default function DashboardContent({
     }
   }, [geocodeCache]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      sessionStorage.setItem(PHOTO_CACHE_SESSION_KEY, JSON.stringify(propertyPhotoCache));
+    } catch {
+      // Ignore storage quota / privacy mode errors.
+    }
+  }, [propertyPhotoCache]);
+
   const loadSurveys = async () => {
     if (!user) return;
     
@@ -872,7 +962,22 @@ export default function DashboardContent({
 
       const result = await response.json();
       if (result.success) {
-        setSurveys(result.data || []);
+        const merged = (result.data || []).map((survey) => {
+          const cacheKey = getPhotoCacheKey(survey);
+          const cached = propertyPhotoCache[cacheKey];
+          if (survey.photo_url) {
+            return survey;
+          }
+          if (!cached?.photoUrl) {
+            return survey;
+          }
+          return {
+            ...survey,
+            photo_url: cached.photoUrl,
+            photo_source: cached.photoSource || survey.photo_source || null,
+          };
+        });
+        setSurveys(merged);
       }
     } catch (error) {
       console.error('Error loading surveys:', error);
@@ -880,6 +985,262 @@ export default function DashboardContent({
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!user || surveys.length === 0) return;
+
+    let cancelled = false;
+
+    const ensurePhotoServices = async () => {
+      await ensureGoogleMapsLoaded();
+      if (!(window.google && window.google.maps)) return false;
+
+      if (!placesServiceRef.current) {
+        try {
+          if (typeof window.google.maps.importLibrary === 'function') {
+            await window.google.maps.importLibrary('places');
+          }
+        } catch {
+          // Fall through; constructor may still exist on window.google.maps.places
+        }
+        if (window.google?.maps?.places?.PlacesService) {
+          placesServiceRef.current = new window.google.maps.places.PlacesService(document.createElement('div'));
+        }
+      }
+
+      if (!geocoderForPhotosRef.current) {
+        const GeocoderConstructor = await resolveGeocoderConstructor();
+        if (GeocoderConstructor) {
+          geocoderForPhotosRef.current = new GeocoderConstructor();
+        }
+      }
+
+      if (!googleApiKeyRef.current) {
+        try {
+          const response = await fetch('/api/google-maps-config');
+          if (response.ok) {
+            const data = await response.json();
+            googleApiKeyRef.current = extractGoogleApiKeyFromScriptUrl(data?.scriptUrl || '');
+          }
+        } catch {
+          // Street view fallback may be skipped if we can't resolve a key.
+        }
+      }
+
+      return true;
+    };
+
+    const resolveAndPersistPhoto = async (survey) => {
+      const cacheKey = getPhotoCacheKey(survey);
+      const existingUrl = survey.photo_url;
+      const isPlaceholderUrl = (url) => url === PROPWIZ_BRANDED_PLACEHOLDER_URL;
+      const isSvgPlaceholderDataUrl = (url) =>
+        typeof url === 'string' && url.startsWith('data:image/svg+xml');
+      const isAnyDataImageUrl = (url) =>
+        typeof url === 'string' && url.startsWith('data:image');
+      const persistPhotoUrl = async ({ photoUrl, photoSource }) => {
+        if (
+          !photoUrl ||
+          isPlaceholderUrl(photoUrl) ||
+          isAnyDataImageUrl(photoUrl) ||
+          persistedPhotoKeysRef.current.has(cacheKey)
+        ) {
+          return;
+        }
+        try {
+          const response = await fetch('/api/supabase', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              action: 'updatePropertyPhoto',
+              propertyId: survey.id,
+              photoUrl,
+              photoSource: photoSource || null,
+            }),
+          });
+          if (response.ok) {
+            persistedPhotoKeysRef.current.add(cacheKey);
+          }
+        } catch {
+          // Best-effort persistence only.
+        }
+      };
+
+      if (existingUrl && !isSvgPlaceholderDataUrl(existingUrl)) {
+        const source = survey.photo_source || 'persisted';
+        setPropertyPhotoCache((prev) => {
+          if (prev[cacheKey]?.photoUrl === existingUrl && prev[cacheKey]?.photoSource === source) {
+            return prev;
+          }
+          return {
+            ...prev,
+            [cacheKey]: { photoUrl: existingUrl, photoSource: source },
+          };
+        });
+        if (!survey.photo_updated_at) {
+          await persistPhotoUrl({ photoUrl: existingUrl, photoSource: source });
+        }
+        return;
+      }
+
+      // If we already attempted this record in the current session and only had
+      // placeholder data, avoid re-running on every render. It will retry next login.
+      if (photoAttemptedKeysRef.current.has(cacheKey)) {
+        return;
+      }
+
+      const cached = propertyPhotoCache[cacheKey];
+      if (cached?.photoUrl) {
+        setSurveys((prev) => {
+          let changed = false;
+          const next = prev.map((item) => {
+            if (item.id !== survey.id) return item;
+            const nextSource = cached.photoSource || item.photo_source || null;
+            if (item.photo_url === cached.photoUrl && item.photo_source === nextSource) {
+              return item;
+            }
+            changed = true;
+            return { ...item, photo_url: cached.photoUrl, photo_source: nextSource };
+          });
+          return changed ? next : prev;
+        });
+        await persistPhotoUrl({
+          photoUrl: cached.photoUrl,
+          photoSource: cached.photoSource || 'cached',
+        });
+        return;
+      }
+
+      if (photoInflightRef.current.has(cacheKey)) {
+        await photoInflightRef.current.get(cacheKey);
+        return;
+      }
+
+      const task = (async () => {
+        let finalUrl = null;
+        let finalSource = null;
+        let derivedCoordinates =
+          survey.latitude != null && survey.longitude != null
+            ? { lat: Number(survey.latitude), lng: Number(survey.longitude) }
+            : null;
+
+        const ready = await ensurePhotoServices();
+        if (!ready || cancelled) return;
+
+        const address = buildSurveyAddress(survey);
+        let resolvedPlaceId = survey.place_id || survey.google_place_id || null;
+
+        if (!resolvedPlaceId && geocoderForPhotosRef.current && address) {
+          const geocoded = await geocodeAddressWithRetry(geocoderForPhotosRef.current, address);
+          if (geocoded?.coordinates && !derivedCoordinates) {
+            derivedCoordinates = geocoded.coordinates;
+          }
+          resolvedPlaceId = geocoded?.placeId || null;
+        }
+
+        if (resolvedPlaceId && placesServiceRef.current) {
+          finalUrl = await getPropertyPhotoUrl(resolvedPlaceId, placesServiceRef.current);
+          if (finalUrl) {
+            finalSource = 'place_photo';
+          }
+        }
+
+        const hasValidDerivedCoordinates =
+          derivedCoordinates &&
+          Number.isFinite(Number(derivedCoordinates.lat)) &&
+          Number.isFinite(Number(derivedCoordinates.lng));
+
+        if (!finalUrl) {
+          let metadataStatus = 'INVALID_REQUEST';
+          if (address) {
+            metadataStatus = await getStreetViewMetadataStatus({
+              location: address,
+              apiKey: googleApiKeyRef.current,
+            });
+          }
+
+          if (metadataStatus !== 'OK' && hasValidDerivedCoordinates) {
+            metadataStatus = await getStreetViewMetadataStatus({
+              lat: derivedCoordinates.lat,
+              lng: derivedCoordinates.lng,
+              apiKey: googleApiKeyRef.current,
+            });
+          }
+
+          if (metadataStatus === 'OK' && hasValidDerivedCoordinates) {
+            const streetViewUrl = getStreetViewPhotoUrl({
+              lat: derivedCoordinates.lat,
+              lng: derivedCoordinates.lng,
+              apiKey: googleApiKeyRef.current,
+            });
+            if (streetViewUrl) {
+              finalUrl = streetViewUrl;
+              finalSource = 'street_view';
+            }
+          }
+        }
+
+        if (!finalUrl) {
+          finalUrl = PROPWIZ_BRANDED_PLACEHOLDER_URL;
+          finalSource = 'placeholder';
+        }
+
+        if (cancelled) return;
+
+        setPropertyPhotoCache((prev) => {
+          const current = prev[cacheKey];
+          if (current?.photoUrl === finalUrl && current?.photoSource === finalSource) {
+            return prev;
+          }
+          return {
+            ...prev,
+            [cacheKey]: { photoUrl: finalUrl, photoSource: finalSource },
+          };
+        });
+
+        setSurveys((prev) => {
+          let changed = false;
+          const next = prev.map((item) => {
+            if (item.id !== survey.id) return item;
+            if (item.photo_url === finalUrl && item.photo_source === finalSource) {
+              return item;
+            }
+            changed = true;
+            return { ...item, photo_url: finalUrl, photo_source: finalSource };
+          });
+          return changed ? next : prev;
+        });
+
+        await persistPhotoUrl({ photoUrl: finalUrl, photoSource: finalSource });
+        if (finalSource === 'placeholder') {
+          photoAttemptedKeysRef.current.add(cacheKey);
+        }
+      })();
+
+      photoInflightRef.current.set(cacheKey, task);
+      try {
+        await task;
+      } finally {
+        photoInflightRef.current.delete(cacheKey);
+      }
+    };
+
+    const resolvePhotosForVisibleSurveys = async () => {
+      for (const survey of surveys) {
+        if (cancelled) return;
+        await resolveAndPersistPhoto(survey);
+        await sleep(PHOTO_REQUEST_GAP_MS);
+      }
+    };
+
+    resolvePhotosForVisibleSurveys();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user, surveys, propertyPhotoCache]);
 
   const handleResume = (propertyId) => {
     // Store property ID in sessionStorage to resume
@@ -1213,6 +1574,7 @@ export default function DashboardContent({
               : null,
           address: survey.property_address || '',
           state: survey.selected_state || '',
+          photoUrl: survey.photo_url || '',
           price: survey.property_price,
           completionStatus: survey.completion_status,
           completionPercentage: survey.completion_percentage,
@@ -1236,6 +1598,8 @@ export default function DashboardContent({
   const surveyCards = sortedSurveys.map((survey, index) => {
     const status = getCompletionStatus(survey);
     const isComplete = survey.completion_status === 'complete';
+    const cardPhotoUrl = survey.photo_url || PROPWIZ_BRANDED_PLACEHOLDER_URL;
+    const isPhotoLoaded = !!imageLoadedByPropertyId[survey.id] || cardPhotoUrl.startsWith('data:image/');
 
     const handleCardClick = () => {
       setFocusedPropertyId(survey.id);
@@ -1245,10 +1609,60 @@ export default function DashboardContent({
     return (
       <motion.div
         key={survey.id}
-        initial={false}
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.24), ease: 'easeOut' }}
         onClick={handleCardClick}
         className="h-full min-h-[230px] cursor-pointer rounded-2xl border border-secondary p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-xl lg:p-5 xl:p-6"
       >
+        <div className="relative -mx-4 -mt-4 mb-4 aspect-[16/9] w-[calc(100%+2rem)] overflow-hidden rounded-t-2xl bg-base-100 lg:-mx-5 lg:-mt-5 lg:w-[calc(100%+2.5rem)] xl:-mx-6 xl:-mt-6 xl:w-[calc(100%+3rem)]">
+          {!isPhotoLoaded && (
+            <div className="absolute inset-0 animate-pulse bg-base-300/60" aria-hidden />
+          )}
+          <Image
+            src={cardPhotoUrl}
+            alt={survey.property_address ? `Property preview for ${survey.property_address}` : 'Property preview'}
+            fill
+            className={`object-cover transition-opacity duration-300 ${isPhotoLoaded ? 'opacity-100' : 'opacity-0'}`}
+            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 42vw, 28vw"
+            onError={() => {
+              const currentPhotoSource = survey.photo_source || null;
+              setSurveys((prev) =>
+                prev.map((item) =>
+                  item.id === survey.id
+                    ? {
+                        ...item,
+                        photo_url: PROPWIZ_BRANDED_PLACEHOLDER_URL,
+                        photo_source: 'placeholder',
+                      }
+                    : item
+                )
+              );
+              setPropertyPhotoCache((prev) => ({
+                ...prev,
+                [getPhotoCacheKey(survey)]: {
+                  photoUrl: PROPWIZ_BRANDED_PLACEHOLDER_URL,
+                  photoSource: 'placeholder',
+                },
+              }));
+              setImageLoadedByPropertyId((prev) => ({ ...prev, [survey.id]: true }));
+              if (currentPhotoSource === 'persisted') {
+                // Keep DB value untouched; local placeholder avoids broken UI.
+              }
+            }}
+            onLoad={() =>
+              setImageLoadedByPropertyId((prev) => {
+                if (prev[survey.id]) return prev;
+                return { ...prev, [survey.id]: true };
+              })
+            }
+          />
+          <span
+            className={`absolute bottom-3 left-3 inline-flex shrink-0 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium whitespace-nowrap shadow-sm backdrop-blur-[1px] ${status.color}`}
+          >
+            {status.text}
+          </span>
+        </div>
         <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-4 sm:grid-rows-[auto_1fr] sm:gap-x-4 sm:gap-y-2">
           <div className="col-start-1 row-start-1 min-w-0 self-start pr-1 sm:pr-0">
             <div className="mb-2 flex flex-wrap items-start gap-x-2 gap-y-1 sm:items-center">
@@ -1269,11 +1683,6 @@ export default function DashboardContent({
                   );
                 })()}
               </h3>
-              <span
-                className={`inline-flex shrink-0 px-2.5 py-1 text-[11px] font-medium whitespace-nowrap rounded-full ${status.color} ${status.bg}`}
-              >
-                {status.text}
-              </span>
             </div>
           </div>
           <div className="col-start-2 row-start-1 justify-self-end self-start">
@@ -1298,9 +1707,6 @@ export default function DashboardContent({
                   ? `$${Number(survey.property_price).toLocaleString()}`
                   : 'TBD'}
               </p>
-              {survey.selected_state && (
-                <p>State: {survey.selected_state}</p>
-              )}
               <p>Last updated: {formatDate(survey.updated_at)}</p>
               <div className="mt-2 hidden items-center gap-2 sm:flex">
                 <span className="text-sm text-gray-600">Inspected:</span>
@@ -1377,7 +1783,7 @@ export default function DashboardContent({
     <div className="flex min-h-screen flex-col bg-base-200">
       <main className="flex flex-1 flex-col">
         {/* Hero Section */}
-        <section className="mx-auto w-full max-w-[1920px] shrink-0 bg-secondary px-4 py-5 md:px-6 lg:px-8 lg:py-6">
+        <section className="mx-auto w-full max-w-[1920px] shrink-0 bg-accent px-4 py-5 md:px-6 lg:px-8 lg:py-6">
           <div className="w-full text-left">
             <div className="flex items-center gap-4 md:gap-5">
               <motion.div
@@ -1408,7 +1814,7 @@ export default function DashboardContent({
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                  className="mb-1 text-3xl font-bold leading-tight text-base-100 md:text-4xl lg:text-5xl"
+                  className="mb-1 text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl"
                 >
                   Dashboard
                 </motion.h1>
@@ -1416,7 +1822,7 @@ export default function DashboardContent({
                   initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-                  className="mb-0 text-base text-base-100 md:text-lg lg:text-xl"
+                  className="mb-0 text-base text-white md:text-lg lg:text-xl"
                 >
                   Welcome back, {userName || userEmail}
                 </motion.p>
@@ -1485,7 +1891,7 @@ export default function DashboardContent({
                         : 'text-gray-700 hover:bg-base-200'
                     }`}
                   >
-                    <Map className="h-4 w-4" />
+                    <MapIcon className="h-4 w-4" />
                     Map
                   </button>
                 </div>
@@ -1494,7 +1900,7 @@ export default function DashboardContent({
                   onClick={handleDesktopMapToggle}
                   className="hidden cursor-pointer items-center gap-2 rounded-full border border-base-300 bg-white px-4 py-1.5 text-sm font-medium text-gray-800 shadow-sm transition-colors hover:bg-base-200 lg:inline-flex"
                 >
-                  <Map className="h-4 w-4" />
+                  <MapIcon className="h-4 w-4" />
                   {isMapHiddenDesktop ? 'Show map' : 'Hide map'}
                 </button>
               </div>
@@ -1516,7 +1922,7 @@ export default function DashboardContent({
               <div
                 className={`relative mb-6 h-10 ${
                   isDesktopMapVisible ? 'lg:max-w-[74.3%] lg:pr-3 xl:pr-4' : 'lg:max-w-full'
-                } w-full overflow-hidden transition-[max-width] duration-300 ease-in-out`}
+                } w-full ${showSortMenu ? 'overflow-visible' : 'overflow-hidden'} transition-[max-width] duration-300 ease-in-out`}
               >
                 {/* Select-all checkbox - fixed position, not part of sliding animation */}
                 {sortedSurveys.length > 0 && (
@@ -1559,78 +1965,77 @@ export default function DashboardContent({
                         >
                           <ArrowUpDown className="w-5 h-5 text-gray-600" />
                         </button>
+                        {/* Sort Dropdown Menu */}
+                        <AnimatePresence>
+                          {showSortMenu && (
+                            <>
+                              <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                onClick={() => setShowSortMenu(false)}
+                                className="fixed inset-0 z-10"
+                              />
+                              <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                                className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20"
+                              >
+                                <button
+                                  onClick={() => { setSortOption('newest'); setShowSortMenu(false); }}
+                                  className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                    sortOption === 'newest' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                                  }`}
+                                >
+                                  Newest First
+                                </button>
+                                <button
+                                  onClick={() => { setSortOption('oldest'); setShowSortMenu(false); }}
+                                  className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                    sortOption === 'oldest' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                                  }`}
+                                >
+                                  Oldest First
+                                </button>
+                                <button
+                                  onClick={() => { setSortOption('address-az'); setShowSortMenu(false); }}
+                                  className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                    sortOption === 'address-az' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                                  }`}
+                                >
+                                  Address (A-Z)
+                                </button>
+                                <button
+                                  onClick={() => { setSortOption('state'); setShowSortMenu(false); }}
+                                  className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                    sortOption === 'state' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                                  }`}
+                                >
+                                  By State
+                                </button>
+                                <button
+                                  onClick={() => { setSortOption('completion-asc'); setShowSortMenu(false); }}
+                                  className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                    sortOption === 'completion-asc' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                                  }`}
+                                >
+                                  Completion % (Low to High)
+                                </button>
+                                <button
+                                  onClick={() => { setSortOption('completion-desc'); setShowSortMenu(false); }}
+                                  className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
+                                    sortOption === 'completion-desc' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                                  }`}
+                                >
+                                  Completion % (High to Low)
+                                </button>
+                              </motion.div>
+                            </>
+                          )}
+                        </AnimatePresence>
                       </div>
-                    
-                    {/* Sort Dropdown Menu */}
-                    <AnimatePresence>
-                      {showSortMenu && (
-                        <>
-                          <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setShowSortMenu(false)}
-                            className="fixed inset-0 z-10"
-                          />
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                            transition={{ duration: 0.2 }}
-                            className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20"
-                          >
-                            <button
-                              onClick={() => { setSortOption('newest'); setShowSortMenu(false); }}
-                              className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                                sortOption === 'newest' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                              }`}
-                            >
-                              Newest First
-                            </button>
-                            <button
-                              onClick={() => { setSortOption('oldest'); setShowSortMenu(false); }}
-                              className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                                sortOption === 'oldest' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                              }`}
-                            >
-                              Oldest First
-                            </button>
-                            <button
-                              onClick={() => { setSortOption('address-az'); setShowSortMenu(false); }}
-                              className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                                sortOption === 'address-az' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                              }`}
-                            >
-                              Address (A-Z)
-                            </button>
-                            <button
-                              onClick={() => { setSortOption('state'); setShowSortMenu(false); }}
-                              className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                                sortOption === 'state' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                              }`}
-                            >
-                              By State
-                            </button>
-                            <button
-                              onClick={() => { setSortOption('completion-asc'); setShowSortMenu(false); }}
-                              className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                                sortOption === 'completion-asc' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                              }`}
-                            >
-                              Completion % (Low to High)
-                            </button>
-                            <button
-                              onClick={() => { setSortOption('completion-desc'); setShowSortMenu(false); }}
-                              className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                                sortOption === 'completion-desc' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                              }`}
-                            >
-                              Completion % (High to Low)
-                            </button>
-                          </motion.div>
-                        </>
-                      )}
-                    </AnimatePresence>
                     </motion.div>
                   )}
                 </AnimatePresence>

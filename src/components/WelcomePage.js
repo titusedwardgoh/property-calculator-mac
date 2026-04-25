@@ -66,9 +66,9 @@ export default function WelcomePage() {
     }, [handleGetStarted]);
 
     return (
-        <div className="mt-40 ml-0 md:ml-10 bg-base-200">
+        <div className="pt-40 ml-0 md:ml-10 bg-transparent">
             {showLoadingOverlay && (
-                <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+                <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
                     <div className="text-center min-h-[2.5rem] flex flex-col items-center justify-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
                         <AnimatePresence mode="wait">

@@ -567,7 +567,7 @@ function CalculatorPageContent() {
     };
 
     return (
-        <div className="min-h-screen bg-base-200">
+        <div className="aurora-page-bg min-h-screen">
             {/* Navigation warning for unsaved changes */}
             {/* Only show if logged in AND property address is set */}
             <NavigationWarning
@@ -593,7 +593,7 @@ function CalculatorPageContent() {
             
             {/* Loading overlay during resume auto-advance */}
             {formData.isResumingSurvey && (
-                <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+                <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
                         <p className="text-gray-600">Loading your survey...</p>
@@ -603,7 +603,7 @@ function CalculatorPageContent() {
             
             {/* Loading overlay when returning to dashboard */}
             {isReturningToDashboard && (
-                <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+                <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
                         <p className="text-gray-600">Returning to dashboard...</p>
@@ -613,7 +613,7 @@ function CalculatorPageContent() {
 
             {/* Overlay when clicking Review/Edit All Answers */}
             {showReviewOverlay && (
-                <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+                <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
                     <div className="text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
                         <p className="text-gray-600">Let&apos;s review your responses</p>
@@ -1266,7 +1266,7 @@ function CalculatorPageContent() {
 export default function CalculatorPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-base-200 flex items-center justify-center">
+            <div className="aurora-page-bg min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
                     <p className="text-gray-600">Loading calculator...</p>

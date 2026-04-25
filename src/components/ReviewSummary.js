@@ -221,7 +221,7 @@ export default function ReviewSummary() {
   return (
     <>
       {showRemovingLoanOverlay && (
-        <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+        <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <div className="min-h-[2.5rem] flex items-center justify-center">
@@ -253,7 +253,7 @@ export default function ReviewSummary() {
         </div>
       )}
       {showEditSectionOverlay && (
-        <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+        <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-gray-600">Taking you back to {editSectionLabel}</p>

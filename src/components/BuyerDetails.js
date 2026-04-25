@@ -1107,7 +1107,7 @@ export default function BuyerDetails() {
   return (
     <>
       {showCalculatingOverlay && (
-        <div className="fixed inset-0 bg-base-100 backdrop-blur-lg z-50 flex items-center justify-center">
+        <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <div className="min-h-[2.5rem] flex items-center justify-center">
@@ -1142,7 +1142,7 @@ export default function BuyerDetails() {
           </div>
         </div>
       )}
-    <div className="bg-base-100 rounded-lg overflow-visible mt-15">
+    <div className="bg-transparent rounded-lg overflow-visible mt-15">
       <div className="flex">
         <AnimatePresence mode="wait">
           <motion.span
@@ -1174,7 +1174,7 @@ export default function BuyerDetails() {
       </div>
 
       {/* Navigation - Fixed bottom on mobile, normal position on desktop */}
-      <div className="md:pl-8 xl:text-lg fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-base-100 md:bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:mt-8 md:px-6 md:pb-8 lg:mt-15 xl:mt-15">
+      <div className="md:pl-8 xl:text-lg fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:mt-8 md:px-6 md:pb-8 lg:mt-15 xl:mt-15">
         {/* Progress Bar - Now rendered on main page for medium+ screens */}
         <div className="block md:hidden w-full bg-gray-100 h-1 mb-4">
           <div 

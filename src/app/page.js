@@ -24,7 +24,7 @@ export default function HomePage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, ease: "easeOut" }}
-                        className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight"
+                        className="text-4xl md:text-5xl lg:text-6xl font-bold text-secondary mb-6 leading-tight"
                     >
                         The Simplest Property Cost Calculator.
                         <span className="block text-primary mt-2">
