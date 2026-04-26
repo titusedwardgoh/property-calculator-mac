@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle, Search, ArrowUpDown, Map as MapIcon, List } from 'lucide-react';
+import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle, Search, ArrowUpDown, Map as MapIcon, List, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { useFormStore } from '@/stores/formStore';
@@ -79,7 +79,6 @@ function SurveyInspectedToggle({ inspected, onToggle, compact }) {
 const AUSTRALIA_CENTER = { lat: -25.2744, lng: 133.7751 };
 /** Zoom when a marker is clicked (property-level view) */
 const MARKER_FOCUS_ZOOM = 17;
-const MAP_INFO_WINDOW_CLOSE_HANDLER = '__dashboardCloseInfoWindow';
 const MAP_CONSTRUCTOR_RETRY_DELAY_MS = 150;
 const MAP_CONSTRUCTOR_RETRY_ATTEMPTS = 20;
 const GEOCODE_CACHE_SESSION_KEY = 'dashboardGeocodeCacheV1';
@@ -220,42 +219,26 @@ const formatMapInfoDate = (dateString) => {
 
 const buildMarkerInfoHtml = (point) => {
   const { primary, secondary } = splitPropertyAddress(point.address || point.label || 'Property', point.state || '');
-  const addressTitle = `
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px;">
-      <div style="font-weight:600;line-height:1.45;flex:1;min-width:0;">
-        <div>${escapeHtml(primary)}</div>
-        ${secondary ? `<div>${escapeHtml(secondary)}</div>` : ''}
-      </div>
-      <button
-        type="button"
-        aria-label="Close"
-        onclick="window.${MAP_INFO_WINDOW_CLOSE_HANDLER} && window.${MAP_INFO_WINDOW_CLOSE_HANDLER}()"
-        style="flex-shrink:0;width:24px;height:24px;border:1px solid #9ca3af;border-radius:4px;background:#fff;color:#6b7280;font-size:16px;line-height:1;cursor:pointer;"
-      >&#215;</button>
-    </div>
-  `;
+  const addressTitle = `<div style="font-weight:600;line-height:1.4;margin-bottom:8px;font-size:15px;"><div>${escapeHtml(primary)}</div>${secondary ? `<div style="font-weight:500;color:#6b7280;">${escapeHtml(secondary)}</div>` : ''}</div>`;
   const priceText =
     point.price != null && point.price !== ''
       ? `$${Number(point.price).toLocaleString()}`
       : 'TBD';
   const thumbnailUrl = point.photoUrl || PROPWIZ_BRANDED_PLACEHOLDER_URL;
   return `
-    <div style="min-width:360px;max-width:440px;padding-right:4px;padding-bottom:20px;font-family:system-ui,-apple-system,sans-serif;font-size:13px;line-height:1.5;color:#111827;">
-      <div style="display:flex;align-items:stretch;overflow:hidden;border-radius:12px;background:#ffffff;">
-        <div style="width:40%;flex-shrink:0;background:#f3f4f6;">
-          <img
-            src="${escapeHtml(thumbnailUrl)}"
-            alt="Property preview"
-            style="display:block;width:100%;height:100%;min-height:132px;object-fit:cover;"
-            loading="lazy"
+    <div style="width:360px; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex; align-items: stretch; min-height: 140px;">
+      <div style="width:42%; position:relative; background:#f3f4f6; overflow:hidden; line-height: 0; font-size: 0;">
+          <img 
+            src="${escapeHtml(thumbnailUrl)}" 
+            alt="Property" 
+            style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; display:block; border:0; margin:0;" 
           />
         </div>
-        <div style="width:60%;min-width:0;padding:12px 14px;">
+        <div style="width:58%; padding:16px; font-family:system-ui,-apple-system,sans-serif; font-size:13px; line-height:1.5; color:#111827; display:flex; flex-direction:column; justify-content:center; background: #ffffff;">
           ${addressTitle}
           <div style="margin-bottom:4px;"><span style="color:#6b7280;">Price:</span> ${escapeHtml(priceText)}</div>
-          <div><span style="color:#6b7280;">Inspected:</span> ${point.inspected ? 'Yes' : 'No'}</div>
+          <div><span style="color:#6b7280;">Inspected:</span> <span style="color:${point.inspected ? '#10b981' : '#ef4444'}; font-weight:600;">${point.inspected ? 'Yes' : 'No'}</span></div>
         </div>
-      </div>
     </div>
   `;
 };
@@ -442,16 +425,7 @@ function DashboardGoogleMapPanel({
   const geocodeSyncRetryTimerRef = useRef(null);
   const renderedMarkerSignatureRef = useRef('');
   const lastFocusedPropertyIdRef = useRef(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
-    window[MAP_INFO_WINDOW_CLOSE_HANDLER] = () => {
-      infoWindowRef.current?.close();
-    };
-    return () => {
-      delete window[MAP_INFO_WINDOW_CLOSE_HANDLER];
-    };
-  }, []);
+  const activeInfoWindowPropertyIdRef = useRef(null);
 
   useEffect(() => {
     if (!shouldLoadMap || scriptReady) return;
@@ -533,6 +507,7 @@ function DashboardGoogleMapPanel({
       if (infoWindowRef.current) {
         infoWindowRef.current.close();
       }
+      activeInfoWindowPropertyIdRef.current = null;
       markersRef.current.forEach(({ marker }) => marker.setMap(null));
       markersRef.current = [];
       renderedMarkerSignatureRef.current = '';
@@ -553,7 +528,7 @@ function DashboardGoogleMapPanel({
 
         if (focusedPropertyId && focusedPropertyChanged) {
           const focusedEntry = markersRef.current.find(entry => entry.propertyId === focusedPropertyId);
-          focusedEntry?.focusMarker();
+          focusedEntry?.focusMarker({ toggleIfAlreadyOpen: false });
         } else if (focusedPropertyId && infoWindowRef.current) {
           const focusedEntry = markersRef.current.find(entry => entry.propertyId === focusedPropertyId);
           if (focusedEntry?.point) {
@@ -581,32 +556,36 @@ function DashboardGoogleMapPanel({
           position: { lat: point.lat, lng: point.lng },
           title: point.label,
         });
-        const focusMarker = () => {
+        const focusMarker = ({ toggleIfAlreadyOpen = false } = {}) => {
+          const isSamePropertyOpen =
+            activeInfoWindowPropertyIdRef.current === point.propertyId &&
+            !!infoWindowRef.current;
+          if (toggleIfAlreadyOpen && isSamePropertyOpen) {
+            infoWindowRef.current.close();
+            activeInfoWindowPropertyIdRef.current = null;
+            return;
+          }
           map.setCenter(marker.getPosition());
           map.setZoom(MARKER_FOCUS_ZOOM);
           if (!infoWindowRef.current) {
             infoWindowRef.current = new window.google.maps.InfoWindow({
               maxWidth: 360,
+              headerDisabled: true,
             });
           }
           const currentPoint = markersRef.current.find(entry => entry.propertyId === point.propertyId)?.point || point;
           infoWindowRef.current.setContent(buildMarkerInfoHtml(currentPoint));
           infoWindowRef.current.open({ map, anchor: marker });
-          window.google.maps.event.addListenerOnce(infoWindowRef.current, 'domready', () => {
-            const defaultCloseButton = document.querySelector('.gm-ui-hover-effect');
-            if (defaultCloseButton instanceof HTMLElement) {
-              defaultCloseButton.style.display = 'none';
-            }
-          });
+          activeInfoWindowPropertyIdRef.current = point.propertyId;
         };
-        marker.addListener('click', focusMarker);
+        marker.addListener('click', () => focusMarker({ toggleIfAlreadyOpen: true }));
         markersRef.current.push({ propertyId: point.propertyId, marker, focusMarker, point });
       });
 
       if (focusedPropertyId) {
         const focusedEntry = markersRef.current.find(entry => entry.propertyId === focusedPropertyId);
         if (focusedEntry) {
-          focusedEntry.focusMarker();
+          focusedEntry.focusMarker({ toggleIfAlreadyOpen: false });
           initialFitDoneRef.current = true;
         }
       } else if (!initialFitDoneRef.current) {
@@ -813,6 +792,7 @@ function DashboardGoogleMapPanel({
       if (infoWindowRef.current) {
         infoWindowRef.current.close();
       }
+      activeInfoWindowPropertyIdRef.current = null;
       markersRef.current.forEach(({ marker }) => marker.setMap(null));
       markersRef.current = [];
     };
@@ -875,6 +855,8 @@ export default function DashboardContent({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchPlaceholder, setSearchPlaceholder] = useState('Search by property address...');
   const [selectedProperties, setSelectedProperties] = useState(new Set());
+  const [openCardMenuId, setOpenCardMenuId] = useState(null);
+  const openCardMenuRef = useRef(null);
   const [isMapHiddenDesktop, setIsMapHiddenDesktop] = useState(false);
   const [isDesktopMapExiting, setIsDesktopMapExiting] = useState(false);
   const [focusedPropertyId, setFocusedPropertyId] = useState(null);
@@ -943,6 +925,23 @@ export default function DashboardContent({
       // Ignore storage quota / privacy mode errors.
     }
   }, [propertyPhotoCache]);
+
+  useEffect(() => {
+    if (openCardMenuId == null) return;
+
+    const handlePointerDown = (event) => {
+      if (openCardMenuRef.current && !openCardMenuRef.current.contains(event.target)) {
+        setOpenCardMenuId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('touchstart', handlePointerDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('touchstart', handlePointerDown);
+    };
+  }, [openCardMenuId]);
 
   const loadSurveys = async () => {
     if (!user) return;
@@ -1662,11 +1661,25 @@ export default function DashboardContent({
           >
             {status.text}
           </span>
+          <div className="absolute right-3 top-3 z-10">
+            <input
+              type="checkbox"
+              checked={selectedProperties.has(survey.id)}
+              onChange={(e) => {
+                e.stopPropagation();
+                handleCardClick();
+                handleCheckboxChange(survey.id, e.target.checked);
+              }}
+              className="h-5 w-5 shrink-0 cursor-pointer rounded border-gray-300 bg-white/95 text-primary shadow-sm focus:outline-none focus:ring-0 focus:ring-offset-0"
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`Select survey ${survey.property_address || index + 1}`}
+            />
+          </div>
         </div>
         <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-x-2 gap-y-4 sm:grid-rows-[auto_1fr] sm:gap-x-4 sm:gap-y-2">
-          <div className="col-start-1 row-start-1 min-w-0 self-start pr-1 sm:pr-0">
-            <div className="mb-2 flex flex-wrap items-start gap-x-2 gap-y-1 sm:items-center">
-              <h3 className="text-[16px] font-semibold leading-snug text-gray-900 sm:text-[20px] sm:leading-normal">
+          <div className="col-span-2 row-start-1 min-w-0 self-start sm:col-span-1 sm:col-start-1">
+            <div className="mb-2 flex items-start justify-between gap-3">
+              <h3 className="text-[15px] font-semibold leading-snug text-gray-900 sm:text-[18px] sm:leading-normal">
                 {(() => {
                   if (!survey.property_address) return `Survey ${index + 1}`;
                   const { primary, secondary } = splitPropertyAddress(
@@ -1683,21 +1696,58 @@ export default function DashboardContent({
                   );
                 })()}
               </h3>
+              <div
+                ref={openCardMenuId === survey.id ? openCardMenuRef : null}
+                className="relative -mr-1 shrink-0 sm:-mr-6"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setOpenCardMenuId(prev => (prev === survey.id ? null : survey.id));
+                  }}
+                  className="flex h-9 w-9 list-none cursor-pointer items-center justify-center rounded-full bg-base-200 text-gray-700 transition-colors hover:bg-base-300"
+                  aria-label={`Open actions menu for ${survey.property_address || index + 1}`}
+                >
+                  <MoreHorizontal className="h-6 w-6" aria-hidden />
+                </button>
+                {openCardMenuId === survey.id && (
+                    <div className="absolute right-0 z-20 mt-2 min-w-[9rem] rounded-xl border border-base-300 bg-white p-1.5 shadow-lg">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleResume(survey.id);
+                      setOpenCardMenuId(null);
+                    }}
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-800 transition-colors hover:bg-base-200"
+                  >
+                    {isComplete ? <Eye className="h-4 w-4" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />}
+                    {isComplete ? 'View' : 'Resume'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleCardClick();
+                      handleDeleteClick(survey.id, e);
+                      setOpenCardMenuId(null);
+                    }}
+                    disabled={deletingId === survey.id}
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-error transition-colors hover:bg-error/10 disabled:opacity-50"
+                  >
+                    {deletingId === survey.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                    Delete
+                  </button>
+                    </div>
+                )}
+              </div>
             </div>
-          </div>
-          <div className="col-start-2 row-start-1 justify-self-end self-start">
-            <input
-              type="checkbox"
-              checked={selectedProperties.has(survey.id)}
-              onChange={(e) => {
-                e.stopPropagation();
-                handleCardClick();
-                handleCheckboxChange(survey.id, e.target.checked);
-              }}
-              className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded border-gray-300 text-primary focus:outline-none focus:ring-0 focus:ring-offset-0 sm:mt-0"
-              onClick={(e) => e.stopPropagation()}
-              aria-label={`Select survey ${survey.property_address || index + 1}`}
-            />
           </div>
           <div className="col-span-2 row-start-2 min-w-0 sm:col-span-1 sm:col-start-1 sm:row-start-2">
             <div className="text-[15px] text-gray-600 space-y-1.5">
@@ -1738,40 +1788,6 @@ export default function DashboardContent({
                   }}
                 />
               </div>
-              {isComplete ? (
-                <button
-                  onClick={() => handleResume(survey.id)}
-                  type="button"
-                  className="flex shrink-0 cursor-pointer items-center justify-center gap-0 rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary hover:bg-primary/20 transition-colors sm:gap-2 sm:px-6 sm:py-2 sm:text-base"
-                >
-                  <Eye className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden />
-                  View
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleResume(survey.id)}
-                  type="button"
-                  className="flex shrink-0 cursor-pointer items-center justify-center gap-0 rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-secondary transition-all hover:bg-primary-focus hover:shadow-lg sm:gap-2 sm:px-4.5 sm:py-2 sm:text-base"
-                >
-                  <Play className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden />
-                  Resume
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={(e) => {
-                  handleCardClick();
-                  handleDeleteClick(survey.id, e);
-                }}
-                disabled={deletingId === survey.id}
-                className="flex shrink-0 cursor-pointer items-center gap-0 rounded-full bg-error/10 px-3 py-2 text-error hover:bg-error/20 transition-colors disabled:opacity-50 sm:gap-2 sm:px-4 sm:py-2"
-              >
-                {deletingId === survey.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin sm:h-4 sm:w-4" />
-                ) : (
-                  <Trash2 className="h-4 w-4 sm:h-4 sm:w-4" />
-                )}
-              </button>
             </div>
           </div>
         </div>
@@ -1850,7 +1866,7 @@ export default function DashboardContent({
             >
               <div
                 className={`mb-5 flex flex-wrap items-center justify-between gap-2.5 ${
-                  isDesktopMapVisible ? 'lg:max-w-[75%] lg:pr-3 xl:pr-4' : 'lg:max-w-full'
+                  isDesktopMapVisible ? 'lg:max-w-[66.6667%] lg:pr-3 xl:pr-4' : 'lg:max-w-full'
                 } w-full transition-[max-width] duration-300 ease-in-out`}
               >
                 <div className="flex items-center gap-3">
@@ -1921,7 +1937,7 @@ export default function DashboardContent({
               {/* Container with fixed height to prevent layout shift */}
               <div
                 className={`relative mb-6 h-10 ${
-                  isDesktopMapVisible ? 'lg:max-w-[74.3%] lg:pr-3 xl:pr-4' : 'lg:max-w-full'
+                  isDesktopMapVisible ? 'lg:max-w-[66.6667%] lg:pr-3 xl:pr-4' : 'lg:max-w-full'
                 } w-full ${showSortMenu ? 'overflow-visible' : 'overflow-hidden'} transition-[max-width] duration-300 ease-in-out`}
               >
                 {/* Select-all checkbox - fixed position, not part of sliding animation */}
@@ -2115,7 +2131,7 @@ export default function DashboardContent({
               ) : (
                 <>
                   <div className="hidden lg:grid lg:grid-cols-12 lg:gap-3 xl:gap-4">
-                    <div className={isDesktopMapVisible ? 'lg:col-span-9' : 'lg:col-span-12'}>
+                    <div className={isDesktopMapVisible ? 'lg:col-span-8' : 'lg:col-span-12'}>
                       <div className={`grid gap-3 xl:gap-4 ${isDesktopMapVisible ? 'lg:grid-cols-2 2xl:grid-cols-3' : 'lg:grid-cols-3 2xl:grid-cols-4'}`}>
                         {surveyCards}
                       </div>
@@ -2134,7 +2150,7 @@ export default function DashboardContent({
                               setIsMapHiddenDesktop(true);
                             }
                           }}
-                          className="lg:col-span-3 lg:-mt-[7.75rem] lg:-mr-3 xl:-mr-4"
+                          className="lg:col-span-4 lg:-mt-[7.75rem] lg:-mr-3 xl:-mr-4"
                         >
                         <div className="sticky top-24 flex h-[calc(100vh-8.5rem)] min-h-[560px] flex-col rounded-2xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
                           <DashboardGoogleMapPanel
