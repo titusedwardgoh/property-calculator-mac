@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { LogOut } from 'lucide-react';
+import { LOGGED_IN_HEADER_GLASS_STYLE } from '@/lib/loggedInHeaderGlassStyle';
 
 export default function LoggedInHeaderOverlay() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -67,15 +68,7 @@ export default function LoggedInHeaderOverlay() {
         <>
             <header
                 className="fixed top-0 left-0 right-0 z-[150]"
-                style={{
-                    background: 'rgba(255, 255, 255, 0.15)',
-                    backdropFilter: 'blur(20px) saturate(180%)',
-                    WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                    border: '1px solid rgba(255, 255, 255, 0.25)',
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                    boxShadow:
-                        '0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.4)'
-                }}
+                style={LOGGED_IN_HEADER_GLASS_STYLE}
             >
                 <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
                     <div className="flex items-center justify-between">

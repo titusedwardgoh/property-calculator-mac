@@ -16,6 +16,7 @@ import {
   getStreetViewMetadataStatus,
   PROPWIZ_BRANDED_PLACEHOLDER_URL,
 } from '@/lib/propertyPhotos';
+import { MOBILE_MAP_FAB_GLASS_STYLE } from '@/lib/loggedInHeaderGlassStyle';
 
 function SurveyInspectedToggle({ inspected, onToggle, compact }) {
   return (
@@ -78,7 +79,8 @@ function SurveyInspectedToggle({ inspected, onToggle, compact }) {
 
 const AUSTRALIA_CENTER = { lat: -25.2744, lng: 133.7751 };
 /** Zoom when a marker is clicked (property-level view) */
-const MARKER_FOCUS_ZOOM = 17;
+const MARKER_FOCUS_ZOOM = 12;
+const CARD_FOCUS_MAX_ZOOM = 12;
 const MAP_CONSTRUCTOR_RETRY_DELAY_MS = 150;
 const MAP_CONSTRUCTOR_RETRY_ATTEMPTS = 20;
 const GEOCODE_CACHE_SESSION_KEY = 'dashboardGeocodeCacheV1';
@@ -226,15 +228,15 @@ const buildMarkerInfoHtml = (point) => {
       : 'TBD';
   const thumbnailUrl = point.photoUrl || PROPWIZ_BRANDED_PLACEHOLDER_URL;
   return `
-    <div style="width:360px; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex; align-items: stretch; min-height: 140px;">
-      <div style="width:42%; position:relative; background:#f3f4f6; overflow:hidden; line-height: 0; font-size: 0;">
+    <div style="width:400px; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex; align-items: stretch; min-height: 140px;">
+      <div style="width:151px; flex:0 0 151px; position:relative; background:#f3f4f6; overflow:hidden; line-height: 0; font-size: 0;">
           <img 
             src="${escapeHtml(thumbnailUrl)}" 
             alt="Property" 
             style="position:absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; display:block; border:0; margin:0;" 
           />
         </div>
-        <div style="width:58%; padding:16px; font-family:system-ui,-apple-system,sans-serif; font-size:13px; line-height:1.5; color:#111827; display:flex; flex-direction:column; justify-content:center; background: #ffffff;">
+        <div style="width:calc(100% - 151px); padding:16px; font-family:system-ui,-apple-system,sans-serif; font-size:13px; line-height:1.5; color:#111827; display:flex; flex-direction:column; justify-content:center; background: #ffffff;">
           ${addressTitle}
           <div style="margin-bottom:4px;"><span style="color:#6b7280;">Price:</span> ${escapeHtml(priceText)}</div>
           <div><span style="color:#6b7280;">Inspected:</span> <span style="color:${point.inspected ? '#10b981' : '#ef4444'}; font-weight:600;">${point.inspected ? 'Yes' : 'No'}</span></div>
@@ -283,6 +285,7 @@ const geocodeAddress = (geocoder, address) =>
   });
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+const getCardFocusZoom = () => CARD_FOCUS_MAX_ZOOM;
 
 const geocodeAddressWithRetry = async (geocoder, address) => {
   let lastResult = null;
@@ -527,8 +530,13 @@ function DashboardGoogleMapPanel({
         });
 
         if (focusedPropertyId && focusedPropertyChanged) {
+          initialFitDoneRef.current = true;
           const focusedEntry = markersRef.current.find(entry => entry.propertyId === focusedPropertyId);
-          focusedEntry?.focusMarker({ toggleIfAlreadyOpen: false });
+          if (focusedEntry?.marker?.getPosition) {
+            map.setCenter(focusedEntry.marker.getPosition());
+            map.setZoom(CARD_FOCUS_MAX_ZOOM);
+          }
+          focusedEntry?.focusMarker({ toggleIfAlreadyOpen: false, zoomMode: 'card' });
         } else if (focusedPropertyId && infoWindowRef.current) {
           const focusedEntry = markersRef.current.find(entry => entry.propertyId === focusedPropertyId);
           if (focusedEntry?.point) {
@@ -556,7 +564,7 @@ function DashboardGoogleMapPanel({
           position: { lat: point.lat, lng: point.lng },
           title: point.label,
         });
-        const focusMarker = ({ toggleIfAlreadyOpen = false } = {}) => {
+        const focusMarker = ({ toggleIfAlreadyOpen = false, zoomMode = 'marker' } = {}) => {
           const isSamePropertyOpen =
             activeInfoWindowPropertyIdRef.current === point.propertyId &&
             !!infoWindowRef.current;
@@ -566,13 +574,24 @@ function DashboardGoogleMapPanel({
             return;
           }
           map.setCenter(marker.getPosition());
-          map.setZoom(MARKER_FOCUS_ZOOM);
+          setTimeout(
+            () =>
+              map.setZoom(
+                zoomMode === 'card' ? getCardFocusZoom() : MARKER_FOCUS_ZOOM
+              ),
+            50
+          );
           if (!infoWindowRef.current) {
             infoWindowRef.current = new window.google.maps.InfoWindow({
-              maxWidth: 360,
+              maxWidth: 520,
+              minWidth: 400,
               headerDisabled: true,
             });
           }
+          infoWindowRef.current.setOptions({
+            maxWidth: 520,
+            minWidth: 400,
+          });
           const currentPoint = markersRef.current.find(entry => entry.propertyId === point.propertyId)?.point || point;
           infoWindowRef.current.setContent(buildMarkerInfoHtml(currentPoint));
           infoWindowRef.current.open({ map, anchor: marker });
@@ -585,7 +604,7 @@ function DashboardGoogleMapPanel({
       if (focusedPropertyId) {
         const focusedEntry = markersRef.current.find(entry => entry.propertyId === focusedPropertyId);
         if (focusedEntry) {
-          focusedEntry.focusMarker({ toggleIfAlreadyOpen: false });
+          focusedEntry.focusMarker({ toggleIfAlreadyOpen: false, zoomMode: 'card' });
           initialFitDoneRef.current = true;
         }
       } else if (!initialFitDoneRef.current) {
@@ -837,6 +856,36 @@ function DashboardGoogleMapPanel({
   );
 }
 
+function MobileMapViewFab({ mode, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="pointer-events-auto relative inline-flex min-h-[48px] min-w-[7.5rem] cursor-pointer items-center justify-center overflow-hidden rounded-full px-6 py-3.5 text-base font-semibold text-base-content transition-transform active:scale-[0.98]"
+      aria-label={mode === 'list' ? 'Switch to map view' : 'Switch to list view'}
+    >
+      <div
+        className="pointer-events-none absolute inset-0 z-0 rounded-full"
+        style={MOBILE_MAP_FAB_GLASS_STYLE}
+        aria-hidden
+      />
+      <span className="relative z-[1] flex items-center gap-2.5">
+        {mode === 'list' ? (
+          <>
+            <MapIcon className="h-5 w-5 shrink-0" />
+            Map
+          </>
+        ) : (
+          <>
+            <List className="h-5 w-5 shrink-0" />
+            List
+          </>
+        )}
+      </span>
+    </button>
+  );
+}
+
 export default function DashboardContent({
   userEmail,
   userName,
@@ -857,6 +906,7 @@ export default function DashboardContent({
   const [selectedProperties, setSelectedProperties] = useState(new Set());
   const [openCardMenuId, setOpenCardMenuId] = useState(null);
   const openCardMenuRef = useRef(null);
+  const mobileViewContainerRef = useRef(null);
   const [isMapHiddenDesktop, setIsMapHiddenDesktop] = useState(false);
   const [isDesktopMapExiting, setIsDesktopMapExiting] = useState(false);
   const [focusedPropertyId, setFocusedPropertyId] = useState(null);
@@ -1594,6 +1644,22 @@ export default function DashboardContent({
     setIsDesktopMapExiting(true);
   };
 
+  const handleMobileViewToggle = () => {
+    const nextMode = mobileViewMode === 'list' ? 'map' : 'list';
+    setMobileViewMode(nextMode);
+  };
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (mobileViewMode !== 'map') return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileViewMode]);
+
   const surveyCards = sortedSurveys.map((survey, index) => {
     const status = getCompletionStatus(survey);
     const isComplete = survey.completion_status === 'complete';
@@ -1885,32 +1951,6 @@ export default function DashboardContent({
                     Start New Survey
                   </Link>
                 </div>
-                <div className="inline-flex items-center rounded-full border border-base-300 bg-white p-1 shadow-sm lg:hidden">
-                  <button
-                    type="button"
-                    onClick={() => setMobileViewMode('list')}
-                    className={`inline-flex cursor-pointer items-center gap-1 rounded-full px-3.5 py-1.5 text-sm font-medium transition-all ${
-                      mobileViewMode === 'list'
-                        ? 'bg-primary text-secondary shadow-sm'
-                        : 'text-gray-700 hover:bg-base-200'
-                    }`}
-                  >
-                    <List className="h-4 w-4" />
-                    List
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMobileViewMode('map')}
-                    className={`inline-flex cursor-pointer items-center gap-1 rounded-full px-3.5 py-1.5 text-sm font-medium transition-all ${
-                      mobileViewMode === 'map'
-                        ? 'bg-primary text-secondary shadow-sm'
-                        : 'text-gray-700 hover:bg-base-200'
-                    }`}
-                  >
-                    <MapIcon className="h-4 w-4" />
-                    Map
-                  </button>
-                </div>
                 <button
                   type="button"
                   onClick={handleDesktopMapToggle}
@@ -1919,20 +1959,20 @@ export default function DashboardContent({
                   <MapIcon className="h-4 w-4" />
                   {isMapHiddenDesktop ? 'Show map' : 'Hide map'}
                 </button>
+                <Link
+                  href="/calculator"
+                  onClick={() => {
+                    resetSessionAndForm(resetForm);
+                    if (typeof window !== 'undefined') {
+                      sessionStorage.removeItem('resumePropertyId');
+                    }
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-secondary transition-all duration-200 hover:bg-primary-focus hover:shadow-lg md:hidden"
+                >
+                  <FileText className="h-4 w-4" />
+                  Start New Survey
+                </Link>
               </div>
-              <Link
-                href="/calculator"
-                onClick={() => {
-                  resetSessionAndForm(resetForm);
-                  if (typeof window !== 'undefined') {
-                    sessionStorage.removeItem('resumePropertyId');
-                  }
-                }}
-                className="mb-4 inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-secondary transition-all duration-200 hover:bg-primary-focus hover:shadow-lg md:hidden"
-              >
-                <FileText className="h-4 w-4" />
-                Start New Survey
-              </Link>
               
               {/* Container with fixed height to prevent layout shift */}
               <div
@@ -2165,38 +2205,37 @@ export default function DashboardContent({
                       )}
                     </AnimatePresence>
                   </div>
-                  <div className="relative lg:hidden">
+                  <div ref={mobileViewContainerRef} className="relative lg:hidden">
                     <AnimatePresence initial={false}>
                       {mobileViewMode === 'map' && (
                         <motion.div
                           key="mobile-map-panel"
-                          initial={{ opacity: 0, y: 28 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 28 }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
                           transition={{ duration: 0.28, ease: 'easeInOut' }}
-                          className="relative z-10 flex h-[60vh] min-h-[420px] flex-col rounded-2xl border border-base-300 bg-base-100 shadow-sm overflow-hidden"
+                          className="fixed inset-0 z-40 bg-base-200 px-3 pt-20 pb-0"
                         >
-                          <DashboardGoogleMapPanel
-                            mapPoints={mapPoints}
-                            geocodeCache={geocodeCache}
-                            setGeocodeCache={setGeocodeCache}
-                            focusedPropertyId={focusedPropertyId}
-                            shouldLoadMap={mobileViewMode === 'map'}
-                          />
+                          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm">
+                            <DashboardGoogleMapPanel
+                              mapPoints={mapPoints}
+                              geocodeCache={geocodeCache}
+                              setGeocodeCache={setGeocodeCache}
+                              focusedPropertyId={focusedPropertyId}
+                              shouldLoadMap={mobileViewMode === 'map'}
+                            />
+                          </div>
                         </motion.div>
                       )}
                     </AnimatePresence>
                     <motion.div
-                      initial={false}
-                      animate={{
-                        opacity: mobileViewMode === 'list' ? 1 : 0,
-                        y: mobileViewMode === 'list' ? 0 : 24,
-                      }}
-                      transition={{ duration: 0.28, ease: 'easeInOut' }}
-                      className={`${mobileViewMode === 'map' ? 'pointer-events-none absolute inset-x-0 top-0' : 'relative'} space-y-3 sm:space-y-4`}
+                      className="relative space-y-3 sm:space-y-4"
                     >
                       {surveyCards}
                     </motion.div>
+                    <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 lg:hidden">
+                      <MobileMapViewFab mode={mobileViewMode} onClick={handleMobileViewToggle} />
+                    </div>
                   </div>
                 </>
               )}
