@@ -174,7 +174,7 @@ export default function HomePage() {
                                 Stop guessing. Start knowing.
                             </h2>
                             <p className="text-lg md:text-xl text-white leading-relaxed mb-10">
-                            Most buyers underestimate what they'll actually spend — and overpay as a result. PropWiz gives you a complete picture of every fee, concession, and cost before you commit. One tool. Every number. Zero surprises.
+                            Most buyers underestimate what they&apos;ll actually spend — and overpay as a result. PropWiz gives you a complete picture of every fee, concession, and cost before you commit. One tool. Every number. Zero surprises.
                             </p>
                             <div className="flex justify-center md:justify-start">
                                 <motion.button
@@ -279,7 +279,7 @@ export default function HomePage() {
                             Built for Australian property buyers
                         </p>
                         <p className="text-lg text-primary">
-                            From first home buyers navigating stamp duty concessions to investors comparing loan structures — PropWiz handles the numbers so you don't have to.
+                            From first home buyers navigating stamp duty concessions to investors comparing loan structures — PropWiz handles the numbers so you don&apos;t have to.
                         </p>
                     </motion.div>
 
