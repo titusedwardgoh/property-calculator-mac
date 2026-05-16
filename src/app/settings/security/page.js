@@ -8,6 +8,7 @@ import { motion } from 'framer-motion';
 import { Lock, Edit2, ExternalLink } from 'lucide-react';
 import EditPasswordModal from '@/components/EditPasswordModal';
 import NotificationModal from '@/components/NotificationModal';
+import SettingsAuroraLayout from '@/components/SettingsAuroraLayout';
 
 // Helper function to check if error is an invalid refresh token error
 function isRefreshTokenError(error) {
@@ -37,7 +38,7 @@ export default function SecuritySettingsPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-base-200 flex items-center justify-center">
+            <div className="aurora-loading-overlay min-h-screen flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                     <p className="text-gray-600">Loading...</p>
@@ -106,7 +107,7 @@ export default function SecuritySettingsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-base-200 py-8">
+        <SettingsAuroraLayout>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="space-y-6">
                     {/* Account Security Card */}
@@ -168,7 +169,7 @@ export default function SecuritySettingsPage() {
                 title={notification.title}
                 message={notification.message}
             />
-        </div>
+        </SettingsAuroraLayout>
     );
 }
 

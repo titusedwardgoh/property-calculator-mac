@@ -63,7 +63,7 @@ export async function POST(request) {
       case 'bulkDeleteProperties':
         return await bulkDeleteProperties(propertyIds)
       case 'bulkUpdateInspected':
-        return await bulkUpdateInspected(propertyIds)
+        return await bulkUpdateInspected(propertyIds, inspected)
       case 'updatePropertyCoordinates':
         return await updatePropertyCoordinates(propertyId, latitude, longitude)
       case 'updatePropertyPhoto':
@@ -919,11 +919,14 @@ async function bulkDeleteProperties(propertyIds) {
   }
 }
 
-async function bulkUpdateInspected(propertyIds) {
+async function bulkUpdateInspected(propertyIds, inspected) {
   try {
     if (!propertyIds || !Array.isArray(propertyIds) || propertyIds.length === 0) {
       return Response.json({ error: 'Property IDs array is required' }, { status: 400 })
     }
+
+    // Omitting inspected defaults to true (legacy clients)
+    const inspectedValue = inspected === false ? false : true
 
     // Get user from session
     const serverClient = await createServerClient()
@@ -954,10 +957,9 @@ async function bulkUpdateInspected(propertyIds) {
       return Response.json({ error: 'Unauthorized - some properties do not belong to user' }, { status: 403 })
     }
 
-    // Set inspected to true for all matching properties
     const { error: updateError } = await supabase
       .from('properties')
-      .update({ inspected: true })
+      .update({ inspected: inspectedValue })
       .in('id', propertyIds)
       .eq('user_id', user.id)
 
@@ -968,7 +970,9 @@ async function bulkUpdateInspected(propertyIds) {
 
     return Response.json({ 
       success: true, 
-      message: `${propertyIds.length} properties marked as inspected`,
+      message: inspectedValue
+        ? `${propertyIds.length} properties marked as inspected`
+        : `${propertyIds.length} properties marked as not inspected`,
       updatedCount: propertyIds.length
     })
   } catch (error) {

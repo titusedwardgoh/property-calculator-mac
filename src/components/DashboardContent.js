@@ -77,6 +77,36 @@ function SurveyInspectedToggle({ inspected, onToggle, compact }) {
   );
 }
 
+/** True when every selected id exists in surveys and is inspected. */
+function areAllSelectedSurveysInspected(selectedPropertySet, surveys) {
+  if (selectedPropertySet.size === 0) return false;
+  for (const id of selectedPropertySet) {
+    const survey = surveys.find((s) => s.id === id);
+    if (!survey || !survey.inspected) return false;
+  }
+  return true;
+}
+
+/** Parent: orchestrates stagger. Children use SURVEY_CARD_ITEM_VARIANTS. */
+const SURVEY_CARD_LIST_VARIANTS = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.105,
+      delayChildren: 0.22,
+    },
+  },
+};
+
+const SURVEY_CARD_ITEM_VARIANTS = {
+  hidden: { opacity: 0, y: 8 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.62, ease: 'easeOut' },
+  },
+};
+
 const AUSTRALIA_CENTER = { lat: -25.2744, lng: 133.7751 };
 /** Zoom when a marker is clicked (property-level view) */
 const MARKER_FOCUS_ZOOM = 12;
@@ -502,7 +532,8 @@ function DashboardGoogleMapPanel({
     let cancelled = false;
     const map = mapRef.current;
     const buildMarkerSignature = (points) =>
-      points
+      [...points]
+        .sort((a, b) => String(a.propertyId).localeCompare(String(b.propertyId)))
         .map(point => `${point.propertyId}:${point.lat}:${point.lng}:${point.label || ''}`)
         .join('|');
 
@@ -622,8 +653,16 @@ function DashboardGoogleMapPanel({
     };
 
     const syncMarkers = async () => {
-      setIsGeocoding(true);
       setMapError('');
+      const willRunGeocodeRequests = mapPoints.some(point => {
+        if (point.storedCoordinates) return false;
+        const cached = geocodeCache[point.cacheKey];
+        if (cached === null || cached) return false;
+        return true;
+      });
+      if (willRunGeocodeRequests) {
+        setIsGeocoding(true);
+      }
       try {
         const scheduleSyncRetry = () => {
           if (geocodeSyncRetryCountRef.current >= GEOCODE_SYNC_MAX_RETRIES) {
@@ -841,8 +880,8 @@ function DashboardGoogleMapPanel({
         )}
 
         {showNoAddresses && (
-          <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center px-6 text-center text-sm text-gray-500">
-            No saved property addresses yet.
+          <div className="pointer-events-none absolute bottom-3 left-1/2 z-10 max-w-[min(22rem,calc(100%-1.5rem))] -translate-x-1/2 rounded-full border border-base-300/80 bg-base-100/85 px-4 py-2 text-center text-xs text-gray-600 shadow-sm backdrop-blur-sm">
+            No saved property addresses yet — markers appear when you add surveys with addresses.
           </div>
         )}
 
@@ -1470,6 +1509,8 @@ export default function DashboardContent({
     if (selectedProperties.size === 0 || !user) return;
     
     const propertyIds = Array.from(selectedProperties);
+    const allAlreadyInspected = areAllSelectedSurveysInspected(selectedProperties, surveys);
+    const targetInspected = !allAlreadyInspected;
     
     // Store original inspected status for rollback
     const originalInspectedStatus = new globalThis.Map();
@@ -1486,7 +1527,7 @@ export default function DashboardContent({
     setSurveys(prevSurveys => 
       prevSurveys.map(survey => 
         selectedProperties.has(survey.id)
-          ? { ...survey, inspected: true }
+          ? { ...survey, inspected: targetInspected }
           : survey
       )
     );
@@ -1504,6 +1545,7 @@ export default function DashboardContent({
         body: JSON.stringify({
           action: 'bulkUpdateInspected',
           propertyIds: propertyIds,
+          inspected: targetInspected,
         }),
       });
 
@@ -1593,19 +1635,32 @@ export default function DashboardContent({
     }
   };
 
-  // Filter surveys based on search query
-  const filteredSurveys = surveys.filter(survey => {
-    if (!searchQuery.trim()) return true;
-    const address = (survey.property_address || '').toLowerCase();
-    const state = (survey.selected_state || '').toLowerCase();
-    const query = searchQuery.toLowerCase();
-    return address.includes(query) || state.includes(query);
-  });
+  // Filter surveys based on search query (memoized so list-only updates do not churn map props)
+  const filteredSurveys = useMemo(() => {
+    return surveys.filter(survey => {
+      if (!searchQuery.trim()) return true;
+      const address = (survey.property_address || '').toLowerCase();
+      const state = (survey.selected_state || '').toLowerCase();
+      const query = searchQuery.toLowerCase();
+      return address.includes(query) || state.includes(query);
+    });
+  }, [surveys, searchQuery]);
 
-  // Sort the filtered surveys
-  const sortedSurveys = sortSurveys(filteredSurveys, sortOption);
+  // Sort the filtered surveys for cards and list UI only
+  const sortedSurveys = useMemo(
+    () => sortSurveys(filteredSurveys, sortOption),
+    [filteredSurveys, sortOption]
+  );
+
+  const bulkInspectAllSelectedAlreadyInspected = areAllSelectedSurveysInspected(
+    selectedProperties,
+    surveys
+  );
+
+  // Map markers are independent of card sort order; stable by id avoids marker teardown + geocode effect on sort changes
   const mapPoints = useMemo(() => {
-    return sortedSurveys
+    return [...filteredSurveys]
+      .sort((a, b) => String(a.id).localeCompare(String(b.id)))
       .map((survey, index) => {
         const queryAddress = buildSurveyAddress(survey);
         if (!queryAddress) return null;
@@ -1632,7 +1687,7 @@ export default function DashboardContent({
         };
       })
       .filter(Boolean);
-  }, [sortedSurveys]);
+  }, [filteredSurveys]);
   const isDesktopMapVisible = !isMapHiddenDesktop || isDesktopMapExiting;
 
   const handleDesktopMapToggle = () => {
@@ -1660,6 +1715,9 @@ export default function DashboardContent({
     };
   }, [mobileViewMode]);
 
+  /** Remounts stagger list when sort/search changes so the card entrance replays. */
+  const surveyCardListAnimateKey = `${sortOption}::${searchQuery.trim()}`;
+
   const surveyCards = sortedSurveys.map((survey, index) => {
     const status = getCompletionStatus(survey);
     const isComplete = survey.completion_status === 'complete';
@@ -1674,11 +1732,9 @@ export default function DashboardContent({
     return (
       <motion.div
         key={survey.id}
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.24), ease: 'easeOut' }}
+        variants={SURVEY_CARD_ITEM_VARIANTS}
         onClick={handleCardClick}
-        className="h-full min-h-[230px] cursor-pointer rounded-2xl border border-secondary p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-xl lg:p-5 xl:p-6"
+        className="h-full min-h-[230px] cursor-pointer rounded-2xl border border-secondary p-4 shadow-sm transition-[box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-xl lg:p-5 xl:p-6"
       >
         <div className="relative -mx-4 -mt-4 mb-4 aspect-[16/9] w-[calc(100%+2rem)] overflow-hidden rounded-t-2xl bg-base-100 lg:-mx-5 lg:-mt-5 lg:w-[calc(100%+2.5rem)] xl:-mx-6 xl:-mt-6 xl:w-[calc(100%+3rem)]">
           {!isPhotoLoaded && (
@@ -1923,14 +1979,12 @@ export default function DashboardContent({
           </div>
         <section className="relative z-10 mx-auto w-full max-w-[1920px] px-4 py-6 pb-24 md:px-6 lg:px-8 lg:py-8">
           <div className="w-full space-y-5">
-            {/* Saved Surveys */}
-            <motion.div
-              initial={{ opacity: 0, y: 24 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
-              className="bg-transparent p-0"
-            >
-              <div
+            {/* Saved Surveys — outer wrapper does not fade cards; header + card list animate separately */}
+            <div className="bg-transparent p-0">
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
                 className={`mb-5 flex flex-wrap items-center justify-between gap-2.5 ${
                   isDesktopMapVisible ? 'lg:max-w-[66.6667%] lg:pr-3 xl:pr-4' : 'lg:max-w-full'
                 } w-full transition-[max-width] duration-300 ease-in-out`}
@@ -1972,7 +2026,7 @@ export default function DashboardContent({
                   <FileText className="h-4 w-4" />
                   Start New Survey
                 </Link>
-              </div>
+              </motion.div>
               
               {/* Container with fixed height to prevent layout shift */}
               <div
@@ -2129,11 +2183,15 @@ export default function DashboardContent({
                       <button
                         type="button"
                         onClick={handleBulkInspected}
-                        aria-label={`Mark ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'} as inspected`}
+                        aria-label={
+                          bulkInspectAllSelectedAlreadyInspected
+                            ? `Uninspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
+                            : `Inspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
+                        }
                         className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-primary px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-secondary transition-colors hover:bg-primary-focus sm:h-auto sm:min-h-0 sm:w-auto sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
                       >
                         <span className="flex flex-col sm:hidden">
-                          <span>Inspect</span>
+                          <span>{bulkInspectAllSelectedAlreadyInspected ? 'Uninspect' : 'Inspect'}</span>
                           <span>
                             {selectedProperties.size}{' '}
                             {selectedProperties.size === 1 ? 'property' : 'properties'}
@@ -2141,7 +2199,8 @@ export default function DashboardContent({
                         </span>
                         <Eye className="hidden h-5 w-5 shrink-0 sm:block" aria-hidden />
                         <span className="hidden sm:inline sm:text-base">
-                          Inspected {selectedProperties.size}{' '}
+                          {bulkInspectAllSelectedAlreadyInspected ? 'Uninspect' : 'Inspect'}{' '}
+                          {selectedProperties.size}{' '}
                           {selectedProperties.size === 1 ? 'property' : 'properties'}
                         </span>
                       </button>
@@ -2154,27 +2213,35 @@ export default function DashboardContent({
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-primary" />
                 </div>
-              ) : surveys.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-600 mb-4">No saved surveys yet.</p>
-                  <p className="text-sm text-gray-500">
-                    Start a new survey and save it to see it here.
-                  </p>
-                </div>
-              ) : sortedSurveys.length === 0 ? (
-                <div className="text-center py-12">
-                  <p className="text-gray-600 mb-4">Oops, we can&apos;t find any surveys matching your search.</p>
-                  <p className="text-sm text-gray-500">
-                    Try adjusting your search terms or clear the search to see all surveys.
-                  </p>
-                </div>
               ) : (
                 <>
                   <div className="hidden lg:grid lg:grid-cols-12 lg:gap-3 xl:gap-4">
                     <div className={isDesktopMapVisible ? 'lg:col-span-8' : 'lg:col-span-12'}>
-                      <div className={`grid gap-3 xl:gap-4 ${isDesktopMapVisible ? 'lg:grid-cols-2 2xl:grid-cols-3' : 'lg:grid-cols-3 2xl:grid-cols-4'}`}>
-                        {surveyCards}
-                      </div>
+                      {surveys.length === 0 ? (
+                        <div className="text-center py-12">
+                          <p className="text-gray-600 mb-4">No saved surveys yet.</p>
+                          <p className="text-sm text-gray-500">
+                            Start a new survey and save it to see it here.
+                          </p>
+                        </div>
+                      ) : sortedSurveys.length === 0 ? (
+                        <div className="text-center py-12">
+                          <p className="text-gray-600 mb-4">Oops, we can&apos;t find any surveys matching your search.</p>
+                          <p className="text-sm text-gray-500">
+                            Try adjusting your search terms or clear the search to see all surveys.
+                          </p>
+                        </div>
+                      ) : (
+                        <motion.div
+                          key={surveyCardListAnimateKey}
+                          variants={SURVEY_CARD_LIST_VARIANTS}
+                          initial="hidden"
+                          animate="show"
+                          className={`grid gap-3 xl:gap-4 ${isDesktopMapVisible ? 'lg:grid-cols-2 2xl:grid-cols-3' : 'lg:grid-cols-3 2xl:grid-cols-4'}`}
+                        >
+                          {surveyCards}
+                        </motion.div>
+                      )}
                     </div>
                     <AnimatePresence initial={false}>
                       {isDesktopMapVisible && (
@@ -2228,18 +2295,38 @@ export default function DashboardContent({
                         </motion.div>
                       )}
                     </AnimatePresence>
-                    <motion.div
-                      className="relative space-y-3 sm:space-y-4"
-                    >
-                      {surveyCards}
-                    </motion.div>
+                    {surveys.length === 0 ? (
+                      <div className="text-center py-12">
+                        <p className="text-gray-600 mb-4">No saved surveys yet.</p>
+                        <p className="text-sm text-gray-500">
+                          Start a new survey and save it to see it here.
+                        </p>
+                      </div>
+                    ) : sortedSurveys.length === 0 ? (
+                      <div className="text-center py-12">
+                        <p className="text-gray-600 mb-4">Oops, we can&apos;t find any surveys matching your search.</p>
+                        <p className="text-sm text-gray-500">
+                          Try adjusting your search terms or clear the search to see all surveys.
+                        </p>
+                      </div>
+                    ) : (
+                      <motion.div
+                        key={surveyCardListAnimateKey}
+                        variants={SURVEY_CARD_LIST_VARIANTS}
+                        initial="hidden"
+                        animate="show"
+                        className="relative space-y-3 sm:space-y-4"
+                      >
+                        {surveyCards}
+                      </motion.div>
+                    )}
                     <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 lg:hidden">
                       <MobileMapViewFab mode={mobileViewMode} onClick={handleMobileViewToggle} />
                     </div>
                   </div>
                 </>
               )}
-            </motion.div>
+            </div>
           </div>
         </section>
         </div>

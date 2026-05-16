@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Phone, MapPin, Edit2, Plus, MoreVertical, Clock, Trash2, X, Upload } from 'lucide-react';
 import EditEmailModal from '@/components/EditEmailModal';
 import NotificationModal from '@/components/NotificationModal';
+import SettingsAuroraLayout from '@/components/SettingsAuroraLayout';
 import PhoneInput from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 
@@ -1321,7 +1322,7 @@ export default function AccountSettingsPage() {
     }
 
     return (
-        <div className="min-h-screen bg-base-200 py-8">
+        <SettingsAuroraLayout>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -2124,6 +2125,6 @@ export default function AccountSettingsPage() {
                     </div>
                 )}
             </AnimatePresence>
-        </div>
+        </SettingsAuroraLayout>
     );
 }

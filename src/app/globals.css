@@ -204,6 +204,102 @@
   backdrop-filter: blur(14px);
 }
 
+/* Settings pages — aurora variant (offset positions & timings vs dashboard) */
+.settings-aurora-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(24rem 17rem at 78% 14%, rgba(67, 151, 117, 0.12), transparent 66%),
+    radial-gradient(21rem 15rem at 8% 48%, rgba(226, 149, 120, 0.09), transparent 69%),
+    radial-gradient(19rem 14rem at 42% 92%, rgba(90, 170, 130, 0.08), transparent 71%),
+    #ffffff;
+  z-index: 0;
+}
+
+.settings-aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(76px);
+  will-change: transform;
+}
+
+.settings-aurora-blob--1 {
+  width: min(54vw, 28rem);
+  height: min(44vw, 22rem);
+  background: rgba(226, 149, 120, 0.14);
+  top: 8%;
+  right: -10%;
+  animation: settings-aurora-float-a 27s ease-in-out infinite;
+}
+
+.settings-aurora-blob--2 {
+  width: min(68vw, 32rem);
+  height: min(46vw, 23rem);
+  background: rgba(67, 151, 117, 0.17);
+  top: 38%;
+  left: -12%;
+  animation: settings-aurora-float-b 31s ease-in-out infinite;
+}
+
+.settings-aurora-blob--3 {
+  width: min(58vw, 30rem);
+  height: min(38vw, 19rem);
+  background: rgba(67, 151, 117, 0.13);
+  bottom: -14%;
+  right: 6%;
+  animation: settings-aurora-float-c 29s ease-in-out infinite;
+}
+
+.settings-aurora-blob--bottom {
+  width: min(76vw, 38rem);
+  height: min(32vw, 15rem);
+  background: rgba(226, 149, 120, 0.11);
+  bottom: -8%;
+  left: 18%;
+  animation: settings-aurora-float-b 33s ease-in-out infinite reverse;
+}
+
+@keyframes settings-aurora-float-a {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  38% {
+    transform: translate(-3%, 4%) scale(1.05);
+  }
+  68% {
+    transform: translate(4%, -2%) scale(0.99);
+  }
+}
+
+@keyframes settings-aurora-float-b {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  42% {
+    transform: translate(5%, 3%) scale(1.04);
+  }
+  72% {
+    transform: translate(-4%, -3%) scale(0.98);
+  }
+}
+
+@keyframes settings-aurora-float-c {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(3%, -4%) scale(1.02);
+  }
+  62% {
+    transform: translate(-5%, 2%) scale(1.06);
+  }
+}
+
 /* Page background aurora (non-overlay) */
 .aurora-page-bg {
   background:

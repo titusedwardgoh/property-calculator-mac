@@ -1,5 +1,6 @@
 import { createClient as createServiceClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { findAuthUserByEmail } from '@/lib/auth/findAuthUserByEmail'
 
 // Server-side Supabase client with service role key (for admin operations)
 const supabaseUrl = process.env.SUPABASE_URL
@@ -27,22 +28,7 @@ export async function POST(request) {
       )
     }
 
-    // Check if email exists in auth.users using admin API
-    // We need to use the admin API to check auth.users
-    const { data: { users }, error } = await supabase.auth.admin.listUsers()
-
-    if (error) {
-      console.error('Error checking email:', error)
-      return NextResponse.json(
-        { error: 'Failed to check email', details: error.message },
-        { status: 500 }
-      )
-    }
-
-    // Find user with matching email (case-insensitive)
-    const matchingUser = users.find(
-      user => user.email?.toLowerCase() === email.toLowerCase()
-    )
+    const matchingUser = await findAuthUserByEmail(supabase, email)
 
     if (matchingUser) {
       return NextResponse.json({
