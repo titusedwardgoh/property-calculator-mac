@@ -40,8 +40,7 @@ export default function Footer() {
               <h3 className="text-xl font-bold text-base-200">PropWiz</h3>
             </Link>
             <p className="text-base-200/80 mb-4 max-w-md leading-relaxed">
-              Comprehensive calculator for Australian real estate. 
-              Calculate stamp duty, LMI, loan repayments, and all associated costs.
+              Know the true cost of any Australian property before you commit. No spreadsheets, no surprises.
             </p>
           </div>
 
@@ -120,7 +119,7 @@ export default function Footer() {
               © 2024 PropWiz. All rights reserved.
             </p>
             <p className="text-base-200/60 text-sm mt-2 md:mt-0">
-              Made to be simple and easy to use 
+              Built for Australian property buyers 
             </p>
           </div>
         </div>

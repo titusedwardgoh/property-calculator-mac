@@ -300,6 +300,27 @@
   }
 }
 
+/* Root layout — randomized aurora behind all pages */
+html[data-theme='flyingwizard'] {
+  --root-bg: #ffffff;
+}
+
+.root-aurora-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.root-aurora-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  will-change: transform;
+}
+
 /* Page background aurora (non-overlay) */
 .aurora-page-bg {
   background:

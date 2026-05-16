@@ -83,9 +83,10 @@ export default function Header() {
       <header
         className={`sticky top-0 z-100 ${shouldHideHeader ? 'md:invisible md:pointer-events-none md:opacity-0' : ''}`}
         style={{
-          background: 'rgba(255, 255, 255, 0.15)',
-          backdropFilter: 'blur(20px) saturate(180%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+          background:
+            'linear-gradient(180deg, rgba(255, 252, 250, 0.72) 0%, rgba(255, 248, 245, 0.65) 100%)',
+          backdropFilter: 'blur(20px) saturate(125%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(125%)',
           border: '1px solid rgba(255, 255, 255, 0.25)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
           boxShadow:

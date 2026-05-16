@@ -5,6 +5,7 @@ import Header from "../components/Header";
 import LoggedInHeaderOverlay from "../components/LoggedInHeaderOverlay";
 import SettingsNavigation from "../components/SettingsNavigation";
 import AuthSessionManager from "../components/AuthSessionManager";
+import RootAuroraBackground from "../components/RootAuroraBackground";
 
 const robotoFont = Roboto({
   display: "swap",
@@ -18,7 +19,7 @@ const unbounded = Unbounded({
 
 
 export const metadata = {
-  title: "Property Calculator",
+  title: "PropWiz | Australian Property Cost Calculator",
   description: "Calculate your property costs",
   icons: {
     icon: "/favicon.png",
@@ -28,15 +29,16 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" data-theme="flyingwizard">
-      <body
-        className={robotoFont.className}
-      >
-        <AuthSessionManager />
-        <Header />
-        <LoggedInHeaderOverlay />
-        <SettingsNavigation />
-        {children}
-        <Footer />
+      <body className={`${robotoFont.className} relative min-h-screen`}>
+        <RootAuroraBackground />
+        <div className="relative z-10 flex min-h-screen flex-col">
+          <AuthSessionManager />
+          <Header />
+          <LoggedInHeaderOverlay />
+          <SettingsNavigation />
+          {children}
+          <Footer />
+        </div>
       </body>
     </html>
   );

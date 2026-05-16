@@ -1,15 +1,89 @@
 "use client";
 
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFormStore } from '../stores/formStore';
 
+const testimonials = [
+    {
+        quote: "I had no idea how much stamp duty I'd actually owe until I used this. Saved me from a very stressful surprise at settlement.",
+        author: "Sarah M.",
+        role: "First Home Buyer, Melbourne"
+    },
+    {
+        quote: "I've tried every property calculator out there. This is the only one that accounts for LMI, conveyancing, and ongoing costs in one place.",
+        author: "James K.",
+        role: "Property Investor, Sydney"
+    },
+    {
+        quote: "As a first home buyer I had no idea where to start. PropWiz broke down every cost clearly — I finally felt in control of my budget.",
+        author: "Priya S.",
+        role: "First Home Buyer, Brisbane"
+    },
+    {
+        quote: "I used three different calculators and got three different answers. PropWiz was the only one that matched what my conveyancer quoted me.",
+        author: "David L.",
+        role: "Property Investor, Perth"
+    },
+    {
+        quote: "The stamp duty concession calculator alone saved me hours of research. Didn't realise I qualified until PropWiz flagged it.",
+        author: "Emma T.",
+        role: "First Home Buyer, Adelaide"
+    },
+    {
+        quote: "Clean, fast, and actually accurate. I've recommended it to everyone in my buyers group.",
+        author: "Marcus R.",
+        role: "Property Investor, Gold Coast"
+    }
+];
+
 export default function HomePage() {
     const router = useRouter();
     const updateFormData = useFormStore(state => state.updateFormData);
-    
+
+    const [activeIndex, setActiveIndex] = useState(0);
+    const [visibleCount, setVisibleCount] = useState(1);
+    const autoScrollRef = useRef(null);
+    const isHovering = useRef(false);
+
+    useEffect(() => {
+        const update = () => {
+            if (window.innerWidth >= 1024) setVisibleCount(3);
+            else if (window.innerWidth >= 768) setVisibleCount(2);
+            else setVisibleCount(1);
+        };
+        update();
+        window.addEventListener('resize', update);
+        return () => window.removeEventListener('resize', update);
+    }, []);
+
+    const totalSlides = testimonials.length;
+    const maxIndex = totalSlides - visibleCount;
+
+    const goNext = () => setActiveIndex(i => (i >= maxIndex ? 0 : i + 1));
+    const goPrev = () => setActiveIndex(i => (i <= 0 ? maxIndex : i - 1));
+
+    const startAutoScroll = () => {
+        if (autoScrollRef.current) clearInterval(autoScrollRef.current);
+        autoScrollRef.current = setInterval(() => {
+            if (!isHovering.current) {
+                setActiveIndex(i => (i >= maxIndex ? 0 : i + 1));
+            }
+        }, 3500);
+    };
+
+    useEffect(() => {
+        startAutoScroll();
+        return () => clearInterval(autoScrollRef.current);
+    }, [visibleCount]);
+
+    useEffect(() => {
+        setActiveIndex(i => Math.min(i, maxIndex));
+    }, [visibleCount]);
+
     const handleGetStarted = () => {
         // Navigate to calculator route (welcome page will show first)
         router.push('/calculator');
@@ -18,7 +92,7 @@ export default function HomePage() {
     return (
         <div className="min-h-screen bg-base-200">
             {/* Hero Section */}
-            <section className="container mx-auto px-4 py-16 md:py-24 lg:py-32">
+            <section className="container mx-auto px-4 py-16 md:py-24 lg:py-">
                 <div className="max-w-4xl mx-auto text-center">
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
@@ -26,9 +100,9 @@ export default function HomePage() {
                         transition={{ duration: 0.6, ease: "easeOut" }}
                         className="text-4xl md:text-5xl lg:text-6xl font-bold text-secondary mb-6 leading-tight"
                     >
-                        The Simplest Property Cost Calculator.
+                        Know Exactly What Your Next Property Will Cost.
                         <span className="block text-primary mt-2">
-                            Completely Free, No Account Needed
+                            Free, Instant, No Account Needed
                         </span>
                     </motion.h1>
                     
@@ -38,7 +112,7 @@ export default function HomePage() {
                         transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
                         className="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto"
                     >
-                        Calculate stamp duty, upfront costs, loan repayments, and all associated expenses for any Australian property. Get instant, accurate estimates in minutes.
+                        Stamp duty, LMI, conveyancing, loan repayments — we calculate every cost Australian buyers actually face. No surprises, no spreadsheets, no sign-up required.
                     </motion.p>
 
                     <motion.div
@@ -97,10 +171,10 @@ export default function HomePage() {
                                 
                             </p>
                             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-5">
-                                Tired of guessing how much you need for a home?
+                                Stop guessing. Start knowing.
                             </h2>
                             <p className="text-lg md:text-xl text-white leading-relaxed mb-10">
-                            You could be missing out on thousands of dollars back in your pocket. Don’t budget with multiple tools—get the full financial picture in one place. We calculate every fee and uncover every saving, so you know exactly what you’ll pay and exactly what you’ll keep. Accurate, free, and zero surprises.
+                            Most buyers underestimate what they'll actually spend — and overpay as a result. PropWiz gives you a complete picture of every fee, concession, and cost before you commit. One tool. Every number. Zero surprises.
                             </p>
                             <div className="flex justify-center md:justify-start">
                                 <motion.button
@@ -193,56 +267,87 @@ export default function HomePage() {
 
             {/* Social Proof Section */}
             <section className="px-4 py-16 bg-secondary">
-                <div className="max-w-4xl mx-auto">
+                <div className="max-w-6xl mx-auto">
                     <motion.div
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.6 }}
-                        className="text-center"
+                        className="text-center mb-12"
                     >
                         <p className="text-3xl md:text-4xl font-bold text-gray-300 mb-4">
-                            Used by thousands of home buyers
+                            Built for Australian property buyers
                         </p>
-                        <p className="text-lg text-primary mb-12">
-                            Trusted by first-time buyers, investors, and real estate professionals across Australia
+                        <p className="text-lg text-primary">
+                            From first home buyers navigating stamp duty concessions to investors comparing loan structures — PropWiz handles the numbers so you don't have to.
                         </p>
                     </motion.div>
 
-                    {/* Testimonials */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        {[
-                            {
-                                quote: "Finally, a calculator that actually shows me all the hidden costs! This saved me from a costly surprise.",
-                                author: "Sarah M.",
-                                role: "First Home Buyer"
-                            },
-                            {
-                                quote: "The most comprehensive property calculator I've found. It covers things I didn't even know to consider.",
-                                author: "James K.",
-                                role: "Property Investor"
-                            }
-                        ].map((testimonial, index) => (
+                    {/* Carousel row */}
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => { goPrev(); startAutoScroll(); }}
+                            className="flex-shrink-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                            aria-label="Previous"
+                        >
+                            ←
+                        </button>
+
+                        <div className="flex-1 overflow-hidden">
                             <motion.div
-                                key={index}
-                                initial={{ opacity: 0, y: 20 }}
-                                whileInView={{ opacity: 1, y: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ duration: 0.6, delay: index * 0.1 }}
-                                className="bg-base-200 rounded-lg p-6 shadow-sm"
+                                className="flex"
+                                animate={{ x: `calc(-${activeIndex * (100 / visibleCount)}% - ${activeIndex * (16 / visibleCount)}px)` }}
+                                transition={{ duration: 0.45, ease: "easeInOut" }}
+                                style={{ gap: '16px' }}
+                                onMouseEnter={() => { isHovering.current = true; }}
+                                onMouseLeave={() => { isHovering.current = false; }}
                             >
-                                <p className="text-gray-700 italic mb-4">
-                                    &quot;{testimonial.quote}&quot;
-                                </p>
-                                <p className="font-semibold text-gray-900">
-                                    {testimonial.author}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                    {testimonial.role}
-                                </p>
+                                {testimonials.map((testimonial, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex-shrink-0"
+                                        style={{ width: `calc(${100 / visibleCount}% - ${16 * (visibleCount - 1) / visibleCount}px)` }}
+                                    >
+                                        <div className="bg-base-200 rounded-lg p-6 shadow-sm h-full flex flex-col">
+                                            <p className="text-gray-700 italic mb-4">
+                                                &quot;{testimonial.quote}&quot;
+                                            </p>
+                                            <div className="mt-auto">
+                                                <p className="font-semibold text-gray-900">
+                                                    {testimonial.author}
+                                                </p>
+                                                <p className="text-sm text-gray-600">
+                                                    {testimonial.role}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
                             </motion.div>
+                        </div>
+
+                        <button
+                            onClick={() => { goNext(); startAutoScroll(); }}
+                            className="flex-shrink-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                            aria-label="Next"
+                        >
+                            →
+                        </button>
+                    </div>
+
+                    <div className="flex justify-center gap-2 mt-6">
+                        {Array.from({ length: maxIndex + 1 }).map((_, i) => (
+                            <button
+                                key={i}
+                                onClick={() => { setActiveIndex(i); startAutoScroll(); }}
+                                className={`w-2 h-2 rounded-full transition-colors cursor-pointer ${
+                                    i === activeIndex ? 'bg-primary' : 'bg-white/30'
+                                }`}
+                                aria-label={`Go to slide ${i + 1}`}
+                            />
                         ))}
                     </div>
+
                 </div>
             </section>
 
@@ -366,10 +471,10 @@ export default function HomePage() {
                         transition={{ duration: 0.6 }}
                     >
                         <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                            Ready to Calculate Your Property Costs?
+                            Ready to See the Full Picture?
                         </h2>
                         <p className="text-lg text-gray-600 mb-8">
-                            Join thousands of Australians who use our calculator to make informed property decisions
+                            Get a complete breakdown of every cost before you sign anything. Free, instant, and built for Australia.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
                             <motion.button
