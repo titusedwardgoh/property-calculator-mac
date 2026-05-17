@@ -104,9 +104,13 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <a href="#" className="text-base-200/70 hover:text-primary transition-colors">
+                <Link 
+                  href="/disclaimer" 
+                  onClick={(e) => handleLinkClick(e, '/disclaimer')}
+                  className="text-base-200/70 hover:text-primary transition-colors"
+                >
                   Disclaimer
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
@@ -116,7 +120,7 @@ export default function Footer() {
         <div className="border-t border-base-200/20 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-base-200/60 text-sm">
-              © 2024 PropWiz. All rights reserved.
+              © 2025 PropWiz. All rights reserved.
             </p>
             <p className="text-base-200/60 text-sm mt-2 md:mt-0">
               Built for Australian property buyers 

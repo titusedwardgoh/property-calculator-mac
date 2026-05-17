@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from 'framer-motion';
-import { Shield, FileText } from 'lucide-react';
+import { Shield } from 'lucide-react';
+import Link from 'next/link';
 
 export default function PrivacyPage() {
   return (
@@ -47,7 +48,7 @@ export default function PrivacyPage() {
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
               className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-12"
             >
-              This Privacy Policy explains how PropWiz manages your personal information and protects your privacy when you use our property calculator service.
+              How we collect, use, and protect your information when you use PropWiz.
             </motion.p>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
@@ -55,7 +56,7 @@ export default function PrivacyPage() {
               transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
               className="text-sm text-gray-500"
             >
-              Last updated: January 2025
+              Last updated: May 2025
             </motion.p>
           </div>
         </section>
@@ -72,11 +73,8 @@ export default function PrivacyPage() {
               {/* Introduction */}
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Introduction</h2>
-                <p className="text-gray-700 leading-relaxed mb-4">
-                  This Privacy Policy (Policy) explains how PropWiz manages your personal information. By accessing our website or using our property calculator service, you consent to the terms of this Policy, including consenting to us collecting, using and disclosing your personal information as set out in this Policy.
-                </p>
                 <p className="text-gray-700 leading-relaxed">
-                  Whether you are new to PropWiz or a long-time user, please take the time to get to know our privacy practices.
+                  This Privacy Policy (Policy) explains how PropWiz manages your personal information. By accessing our website or using our property calculator service, you consent to the terms of this Policy, including consenting to us collecting, using and disclosing your personal information as set out in this Policy.
                 </p>
               </div>
 
@@ -111,7 +109,15 @@ export default function PrivacyPage() {
                 <div className="bg-base-200 rounded-lg p-4 mt-4">
                   <p className="text-gray-700 font-medium mb-1">Privacy Officer</p>
                   <p className="text-gray-600">PropWiz</p>
-                  <p className="text-gray-600">Email: privacy@propwiz.com.au</p>
+                  <p className="text-gray-600">
+                    Email:{" "}
+                    <a
+                      href="mailto:privacy@propwiz.com.au"
+                      className="text-primary hover:text-primary-focus underline"
+                    >
+                      privacy@propwiz.com.au
+                    </a>
+                  </p>
                 </div>
               </div>
 
@@ -270,16 +276,19 @@ export default function PrivacyPage() {
               </div>
 
               {/* Contact Information */}
-              <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 mt-8">
-                <div className="flex items-start gap-4">
-                  <FileText className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Questions About This Policy?</h3>
-                    <p className="text-gray-700 leading-relaxed mb-4">
-                      If you have any questions about this Privacy Policy or our privacy practices, please contact us at privacy@propwiz.com.au
-                    </p>
-                  </div>
-                </div>
+              <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 md:p-8 mt-8">
+                <h3 className="text-lg font-semibold text-primary mb-2">
+                  Questions about this policy?
+                </h3>
+                <p className="text-gray-700 mb-6 leading-relaxed">
+                  If you have any questions about this Privacy Policy or our privacy practices, feel free to contact us.
+                </p>
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center gap-2 bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
+                >
+                  Contact Us
+                </Link>
               </div>
             </motion.div>
           </div>

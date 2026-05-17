@@ -1,7 +1,8 @@
 "use client";
 
 import { motion } from 'framer-motion';
-import { FileText, Scale } from 'lucide-react';
+import { Scale } from 'lucide-react';
+import Link from 'next/link';
 
 export default function TermsPage() {
   return (
@@ -47,7 +48,7 @@ export default function TermsPage() {
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
               className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-12"
             >
-              These terms of use and our Privacy Policy form the basis on which you may access and use PropWiz and our property calculator service.
+              Please read these terms carefully before using PropWiz. By accessing or using our service, you agree to be bound by them.
             </motion.p>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
@@ -55,7 +56,7 @@ export default function TermsPage() {
               transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
               className="text-sm text-gray-500"
             >
-              Last updated: January 2025
+              Last updated: May 2025
             </motion.p>
           </div>
         </section>
@@ -74,9 +75,6 @@ export default function TermsPage() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Acceptance of Terms</h2>
                 <p className="text-gray-700 leading-relaxed mb-4">
                   If you browse or otherwise access any content or data on our website or use our property calculator service (together called &quot;our Platform&quot; in these terms), you agree to be bound by these terms.
-                </p>
-                <p className="text-gray-700 leading-relaxed mb-4">
-                  These terms of use and our Privacy Policy form the basis on which you may access and use PropWiz, including our website and property calculator service.
                 </p>
                 <p className="text-gray-700 leading-relaxed">
                   PropWiz reserves the right to change any or all of our terms of use or other conditions for using our Platform at any time by publishing the new terms or conditions on our website. Your use of our Platform constitutes your acceptance of those terms. Should you object to any of our terms of use or other notices on our Platform, your sole option is to immediately cease your use of our Platform.
@@ -249,16 +247,19 @@ export default function TermsPage() {
               </div>
 
               {/* Contact Information */}
-              <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 mt-8">
-                <div className="flex items-start gap-4">
-                  <FileText className="w-6 h-6 text-primary flex-shrink-0 mt-1" />
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Questions About These Terms?</h3>
-                    <p className="text-gray-700 leading-relaxed mb-4">
-                      If you have any questions about these Terms of Service, please contact us at support@propwiz.com.au
-                    </p>
-                  </div>
-                </div>
+              <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 md:p-8 mt-8">
+                <h3 className="text-lg font-semibold text-primary mb-2">
+                  Questions about these terms?
+                </h3>
+                <p className="text-gray-700 mb-6 leading-relaxed">
+                  If you have any questions about these Terms of Service, feel free to contact us.
+                </p>
+                <Link
+                  href="/contact"
+                  className="inline-flex items-center gap-2 bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
+                >
+                  Contact Us
+                </Link>
               </div>
             </motion.div>
           </div>

@@ -118,12 +118,12 @@ export default function FAQPage() {
         className="absolute inset-0 z-0"
         style={{
           background: `
-            radial-gradient(ellipse 96% 70% at 12% 30%, rgba(67, 151, 117, 0.28), transparent 70%),
-            radial-gradient(ellipse 88% 64% at 60% 24%, rgba(242, 255, 229, 0.5), transparent 72%),
-            radial-gradient(ellipse 78% 60% at 84% 72%, rgba(226, 149, 120, 0.22), transparent 74%),
-            radial-gradient(ellipse 86% 62% at 28% 82%, rgba(226, 149, 120, 0.14), transparent 76%),
-            radial-gradient(ellipse 80% 60% at 78% 42%, rgba(67, 151, 117, 0.14), transparent 75%),
-            linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.94) 42%, rgba(242,255,229,0.94) 100%)
+            radial-gradient(ellipse 96% 70% at 12% 30%, rgba(67, 151, 117, 0.10), transparent 70%),
+            radial-gradient(ellipse 88% 64% at 60% 24%, rgba(242, 255, 229, 0.20), transparent 72%),
+            radial-gradient(ellipse 78% 60% at 84% 72%, rgba(226, 149, 120, 0.08), transparent 74%),
+            radial-gradient(ellipse 86% 62% at 28% 82%, rgba(226, 149, 120, 0.05), transparent 76%),
+            radial-gradient(ellipse 80% 60% at 78% 42%, rgba(67, 151, 117, 0.05), transparent 75%),
+            linear-gradient(180deg, #ffffff 0%, #ffffff 55%, #fefffc 100%)
           `,
         }}
       />
@@ -231,7 +231,7 @@ export default function FAQPage() {
                                 transition={{ duration: 0.3, ease: "easeInOut" }}
                                 className="overflow-hidden"
                               >
-                                <div className="px-6 pb-5 pt-4 bg-base-100 border-t border-primary/25">
+                                <div className="px-6 pb-5 pt-4 bg-white border-t border-primary/25">
                                   <p className="text-gray-600 leading-relaxed">
                                     {faq.answer}
                                   </p>

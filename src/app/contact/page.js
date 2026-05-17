@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Send, CheckCircle } from "lucide-react";
+import { Mail, Send, CheckCircle, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
 export default function ContactPage() {
@@ -10,6 +10,7 @@ export default function ContactPage() {
     firstName: "",
     lastName: "",
     email: "",
+    category: "",
     message: "",
   });
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -36,6 +37,7 @@ export default function ContactPage() {
           firstName: formData.firstName.trim(),
           lastName: formData.lastName.trim(),
           email: formData.email.trim(),
+          category: formData.category,
           message: formData.message.trim(),
         }),
       });
@@ -53,6 +55,7 @@ export default function ContactPage() {
         firstName: "",
         lastName: "",
         email: "",
+        category: "",
         message: "",
       });
     } catch {
@@ -181,7 +184,7 @@ export default function ContactPage() {
                         htmlFor="firstName"
                         className="block text-sm font-medium text-gray-700 mb-2"
                       >
-                        First name *
+                        First name <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -199,7 +202,7 @@ export default function ContactPage() {
                         htmlFor="lastName"
                         className="block text-sm font-medium text-gray-700 mb-2"
                       >
-                        Last name *
+                        Last name <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -219,7 +222,7 @@ export default function ContactPage() {
                       htmlFor="email"
                       className="block text-sm font-medium text-gray-700 mb-2"
                     >
-                      Email *
+                      Email <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
@@ -237,12 +240,43 @@ export default function ContactPage() {
                     />
                   </motion.div>
 
+                  {/* Category */}
+                  <div>
+                    <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
+                      Category <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <select
+                        id="category"
+                        name="category"
+                        required
+                        value={formData.category}
+                        onChange={handleChange}
+                        className={`${inputClass} appearance-none cursor-pointer`}
+                      >
+                        <option value="" disabled>Select a category...</option>
+                        <option value="technical">Technical Issue</option>
+                        <option value="calculation">Calculation Query</option>
+                        <option value="feedback">General Feedback</option>
+                        <option value="feature">Feature Request</option>
+                        <option value="privacy">Privacy or Data Enquiry</option>
+                        <option value="terms">Terms of Service</option>
+                        <option value="partnership">Partnership or Press</option>
+                        <option value="other">Other</option>
+                      </select>
+                      <ChevronDown
+                        className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500"
+                        aria-hidden
+                      />
+                    </div>
+                  </div>
+
                   <motion.div {...drop(t.message)}>
                     <label
                       htmlFor="message"
                       className="block text-sm font-medium text-gray-700 mb-2"
                     >
-                      Message *
+                      Message <span className="text-red-500">*</span>
                     </label>
                     <textarea
                       id="message"
