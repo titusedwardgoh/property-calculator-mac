@@ -2,6 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import {
+    MOBILE_HEADER_MENU_TOP_CLASS,
+    LOGGED_IN_HEADER_CLEARANCE_MARGIN_CLASS,
+} from '@/lib/loggedInHeaderGlassStyle';
 
 export default function SettingsNavigation() {
     const pathname = usePathname();
@@ -12,7 +16,9 @@ export default function SettingsNavigation() {
     }
 
     return (
-        <nav className="sticky top-[73px] z-[140] border-b border-white/15 bg-accent">
+        <nav
+            className={`sticky ${MOBILE_HEADER_MENU_TOP_CLASS} ${LOGGED_IN_HEADER_CLEARANCE_MARGIN_CLASS} z-[140] border-b border-white/15 bg-accent`}
+        >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex space-x-8">
                     <Link

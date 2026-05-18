@@ -66,6 +66,23 @@ export const getStreetViewMetadataStatus = async ({ lat, lng, location, apiKey }
   }
 };
 
+/** True for Place Photo / Street View URLs that must not go through next/image (signed URLs). */
+export const isGoogleMapsPhotoUrl = (url) => {
+  if (typeof url !== 'string' || !url.trim()) return false;
+  if (url.startsWith('data:')) return false;
+  try {
+    const { hostname, pathname } = new URL(url);
+    if (hostname !== 'maps.googleapis.com') return false;
+    return (
+      pathname.includes('/maps/api/place/photo') ||
+      pathname.includes('PhotoService.GetPhoto') ||
+      pathname.includes('/maps/api/streetview')
+    );
+  } catch {
+    return url.includes('maps.googleapis.com');
+  }
+};
+
 export const getPropertyPhotoUrl = async (placeId, placesService) => {
   if (!placeId || !placesService) return null;
 

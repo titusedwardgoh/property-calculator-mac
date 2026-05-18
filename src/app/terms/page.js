@@ -68,7 +68,7 @@ export default function TermsPage() {
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
-              className="bg-white/80 backdrop-blur-sm border border-white/60 rounded-3xl shadow-md p-8 md:p-12 space-y-8"
+              className="bg-white border border-white/60 rounded-3xl shadow-md p-8 md:p-12 space-y-8"
             >
               {/* Introduction */}
               <div>
@@ -247,7 +247,7 @@ export default function TermsPage() {
               </div>
 
               {/* Contact Information */}
-              <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 md:p-8 mt-8">
+              <div className="bg-primary/10 border border-primary/20 rounded-2xl p-6 md:p-8">
                 <h3 className="text-lg font-semibold text-primary mb-2">
                   Questions about these terms?
                 </h3>

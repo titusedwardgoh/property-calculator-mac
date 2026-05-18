@@ -8,6 +8,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { User, LogOut } from 'lucide-react';
+import {
+  PUBLIC_HEADER_GLASS_STYLE,
+  MOBILE_HEADER_MENU_TOP_CLASS,
+  MOBILE_MENU_OVERLAY_STYLE,
+} from '@/lib/loggedInHeaderGlassStyle';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -69,29 +74,22 @@ export default function Header() {
     setIsMenuOpen(false);
   };
 
-  // Disable body scroll when menu is open
-  if (typeof window !== 'undefined') {
+  useEffect(() => {
     if (isMenuOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
     }
-  }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMenuOpen]);
 
   return (
     <>
       <header
-        className={`sticky top-0 z-100 ${shouldHideHeader ? 'md:invisible md:pointer-events-none md:opacity-0' : ''}`}
-        style={{
-          background:
-            'linear-gradient(180deg, rgba(255, 252, 250, 0.72) 0%, rgba(255, 248, 245, 0.65) 100%)',
-          backdropFilter: 'blur(20px) saturate(125%)',
-          WebkitBackdropFilter: 'blur(20px) saturate(125%)',
-          border: '1px solid rgba(255, 255, 255, 0.25)',
-          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-          boxShadow:
-            '0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.4)'
-        }}
+        className={`sticky top-0 z-100 ${shouldHideHeader ? 'hidden' : ''}`}
+        style={PUBLIC_HEADER_GLASS_STYLE}
       >
         <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
           <div className="flex items-center justify-between">
@@ -202,7 +200,7 @@ export default function Header() {
               {/* Hamburger button - mobile only */}
               <button
                 onClick={toggleMenu}
-                className="md:hidden focus:outline-none"
+                className="md:hidden focus:outline-none mr-2"
                 aria-label="Toggle menu"
               >
                 <div className="space-y-1.5">
@@ -236,7 +234,7 @@ export default function Header() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
               onClick={closeMenu}
-              className="fixed top-[73px] left-0 right-0 bottom-0 bg-black bg-opacity-50 z-[200] md:hidden"
+              className={`fixed ${MOBILE_HEADER_MENU_TOP_CLASS} left-0 right-0 bottom-0 bg-black bg-opacity-50 z-[200] md:hidden`}
             />
             
             {/* Menu drawer */}
@@ -245,15 +243,8 @@ export default function Header() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'tween', duration: 0.3 }}
-              className="fixed top-[73px] right-0 bottom-0 left-0 shadow-xl z-[200] md:hidden"
-              style={{
-                background: `
-                  radial-gradient(ellipse 92% 68% at 12% 26%, rgba(67, 151, 117, 0.06), transparent 74%),
-                  radial-gradient(ellipse 82% 60% at 82% 24%, rgba(226, 149, 120, 0.06), transparent 76%),
-                  radial-gradient(ellipse 78% 58% at 76% 78%, rgba(67, 151, 117, 0.04), transparent 78%),
-                  linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(255,255,255,0.96) 70%, rgba(248,255,241,0.95) 100%)
-                `,
-              }}
+              className={`fixed ${MOBILE_HEADER_MENU_TOP_CLASS} right-0 bottom-0 left-0 shadow-xl z-[200] md:hidden`}
+              style={MOBILE_MENU_OVERLAY_STYLE}
             >
               <div className="flex flex-col h-full pt-4">
                 {/* Menu items */}

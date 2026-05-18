@@ -8,7 +8,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { LogOut } from 'lucide-react';
-import { LOGGED_IN_HEADER_GLASS_STYLE } from '@/lib/loggedInHeaderGlassStyle';
+import {
+    PUBLIC_HEADER_GLASS_STYLE,
+    MOBILE_HEADER_MENU_TOP_CLASS,
+    MOBILE_MENU_OVERLAY_STYLE,
+} from '@/lib/loggedInHeaderGlassStyle';
 
 export default function LoggedInHeaderOverlay() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -68,26 +72,30 @@ export default function LoggedInHeaderOverlay() {
         <>
             <header
                 className="fixed top-0 left-0 right-0 z-[150]"
-                style={LOGGED_IN_HEADER_GLASS_STYLE}
+                style={PUBLIC_HEADER_GLASS_STYLE}
             >
                 <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
                     <div className="flex items-center justify-between">
-                        {/* Mobile: Logo centered */}
-                        <div className="flex-1 flex justify-center md:hidden">
-                            <Link href="/dashboard" onClick={() => setIsNavigatingToDashboard(true)} className="flex items-center">
-                                <div className="w-12 h-12 flex items-center">
+                        {/* Mobile: Logo left — matches public Header */}
+                        <div className="flex items-center md:hidden">
+                            <Link
+                                href="/dashboard"
+                                onClick={() => setIsNavigatingToDashboard(true)}
+                                className="flex items-center"
+                            >
+                                <div className="w-28 h-9 flex items-center">
                                     <Image
-                                        src="/icon.png"
+                                        src="/icon2.png"
                                         alt="PropWiz"
                                         width={447}
                                         height={444}
-                                        className="w-full h-full object-contain"
+                                        className="w-full h-full object-contain object-left"
                                         priority
                                     />
                                 </div>
                             </Link>
                         </div>
-                        
+
                         {/* Desktop: Logo on left with nav links */}
                         <div className="hidden md:flex md:items-center md:space-x-2 md:flex-1">
                             <Link href="/dashboard" onClick={() => setIsNavigatingToDashboard(true)} className="flex items-center">
@@ -138,7 +146,7 @@ export default function LoggedInHeaderOverlay() {
                         {/* Hamburger button - mobile only */}
                         <button
                             onClick={toggleMenu}
-                            className="md:hidden focus:outline-none"
+                            className="md:hidden focus:outline-none mr-2"
                             aria-label="Toggle menu"
                         >
                             <div className="space-y-1.5">
@@ -171,7 +179,7 @@ export default function LoggedInHeaderOverlay() {
                             exit={{ opacity: 0 }}
                             transition={{ duration: 0.2 }}
                             onClick={closeMenu}
-                            className="fixed top-[73px] left-0 right-0 bottom-0 bg-black bg-opacity-50 z-[200] md:hidden"
+                            className={`fixed ${MOBILE_HEADER_MENU_TOP_CLASS} left-0 right-0 bottom-0 bg-black bg-opacity-50 z-[200] md:hidden`}
                         />
                         
                         {/* Menu drawer */}
@@ -180,7 +188,8 @@ export default function LoggedInHeaderOverlay() {
                             animate={{ x: 0 }}
                             exit={{ x: '100%' }}
                             transition={{ type: 'tween', duration: 0.3 }}
-                            className="fixed top-[73px] right-0 bottom-0 left-0 bg-base-100 shadow-xl z-[200] md:hidden"
+                            className={`fixed ${MOBILE_HEADER_MENU_TOP_CLASS} right-0 bottom-0 left-0 shadow-xl z-[200] md:hidden`}
+                            style={MOBILE_MENU_OVERLAY_STYLE}
                         >
                             <div className="flex flex-col h-full pt-4">
                                 {/* Menu items */}

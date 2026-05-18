@@ -14,9 +14,13 @@ import {
   getPropertyPhotoUrl,
   getStreetViewPhotoUrl,
   getStreetViewMetadataStatus,
+  isGoogleMapsPhotoUrl,
   PROPWIZ_BRANDED_PLACEHOLDER_URL,
 } from '@/lib/propertyPhotos';
-import { MOBILE_MAP_FAB_GLASS_STYLE } from '@/lib/loggedInHeaderGlassStyle';
+import {
+  MOBILE_MAP_FAB_GLASS_STYLE,
+  LOGGED_IN_HEADER_CLEARANCE_MARGIN_CLASS,
+} from '@/lib/loggedInHeaderGlassStyle';
 
 function SurveyInspectedToggle({ inspected, onToggle, compact }) {
   return (
@@ -1729,6 +1733,41 @@ export default function DashboardContent({
       setIsMapHiddenDesktop(false);
     };
 
+    const cardPhotoAlt = survey.property_address
+      ? `Property preview for ${survey.property_address}`
+      : 'Property preview';
+    const cardPhotoClassName = `object-cover transition-opacity duration-300 ${isPhotoLoaded ? 'opacity-100' : 'opacity-0'}`;
+    const handleCardPhotoError = () => {
+      const currentPhotoSource = survey.photo_source || null;
+      setSurveys((prev) =>
+        prev.map((item) =>
+          item.id === survey.id
+            ? {
+                ...item,
+                photo_url: PROPWIZ_BRANDED_PLACEHOLDER_URL,
+                photo_source: 'placeholder',
+              }
+            : item
+        )
+      );
+      setPropertyPhotoCache((prev) => ({
+        ...prev,
+        [getPhotoCacheKey(survey)]: {
+          photoUrl: PROPWIZ_BRANDED_PLACEHOLDER_URL,
+          photoSource: 'placeholder',
+        },
+      }));
+      setImageLoadedByPropertyId((prev) => ({ ...prev, [survey.id]: true }));
+      if (currentPhotoSource === 'persisted') {
+        // Keep DB value untouched; local placeholder avoids broken UI.
+      }
+    };
+    const handleCardPhotoLoad = () =>
+      setImageLoadedByPropertyId((prev) => {
+        if (prev[survey.id]) return prev;
+        return { ...prev, [survey.id]: true };
+      });
+
     return (
       <motion.div
         key={survey.id}
@@ -1740,44 +1779,25 @@ export default function DashboardContent({
           {!isPhotoLoaded && (
             <div className="absolute inset-0 animate-pulse bg-base-300/60" aria-hidden />
           )}
-          <Image
-            src={cardPhotoUrl}
-            alt={survey.property_address ? `Property preview for ${survey.property_address}` : 'Property preview'}
-            fill
-            className={`object-cover transition-opacity duration-300 ${isPhotoLoaded ? 'opacity-100' : 'opacity-0'}`}
-            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 42vw, 28vw"
-            onError={() => {
-              const currentPhotoSource = survey.photo_source || null;
-              setSurveys((prev) =>
-                prev.map((item) =>
-                  item.id === survey.id
-                    ? {
-                        ...item,
-                        photo_url: PROPWIZ_BRANDED_PLACEHOLDER_URL,
-                        photo_source: 'placeholder',
-                      }
-                    : item
-                )
-              );
-              setPropertyPhotoCache((prev) => ({
-                ...prev,
-                [getPhotoCacheKey(survey)]: {
-                  photoUrl: PROPWIZ_BRANDED_PLACEHOLDER_URL,
-                  photoSource: 'placeholder',
-                },
-              }));
-              setImageLoadedByPropertyId((prev) => ({ ...prev, [survey.id]: true }));
-              if (currentPhotoSource === 'persisted') {
-                // Keep DB value untouched; local placeholder avoids broken UI.
-              }
-            }}
-            onLoad={() =>
-              setImageLoadedByPropertyId((prev) => {
-                if (prev[survey.id]) return prev;
-                return { ...prev, [survey.id]: true };
-              })
-            }
-          />
+          {isGoogleMapsPhotoUrl(cardPhotoUrl) ? (
+            <img
+              src={cardPhotoUrl}
+              alt={cardPhotoAlt}
+              className={`absolute inset-0 h-full w-full ${cardPhotoClassName}`}
+              onError={handleCardPhotoError}
+              onLoad={handleCardPhotoLoad}
+            />
+          ) : (
+            <Image
+              src={cardPhotoUrl}
+              alt={cardPhotoAlt}
+              fill
+              className={cardPhotoClassName}
+              sizes="(max-width: 640px) 100vw, (max-width: 1280px) 42vw, 28vw"
+              onError={handleCardPhotoError}
+              onLoad={handleCardPhotoLoad}
+            />
+          )}
           <span
             className={`absolute bottom-3 left-3 inline-flex shrink-0 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium whitespace-nowrap shadow-sm backdrop-blur-[1px] ${status.color}`}
           >
@@ -1921,7 +1941,9 @@ export default function DashboardContent({
     <div className="flex min-h-screen flex-col bg-base-200">
       <main className="flex flex-1 flex-col">
         {/* Hero Section */}
-        <section className="mx-auto w-full max-w-[1920px] shrink-0 bg-accent px-4 py-5 md:px-6 lg:px-8 lg:py-6">
+        <section
+          className={`mx-auto w-full max-w-[1920px] shrink-0 bg-accent px-4 py-5 ${LOGGED_IN_HEADER_CLEARANCE_MARGIN_CLASS} md:px-6 lg:px-8 lg:py-6`}
+        >
           <div className="w-full text-left">
             <div className="flex items-center gap-4 md:gap-5">
               <motion.div
@@ -2064,6 +2086,7 @@ export default function DashboardContent({
                           placeholder={searchPlaceholder}
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
+                          suppressHydrationWarning
                           className="w-full h-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                         />
                       </div>
