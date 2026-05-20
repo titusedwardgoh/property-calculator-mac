@@ -23,20 +23,20 @@ export default function SettingsNavigation() {
                 <div className="flex space-x-8">
                     <Link
                         href="/settings/account"
-                        className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                        className={`py-4 px-1 border-b-2 text-sm transition-colors ${
                             pathname === '/settings/account' || pathname === '/settings'
-                                ? 'border-white text-white'
-                                : 'border-transparent text-white/70 hover:border-white/40 hover:text-white'
+                                ? 'border-white font-semibold text-white'
+                                : 'border-transparent font-medium text-white/70 hover:border-white/40 hover:text-white'
                         }`}
                     >
                         Account
                     </Link>
                     <Link
                         href="/settings/security"
-                        className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                        className={`py-4 px-1 border-b-2 text-sm transition-colors ${
                             pathname === '/settings/security'
-                                ? 'border-white text-white'
-                                : 'border-transparent text-white/70 hover:border-white/40 hover:text-white'
+                                ? 'border-white font-semibold text-white'
+                                : 'border-transparent font-medium text-white/70 hover:border-white/40 hover:text-white'
                         }`}
                     >
                         Security

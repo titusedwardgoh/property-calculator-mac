@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
-import { Lock, Edit2, ExternalLink } from 'lucide-react';
+import { Lock, Edit2, ExternalLink, ShieldCheck } from 'lucide-react';
 import EditPasswordModal from '@/components/EditPasswordModal';
 import NotificationModal from '@/components/NotificationModal';
+import TwoFactorModal from '@/components/TwoFactorModal';
 import SettingsAuroraLayout from '@/components/SettingsAuroraLayout';
 
 // Helper function to check if error is an invalid refresh token error
@@ -28,6 +29,8 @@ export default function SecuritySettingsPage() {
     const supabase = createClient();
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const [notification, setNotification] = useState({ isOpen: false, type: 'success', title: '', message: '' });
+    const [isTwoFactorModalOpen, setIsTwoFactorModalOpen] = useState(false);
+    const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 
     // Redirect to login if not authenticated
     useEffect(() => {
@@ -35,6 +38,16 @@ export default function SecuritySettingsPage() {
             router.push('/login?next=/settings/security');
         }
     }, [loading, user, router]);
+
+    useEffect(() => {
+        if (!user) return;
+        const checkStatus = async () => {
+            const { data } = await supabase.auth.mfa.listFactors();
+            const verified = data?.totp?.some(f => f.status === 'verified');
+            setTwoFactorEnabled(!!verified);
+        };
+        checkStatus();
+    }, [user]);
 
     if (loading) {
         return (
@@ -102,8 +115,7 @@ export default function SecuritySettingsPage() {
     };
 
     const handleSetup2FA = () => {
-        // TODO: Implement 2FA setup flow
-        console.log('Setup 2FA clicked');
+        setIsTwoFactorModalOpen(true);
     };
 
     return (
@@ -115,9 +127,9 @@ export default function SecuritySettingsPage() {
                         initial={{ opacity: 0, y: 24 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                        className="bg-base-100 rounded-lg shadow-lg p-6"
+                        className="bg-primary/10 rounded-lg shadow-md p-6"
                     >
-                        <h2 className="text-xl font-bold text-gray-900 mb-6">Account Security</h2>
+                        <h2 className="text-gray-900 font-bold text-xl mb-6">Account Security</h2>
                         
                         {/* Password Section */}
                         <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg mb-6">
@@ -136,19 +148,31 @@ export default function SecuritySettingsPage() {
                         </div>
 
                         {/* Two-Factor Authentication Section */}
-                        <div className="bg-base-100 rounded-lg border border-gray-200 p-6">
+                        <div className="bg-white rounded-lg border border-gray-200 shadow-md p-6">
                             <h3 className="text-lg font-bold text-gray-900 mb-2">Protect your account</h3>
-                            <p className="text-sm text-gray-700 mb-6">
+                            <p className="text-sm text-gray-700 mb-4">
                                 Strengthen your account security by requiring both your password and a second step to sign in.
                             </p>
-                            <button
-                                onClick={handleSetup2FA}
-                                className="flex items-center gap-2 text-primary cursor-pointer hover:text-green-700 transition-colors"
-                            >
-                                <Lock className="w-4 h-4" />
-                                <span className="font-medium">Setup 2 Factor Authentication</span>
-                                <ExternalLink className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    {twoFactorEnabled
+                                        ? <ShieldCheck className="w-4 h-4 text-green-600" />
+                                        : <Lock className="w-4 h-4 text-gray-400" />
+                                    }
+                                    <span className={`text-sm font-medium ${twoFactorEnabled ? 'text-green-600' : 'text-gray-500'}`}>
+                                        {twoFactorEnabled ? '2FA enabled' : '2FA not enabled'}
+                                    </span>
+                                </div>
+                                <button
+                                    onClick={handleSetup2FA}
+                                    className="flex items-center gap-2 text-primary cursor-pointer hover:text-green-700 transition-colors"
+                                >
+                                    <span className="font-medium text-sm">
+                                        {twoFactorEnabled ? 'Manage 2FA' : 'Setup 2FA'}
+                                    </span>
+                                    <ExternalLink className="w-4 h-4" />
+                                </button>
+                            </div>
                         </div>
                     </motion.div>
                 </div>
@@ -168,6 +192,12 @@ export default function SecuritySettingsPage() {
                 type={notification.type}
                 title={notification.title}
                 message={notification.message}
+            />
+
+            <TwoFactorModal
+                isOpen={isTwoFactorModalOpen}
+                onClose={() => setIsTwoFactorModalOpen(false)}
+                onStatusChange={(status) => setTwoFactorEnabled(status === 'enabled')}
             />
         </SettingsAuroraLayout>
     );

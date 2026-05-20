@@ -111,6 +111,11 @@ function LoginPageContent() {
         
         const { data: { user }, error } = await supabase.auth.getUser();
         if (!error && user) {
+          const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel === 'aal1') {
+            router.replace('/login/verify-2fa');
+            return;
+          }
           // Matches server-side getUser() validation — avoids redirecting when session
           // cookies are stale or only in memory (common without middleware refresh).
           router.replace(nextUrl);
@@ -150,6 +155,15 @@ function LoginPageContent() {
       // Wait a moment for cookies to be fully set, then redirect
       // This ensures the server-side dashboard page can read the session
       await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Check if user has 2FA enabled and needs to verify
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalData?.nextLevel === 'aal2' && aalData?.currentLevel === 'aal1') {
+        // User has 2FA enabled — redirect to 2FA verification page
+        setLoading(false);
+        router.push('/login/verify-2fa');
+        return;
+      }
       
       // Check if there's a property to link after auth
       const linkPropertyId = sessionStorage.getItem('linkPropertyIdAfterAuth');

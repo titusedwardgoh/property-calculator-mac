@@ -87,8 +87,12 @@ export default function AboutPage() {
                     </div>
                 </section>
 
-                <section className="bg-accent">
-                    <div className="container mx-auto px-4 py-16">
+                <section
+                    className="relative bg-cover bg-center bg-no-repeat"
+                    style={{ backgroundImage: "url('/test1.jpg')" }}
+                >
+                    <div className="absolute inset-0 bg-black/30" aria-hidden="true" />
+                    <div className="relative z-10 container mx-auto px-4 py-16">
                         <div className="grid gap-8 md:grid-cols-3">
                             {featureCards.map((feature, index) => {
                                 return (
@@ -98,7 +102,7 @@ export default function AboutPage() {
                                         whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }}
                                         transition={{ duration: 0.6, delay: index * 0.1, ease: "easeOut" }}
-                                        className="bg-base-100 rounded-2xl border border-base-200 shadow-sm p-8"
+                                        className="rounded-2xl border border-white/80 bg-white/90 p-8 shadow-lg backdrop-blur-sm"
                                     >
                                         <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 text-primary mb-5">
                                             <Image

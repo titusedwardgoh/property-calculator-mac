@@ -1333,11 +1333,11 @@ export default function AccountSettingsPage() {
                             initial={{ opacity: 0, y: 24 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                            className="bg-base-100 rounded-lg shadow-lg overflow-hidden relative"
+                            className="bg-white rounded-lg shadow-md overflow-hidden relative"
                         >
                             {/* Top Half - Different Background Color (from midpoint of profile pic upwards) */}
-                            <div className="bg-accent px-6 pt-6 pb-12">
-                                <h2 className="text-xl font-bold text-gray-900 mb-4">Profile</h2>
+                            <div className="bg-primary/50 px-6 pt-6 pb-12">
+                                <h2 className="text-gray-900 font-bold text-xl mb-4">Profile</h2>
                             </div>
                             
                             {/* Profile Picture - Positioned on top of background */}
@@ -1448,10 +1448,10 @@ export default function AccountSettingsPage() {
                             initial={{ opacity: 0, y: 24 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-                            className="bg-base-100 rounded-lg shadow-lg p-6"
+                            className="bg-white rounded-lg shadow-md p-6"
                         >
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-xl font-bold text-gray-900">Email</h2>
+                                <h2 className="text-gray-900 font-bold text-xl">Email</h2>
                             </div>
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
@@ -1481,10 +1481,10 @@ export default function AccountSettingsPage() {
                             initial={{ opacity: 0, y: 24 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
-                            className="bg-base-100 rounded-lg shadow-lg p-6"
+                            className="bg-white rounded-lg shadow-md p-6"
                         >
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-xl font-bold text-gray-900">Phone number</h2>
+                                <h2 className="text-gray-900 font-bold text-xl">Phone number</h2>
                             </div>
                             {isEditingPhone ? (
                                 <div className="space-y-4">
@@ -1557,10 +1557,10 @@ export default function AccountSettingsPage() {
                             initial={{ opacity: 0, y: 24 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
-                            className="bg-base-100 rounded-lg shadow-lg p-6"
+                            className="bg-white rounded-lg shadow-md p-6"
                         >
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-xl font-bold text-gray-900">Address</h2>
+                                <h2 className="text-gray-900 font-bold text-xl">Address</h2>
                             </div>
                             {isEditingAddress ? (
                                 <div className="space-y-4">
@@ -1775,10 +1775,10 @@ export default function AccountSettingsPage() {
                             initial={{ opacity: 0, y: 24 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
-                            className="bg-base-100 rounded-lg shadow-lg p-6"
+                            className="bg-white rounded-lg border border-gray-200 shadow-md p-6"
                         >
                             <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-xl font-bold text-gray-900">Buyer Information</h2>
+                                <h2 className="text-gray-900 font-bold text-xl">Buyer Information</h2>
                                 {!isEditingBuyerInfo && (
                                     <button 
                                         onClick={handleStartEditBuyerInfo}
@@ -1919,7 +1919,7 @@ export default function AccountSettingsPage() {
                                 </div>
                             ) : (
                                 <div className="space-y-3">
-                                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                                         <div className="flex flex-col">
                                             <span className="text-sm text-gray-500">Owner or Investor</span>
                                             <span className={`text-gray-900 ${getBuyerTypeDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
@@ -1927,7 +1927,7 @@ export default function AccountSettingsPage() {
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                                         <div className="flex flex-col">
                                             <span className="text-sm text-gray-500">Australian citizen or permanent resident?</span>
                                             <span className={`text-gray-900 ${getAustralianResidentDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
@@ -1935,7 +1935,7 @@ export default function AccountSettingsPage() {
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                                         <div className="flex flex-col">
                                             <span className="text-sm text-gray-500">First home buyer?</span>
                                             <span className={`text-gray-900 ${getFirstHomeBuyerDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
@@ -1943,7 +1943,7 @@ export default function AccountSettingsPage() {
                                             </span>
                                         </div>
                                     </div>
-                                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                                         <div className="flex flex-col">
                                             <span className="text-sm text-gray-500">Pensioner concession card?</span>
                                             <span className={`text-gray-900 ${getPensionCardDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
@@ -2046,7 +2046,7 @@ export default function AccountSettingsPage() {
                             className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
                         >
                             <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-xl font-bold text-gray-900">Profile Picture</h2>
+                                <h2 className="text-gray-900 font-bold text-xl">Profile Picture</h2>
                                 <button
                                     onClick={() => setIsProfilePictureModalOpen(false)}
                                     className="text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"
