@@ -2188,7 +2188,7 @@ export default function DashboardContent({
                         type="button"
                         onClick={handleBulkDelete}
                         aria-label={`Delete ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`}
-                        className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-error px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-white transition-colors hover:bg-error/90 sm:h-auto sm:min-h-0 sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
+                        className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-secondary px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-secondary-content transition-colors hover:bg-secondary/90 sm:h-auto sm:min-h-0 sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
                       >
                         <Trash2 className="hidden h-5 w-5 shrink-0 sm:block" />
                         <span className="flex flex-col sm:hidden">

@@ -8,12 +8,16 @@ import { syncActivityTimestamp } from '@/lib/lastActivity';
 // Helper function to check if error is an invalid refresh token error
 function isRefreshTokenError(error) {
   if (!error) return false;
-  const message = error.message || '';
+  const message = (error.message || '').toLowerCase();
+  // Only treat explicitly Supabase refresh token errors as fatal.
+  // Do NOT include error.status === 401 — a transient 401 from any
+  // network request would incorrectly force a logout on production.
   return (
-    message.includes('Invalid Refresh Token') ||
-    message.includes('Refresh Token Not Found') ||
+    message.includes('invalid refresh token') ||
+    message.includes('refresh token not found') ||
     message.includes('refresh_token_not_found') ||
-    error.status === 401
+    message.includes('token has expired') ||
+    message.includes('token is expired')
   );
 }
 

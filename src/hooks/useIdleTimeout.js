@@ -101,9 +101,12 @@ export function useIdleTimeout(user, onWarning, onLogout) {
   useLayoutEffect(() => {
     if (!user) return;
     hadAuthenticatedUserRef.current = true;
-    if (readStoredActivityMs() === null) {
-      syncActivityTimestamp();
-    }
+    // Always write a fresh timestamp on mount when a session is confirmed.
+    // This prevents a stale value from a previous session triggering an
+    // immediate idle-logout on the next login (common on production after
+    // a full page reload where clearActivityTimestamp was skipped).
+    syncActivityTimestamp();
+    warningShownRef.current = false;
     checkActivity();
   }, [user, checkActivity]);
 

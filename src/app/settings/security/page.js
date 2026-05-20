@@ -143,7 +143,7 @@ export default function SecuritySettingsPage() {
                             </p>
                             <button
                                 onClick={handleSetup2FA}
-                                className="flex items-center gap-2 text-primary hover:text-green-700 transition-colors"
+                                className="flex items-center gap-2 text-primary cursor-pointer hover:text-green-700 transition-colors"
                             >
                                 <Lock className="w-4 h-4" />
                                 <span className="font-medium">Setup 2 Factor Authentication</span>
