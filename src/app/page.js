@@ -7,6 +7,14 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFormStore } from '../stores/formStore';
 
+const PARALLAX_TEST6_BG = {
+    backgroundImage: "url('/test6.jpg')",
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundAttachment: 'fixed',
+    backgroundRepeat: 'no-repeat',
+};
+
 const testimonials = [
     {
         quote: "I had no idea how much stamp duty I'd actually owe until I used this. Saved me from a very stressful surprise at settlement.",
@@ -138,8 +146,17 @@ export default function HomePage() {
             </section>
 
             {/* Hook Section */}
-            <section className="bg-accent">
-                <div className="container mx-auto px-4 py-16 lg:py-10">
+            <section className="relative overflow-hidden">
+                <div
+                    className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+                    style={PARALLAX_TEST6_BG}
+                    aria-hidden="true"
+                />
+                <div
+                    className="absolute inset-0 z-[1] bg-black/25 backdrop-blur-sm"
+                    aria-hidden="true"
+                />
+                <div className="relative z-10 container mx-auto px-4 py-16 lg:py-10">
                     <div className="grid gap-12 lg:gap-20 md:grid-cols-2 items-center">
                         <motion.div
                             initial={{ opacity: 0, x: -40 }}
@@ -170,7 +187,7 @@ export default function HomePage() {
                             <p className="text-sm font-semibold tracking-wide uppercase text-primary mb-3">
                                 
                             </p>
-                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-gray-900 leading-tight mb-5">
+                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-base-200 leading-tight mb-5">
                                 Stop guessing. Start knowing.
                             </h2>
                             <p className="text-lg md:text-xl text-white leading-relaxed mb-10">
@@ -244,13 +261,35 @@ export default function HomePage() {
                                 className="text-center"
                             >
                                 <div className="w-55 h-55 mx-auto mb-4 relative overflow-hidden rounded-full bg-gray-100">
-                                    <Image
-                                        src={`/hero${step.number}.png`}
+                                    <img
+                                        src={
+                                            step.number === 1
+                                                ? '/test2.jpg'
+                                                : step.number === 2
+                                                  ? '/test4.jpg'
+                                                  : '/test5.jpg'
+                                        }
                                         alt={`Step ${step.number}`}
-                                        width={1024}
-                                        height={1024}
-                                        className="h-full w-full scale-110 object-cover object-center"
-                                        unoptimized
+                                        className="absolute left-0 w-full object-cover"
+                                        style={
+                                            step.number === 1
+                                                ? {
+                                                      top: '0%',
+                                                      height: '100%',
+                                                      objectPosition: '60% 32%',
+                                                  }
+                                                : step.number === 2
+                                                  ? {
+                                                        top: '0%',
+                                                        height: '100%',
+                                                        objectPosition: '60% 30%',
+                                                    }
+                                                  : {
+                                                        top: '0%',
+                                                        height: '100%',
+                                                        objectPosition: '60% 50%',
+                                                    }
+                                        }
                                     />
                                 </div>
                                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -266,8 +305,17 @@ export default function HomePage() {
             </section>
 
             {/* Social Proof Section */}
-            <section className="px-4 py-16 bg-secondary">
-                <div className="max-w-6xl mx-auto">
+            <section className="relative overflow-hidden px-4 py-16">
+                <div
+                    className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+                    style={PARALLAX_TEST6_BG}
+                    aria-hidden="true"
+                />
+                <div
+                    className="absolute inset-0 z-[1] bg-black/25 backdrop-blur-sm"
+                    aria-hidden="true"
+                />
+                <div className="relative z-10 max-w-6xl mx-auto">
                     <motion.div
                         initial={{ opacity: 0 }}
                         whileInView={{ opacity: 1 }}
