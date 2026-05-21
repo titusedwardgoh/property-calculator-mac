@@ -88,8 +88,13 @@ export default function AboutPage() {
                 </section>
 
                 <section
-                    className="relative bg-cover bg-center bg-no-repeat"
-                    style={{ backgroundImage: "url('/test1.jpg')" }}
+                    className="relative py-16 bg-cover bg-center bg-no-repeat bg-scroll md:bg-fixed"
+                    style={{
+                        backgroundImage: "url('/test1.jpg')",
+                        backgroundPosition: 'center',
+                        backgroundSize: 'cover',
+                        backgroundRepeat: 'no-repeat',
+                    }}
                 >
                     <div className="absolute inset-0 bg-black/30" aria-hidden="true" />
                     <div className="relative z-10 container mx-auto px-4 py-16">

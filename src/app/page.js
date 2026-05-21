@@ -1,19 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFormStore } from '../stores/formStore';
-
-const PARALLAX_TEST6_BG = {
-    backgroundImage: "url('/test6.jpg')",
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
-    backgroundAttachment: 'fixed',
-    backgroundRepeat: 'no-repeat',
-};
 
 const testimonials = [
     {
@@ -57,6 +49,9 @@ export default function HomePage() {
     const autoScrollRef = useRef(null);
     const isHovering = useRef(false);
 
+    const { scrollY } = useScroll();
+    const parallaxY = useTransform(scrollY, [0, 3000], [0, -200]);
+
     useEffect(() => {
         const update = () => {
             if (window.innerWidth >= 1024) setVisibleCount(3);
@@ -99,9 +94,23 @@ export default function HomePage() {
 
     return (
         <div className="min-h-screen bg-base-200">
+            {/* Single page-level parallax background — shared by Hook and Social Proof */}
+            <motion.div
+                className="fixed inset-0 z-0 pointer-events-none"
+                style={{
+                    y: parallaxY,
+                    backgroundImage: "url('/test6.jpg')",
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center center',
+                    backgroundRepeat: 'no-repeat',
+                }}
+                aria-hidden="true"
+            />
+
             {/* Hero Section */}
-            <section className="container mx-auto px-4 py-16 md:py-24 lg:py-">
-                <div className="max-w-4xl mx-auto text-center">
+            <section className="relative z-10 w-full bg-base-200">
+                <div className="container mx-auto px-4 py-16 md:py-24 lg:py-">
+                    <div className="max-w-4xl mx-auto text-center">
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -142,75 +151,67 @@ export default function HomePage() {
                             Takes less than 5 minutes
                         </p>
                     </motion.div>
-                </div>
-            </section>
-
-            {/* Hook Section */}
-            <section className="relative overflow-hidden">
-                <div
-                    className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-                    style={PARALLAX_TEST6_BG}
-                    aria-hidden="true"
-                />
-                <div
-                    className="absolute inset-0 z-[1] bg-black/25 backdrop-blur-sm"
-                    aria-hidden="true"
-                />
-                <div className="relative z-10 container mx-auto px-4 py-16 lg:py-10">
-                    <div className="grid gap-12 lg:gap-20 md:grid-cols-2 items-center">
-                        <motion.div
-                            initial={{ opacity: 0, x: -40 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: true, amount: 0.3 }}
-                            transition={{ duration: 0.6, ease: "easeOut" }}
-                            className="flex justify-center"
-                        >
-                            <div className="w-full max-w-[28.5rem]">
-                                <Image
-                                    src="/hook.png"
-                                    alt="Person contemplating home buying costs"
-                                    width={820}
-                                    height={932}
-                                    priority
-                                    className="w-full h-auto object-contain"
-                                />
-                            </div>
-                        </motion.div>   
-
-                        <motion.div
-                            initial={{ opacity: 0, x: 40 }}
-                            whileInView={{ opacity: 1, x: 0 }}
-                            viewport={{ once: true, amount: 0.3 }}
-                            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                            className="max-w-xl text-center md:text-left"
-                        >
-                            <p className="text-sm font-semibold tracking-wide uppercase text-primary mb-3">
-                                
-                            </p>
-                            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-base-200 leading-tight mb-5">
-                                Stop guessing. Start knowing.
-                            </h2>
-                            <p className="text-lg md:text-xl text-white leading-relaxed mb-10">
-                            Most buyers underestimate what they&apos;ll actually spend — and overpay as a result. PropWiz gives you a complete picture of every fee, concession, and cost before you commit. One tool. Every number. Zero surprises.
-                            </p>
-                            <div className="flex justify-center md:justify-start">
-                                <motion.button
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={handleGetStarted}
-                                    className="bg-primary hover:bg-primary-focus cursor-pointer text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg inline-flex items-center gap-2"
-                                >
-                                    Start Free Calculator
-                                    <span aria-hidden="true">→</span>
-                                </motion.button>
-                            </div>
-                        </motion.div>
                     </div>
                 </div>
             </section>
 
+            {/* Hook Section */}
+            <section className="relative z-10">
+                <div
+                    className="absolute inset-0 z-0 bg-black/25 backdrop-blur-md"
+                    aria-hidden="true"
+                />
+                <div className="relative z-10 container mx-auto px-4 py-16 lg:py-24">
+                        <div className="grid gap-12 lg:gap-20 md:grid-cols-2 items-center">
+                            <motion.div
+                                initial={{ opacity: 0, x: -40 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                viewport={{ once: true, amount: 0.3 }}
+                                transition={{ duration: 0.6, ease: "easeOut" }}
+                                className="flex justify-center"
+                            >
+                                <div className="w-full max-w-[28.5rem]">
+                                    <Image
+                                        src="/hook.png"
+                                        alt="Person contemplating home buying costs"
+                                        width={820}
+                                        height={932}
+                                        priority
+                                        className="w-full h-auto object-contain"
+                                    />
+                                </div>
+                            </motion.div>
+                            <motion.div
+                                initial={{ opacity: 0, x: 40 }}
+                                whileInView={{ opacity: 1, x: 0 }}
+                                viewport={{ once: true, amount: 0.3 }}
+                                transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+                                className="max-w-xl text-center md:text-left"
+                            >
+                                <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight mb-5">
+                                    Stop guessing. Start knowing.
+                                </h2>
+                                <p className="text-lg md:text-xl text-white/90 leading-relaxed mb-10">
+                                    Most buyers underestimate what they&apos;ll actually spend — and overpay as a result. PropWiz gives you a complete picture of every fee, concession, and cost before you commit. One tool. Every number. Zero surprises.
+                                </p>
+                                <div className="flex justify-center md:justify-start">
+                                    <motion.button
+                                        whileHover={{ scale: 1.05 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={handleGetStarted}
+                                        className="bg-primary hover:bg-primary-focus cursor-pointer text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg inline-flex items-center gap-2"
+                                    >
+                                        Start Free Calculator
+                                        <span aria-hidden="true">→</span>
+                                    </motion.button>
+                                </div>
+                            </motion.div>
+                        </div>
+                </div>
+            </section>
+
             {/* How It Works Section */}
-            <section className="px-4 py-16 relative overflow-hidden">
+            <section className="relative z-10 px-4 py-16 overflow-hidden">
                 <div
                     className="absolute inset-0 z-0"
                     style={{
@@ -233,7 +234,6 @@ export default function HomePage() {
                     >
                         How It Works
                     </motion.h2>
-
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                         {[
                             {
@@ -273,31 +273,15 @@ export default function HomePage() {
                                         className="absolute left-0 w-full object-cover"
                                         style={
                                             step.number === 1
-                                                ? {
-                                                      top: '0%',
-                                                      height: '100%',
-                                                      objectPosition: '60% 32%',
-                                                  }
+                                                ? { top: '0%', height: '100%', objectPosition: '60% 32%' }
                                                 : step.number === 2
-                                                  ? {
-                                                        top: '0%',
-                                                        height: '100%',
-                                                        objectPosition: '60% 30%',
-                                                    }
-                                                  : {
-                                                        top: '0%',
-                                                        height: '100%',
-                                                        objectPosition: '60% 50%',
-                                                    }
+                                                  ? { top: '0%', height: '100%', objectPosition: '60% 30%' }
+                                                  : { top: '0%', height: '100%', objectPosition: '60% 50%' }
                                         }
                                     />
                                 </div>
-                                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                                    {step.title}
-                                </h3>
-                                <p className="text-gray-600">
-                                    {step.description}
-                                </p>
+                                <h3 className="text-xl font-semibold text-gray-900 mb-2">{step.title}</h3>
+                                <p className="text-gray-600">{step.description}</p>
                             </motion.div>
                         ))}
                     </div>
@@ -305,103 +289,98 @@ export default function HomePage() {
             </section>
 
             {/* Social Proof Section */}
-            <section className="relative overflow-hidden px-4 py-16">
+            <section className="relative z-10 px-4 py-16">
                 <div
-                    className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-                    style={PARALLAX_TEST6_BG}
-                    aria-hidden="true"
-                />
-                <div
-                    className="absolute inset-0 z-[1] bg-black/25 backdrop-blur-sm"
+                    className="absolute inset-0 z-0 bg-black/25 backdrop-blur-md"
                     aria-hidden="true"
                 />
                 <div className="relative z-10 max-w-6xl mx-auto">
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        whileInView={{ opacity: 1 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.6 }}
-                        className="text-center mb-12"
-                    >
-                        <p className="text-3xl md:text-4xl font-bold text-gray-300 mb-4">
-                            Built for Australian property buyers
-                        </p>
-                        <p className="text-lg text-primary">
-                            From first home buyers navigating stamp duty concessions to investors comparing loan structures — PropWiz handles the numbers so you don&apos;t have to.
-                        </p>
-                    </motion.div>
-
-                    {/* Carousel row */}
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => { goPrev(); startAutoScroll(); }}
-                            className="flex-shrink-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
-                            aria-label="Previous"
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            whileInView={{ opacity: 1 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.6 }}
+                            className="text-center mb-12"
                         >
-                            ←
-                        </button>
+                            <p className="text-3xl md:text-4xl font-bold text-gray-300 mb-4">
+                                Built for Australian property buyers
+                            </p>
+                            <p className="text-lg text-primary">
+                                From first home buyers navigating stamp duty concessions to investors comparing loan structures — PropWiz handles the numbers so you don&apos;t have to.
+                            </p>
+                        </motion.div>
 
-                        <div className="flex-1 overflow-hidden">
-                            <motion.div
-                                className="flex"
-                                animate={{ x: `calc(-${activeIndex * (100 / visibleCount)}% - ${activeIndex * (16 / visibleCount)}px)` }}
-                                transition={{ duration: 0.45, ease: "easeInOut" }}
-                                style={{ gap: '16px' }}
-                                onMouseEnter={() => { isHovering.current = true; }}
-                                onMouseLeave={() => { isHovering.current = false; }}
+                        {/* Carousel row */}
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => { goPrev(); startAutoScroll(); }}
+                                className="flex-shrink-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                                aria-label="Previous"
                             >
-                                {testimonials.map((testimonial, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex-shrink-0"
-                                        style={{ width: `calc(${100 / visibleCount}% - ${16 * (visibleCount - 1) / visibleCount}px)` }}
-                                    >
-                                        <div className="bg-base-200 rounded-lg p-6 shadow-sm h-full flex flex-col">
-                                            <p className="text-gray-700 italic mb-4">
-                                                &quot;{testimonial.quote}&quot;
-                                            </p>
-                                            <div className="mt-auto">
-                                                <p className="font-semibold text-gray-900">
-                                                    {testimonial.author}
+                                ←
+                            </button>
+
+                            <div className="flex-1 overflow-hidden">
+                                <motion.div
+                                    className="flex"
+                                    animate={{ x: `calc(-${activeIndex * (100 / visibleCount)}% - ${activeIndex * (16 / visibleCount)}px)` }}
+                                    transition={{ duration: 0.45, ease: "easeInOut" }}
+                                    style={{ gap: '16px' }}
+                                    onMouseEnter={() => { isHovering.current = true; }}
+                                    onMouseLeave={() => { isHovering.current = false; }}
+                                >
+                                    {testimonials.map((testimonial, index) => (
+                                        <div
+                                            key={index}
+                                            className="flex-shrink-0"
+                                            style={{ width: `calc(${100 / visibleCount}% - ${16 * (visibleCount - 1) / visibleCount}px)` }}
+                                        >
+                                            <div className="bg-base-200 rounded-lg p-6 shadow-sm h-full flex flex-col">
+                                                <p className="text-gray-700 italic mb-4">
+                                                    &quot;{testimonial.quote}&quot;
                                                 </p>
-                                                <p className="text-sm text-gray-600">
-                                                    {testimonial.role}
-                                                </p>
+                                                <div className="mt-auto">
+                                                    <p className="font-semibold text-gray-900">
+                                                        {testimonial.author}
+                                                    </p>
+                                                    <p className="text-sm text-gray-600">
+                                                        {testimonial.role}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
-                            </motion.div>
+                                    ))}
+                                </motion.div>
+                            </div>
+
+                            <button
+                                onClick={() => { goNext(); startAutoScroll(); }}
+                                className="flex-shrink-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
+                                aria-label="Next"
+                            >
+                                →
+                            </button>
                         </div>
 
-                        <button
-                            onClick={() => { goNext(); startAutoScroll(); }}
-                            className="flex-shrink-0 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors cursor-pointer"
-                            aria-label="Next"
-                        >
-                            →
-                        </button>
-                    </div>
-
-                    <div className="flex justify-center gap-2 mt-6">
-                        {Array.from({ length: maxIndex + 1 }).map((_, i) => (
-                            <button
-                                key={i}
-                                onClick={() => { setActiveIndex(i); startAutoScroll(); }}
-                                className={`w-2 h-2 rounded-full transition-colors cursor-pointer ${
-                                    i === activeIndex ? 'bg-primary' : 'bg-white/30'
-                                }`}
-                                aria-label={`Go to slide ${i + 1}`}
-                            />
-                        ))}
-                    </div>
-
+                        <div className="flex justify-center gap-2 mt-6">
+                            {Array.from({ length: maxIndex + 1 }).map((_, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => { setActiveIndex(i); startAutoScroll(); }}
+                                    className={`w-2 h-2 rounded-full transition-colors cursor-pointer ${
+                                        i === activeIndex ? 'bg-primary' : 'bg-white/30'
+                                    }`}
+                                    aria-label={`Go to slide ${i + 1}`}
+                                />
+                            ))}
+                        </div>
                 </div>
             </section>
 
             {/* Feature Preview Section */}
-            <section className="container mx-auto px-4 py-16 bg-base-200">
-                <div className="max-w-6xl mx-auto">
+            <section className="relative z-10 w-full bg-base-200">
+                <div className="container mx-auto px-4 py-16">
+                    <div className="max-w-6xl mx-auto">
                     <motion.h2
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -506,12 +485,14 @@ export default function HomePage() {
                             ))}
                         </div>
                     </motion.div>
+                    </div>
                 </div>
             </section>
 
             {/* Final CTA Section */}
-            <section className="px-4 py-16 bg-base-100">
-                <div className="max-w-3xl mx-auto text-center">
+            <section className="relative z-10 w-full bg-base-100">
+                <div className="container mx-auto px-4 py-16">
+                    <div className="max-w-3xl mx-auto text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -543,6 +524,7 @@ export default function HomePage() {
                             </motion.button>
                         </div>
                     </motion.div>
+                    </div>
                 </div>
             </section>
         </div>
