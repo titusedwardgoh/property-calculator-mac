@@ -1135,6 +1135,7 @@ export default function DashboardContent({
           !photoUrl ||
           isPlaceholderUrl(photoUrl) ||
           isAnyDataImageUrl(photoUrl) ||
+          photoSource === 'place_photo' ||
           persistedPhotoKeysRef.current.has(cacheKey)
         ) {
           return;
@@ -1160,7 +1161,7 @@ export default function DashboardContent({
         }
       };
 
-      if (existingUrl && !isSvgPlaceholderDataUrl(existingUrl)) {
+      if (existingUrl && !isSvgPlaceholderDataUrl(existingUrl) && survey.photo_source !== 'place_photo') {
         const source = survey.photo_source || 'persisted';
         setPropertyPhotoCache((prev) => {
           if (prev[cacheKey]?.photoUrl === existingUrl && prev[cacheKey]?.photoSource === source) {
@@ -1184,7 +1185,7 @@ export default function DashboardContent({
       }
 
       const cached = propertyPhotoCache[cacheKey];
-      if (cached?.photoUrl) {
+      if (cached?.photoUrl && cached?.photoSource !== 'place_photo') {
         setSurveys((prev) => {
           let changed = false;
           const next = prev.map((item) => {
