@@ -161,7 +161,7 @@ export default function HomePage() {
                     className="absolute inset-0 z-0 bg-black/25 backdrop-blur-md"
                     aria-hidden="true"
                 />
-                <div className="relative z-10 container mx-auto px-4 py-16 lg:py-24">
+                <div className="relative z-10 container mx-auto px-4 py-16 lg:py-32">
                         <div className="grid gap-12 lg:gap-20 md:grid-cols-2 items-center">
                             <motion.div
                                 initial={{ opacity: 0, x: -40 }}
@@ -170,14 +170,15 @@ export default function HomePage() {
                                 transition={{ duration: 0.6, ease: "easeOut" }}
                                 className="flex justify-center"
                             >
-                                <div className="w-full max-w-[28.5rem]">
+                                <div className="w-full mx-auto">
                                     <Image
-                                        src="/hook.png"
+                                        src="/test7.png"
                                         alt="Person contemplating home buying costs"
-                                        width={820}
-                                        height={932}
+                                        width={1080}
+                                        height={1080}
                                         priority
-                                        className="w-full h-auto object-contain"
+                                        unoptimized
+                                        className="w-full h-auto object-contain xl:scale-90 xl:origin-center"
                                     />
                                 </div>
                             </motion.div>
@@ -199,7 +200,7 @@ export default function HomePage() {
                                         whileHover={{ scale: 1.05 }}
                                         whileTap={{ scale: 0.95 }}
                                         onClick={handleGetStarted}
-                                        className="bg-primary hover:bg-primary-focus cursor-pointer text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg inline-flex items-center gap-2"
+                                        className="bg-primary hover:bg-primary-focus cursor-pointer text-white px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg inline-flex items-center gap-2"
                                     >
                                         Start Free Calculator
                                         <span aria-hidden="true">→</span>
@@ -302,10 +303,10 @@ export default function HomePage() {
                             transition={{ duration: 0.6 }}
                             className="text-center mb-12"
                         >
-                            <p className="text-3xl md:text-4xl font-bold text-gray-300 mb-4">
+                            <p className="text-3xl md:text-4xl font-bold text-white mb-4">
                                 Built for Australian property buyers
                             </p>
-                            <p className="text-lg text-primary">
+                            <p className="text-lg text-white/90 leading-relaxed">
                                 From first home buyers navigating stamp duty concessions to investors comparing loan structures — PropWiz handles the numbers so you don&apos;t have to.
                             </p>
                         </motion.div>
