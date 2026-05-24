@@ -1,8 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import Image from 'next/image';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import {
     ArrowLeft,
     TrendingUp,
@@ -14,17 +13,20 @@ const featureCards = [
     {
         title: "Comprehensive Calculations",
         description: "Stamp duty, LMI, ongoing fees, loan costs, and more—modelled with the same engine that powers our calculator experience.",
-        icon: "/calculator.png"
+        icon: "/test8.png",
+        objectPosition: "50% 55%",
     },
     {
         title: "Live State Coverage",
         description: "Every state and territory is supported with up-to-date concessions, thresholds, and policy changes monitored weekly.",
-        icon: "/state.png"
+        icon: "/test9.png",
+        objectPosition: "50% 50%",
     },
     {
         title: "Financial Clarity",
         description: "Uncover hidden costs before they appear at settlement even if you're a first-time buyer, investor, or purchasing interstate.",
-        icon: "/clarity.png"
+        icon: "/test10.png",
+        objectPosition: "50% 50%",
     }
 ];
 
@@ -47,11 +49,39 @@ const pillars = [
 ];
 
 export default function AboutPage() {
+    const { scrollY } = useScroll();
+    const parallaxY = useTransform(scrollY, [0, 3000], [0, -200]);
+
     return (
         <div className="min-h-screen bg-base-200">
-            <main className="pb-24">
-                <section className="container mx-auto px-4 py-16 lg:py-20">
-                    <div className="max-w-3xl mx-auto text-center">
+            {/* Desktop parallax background — hidden on mobile */}
+            <motion.div
+                className="fixed inset-0 z-0 pointer-events-none hidden md:block"
+                style={{
+                    y: parallaxY,
+                    backgroundImage: "url('/test1.jpg')",
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center center',
+                    backgroundRepeat: 'no-repeat',
+                }}
+                aria-hidden="true"
+            />
+            {/* Mobile static background — hidden on desktop */}
+            <div
+                className="fixed inset-0 z-0 pointer-events-none md:hidden"
+                style={{
+                    backgroundImage: "url('/test1.jpg')",
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center center',
+                    backgroundRepeat: 'no-repeat',
+                }}
+                aria-hidden="true"
+            />
+
+            <main className="relative">
+                <section className="relative z-10 w-full bg-base-200">
+                    <div className="container mx-auto px-4 py-16 lg:py-20">
+                    <motion.div className="max-w-3xl mx-auto text-center">
                         <motion.h1
                             initial={{ opacity: 0, y: 16 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -84,19 +114,12 @@ export default function AboutPage() {
                             </Link>
                             <p className="text-sm text-gray-500">Instant results in under five minutes</p>
                         </motion.div>
+                    </motion.div>
                     </div>
                 </section>
 
-                <section
-                    className="relative py-16 bg-cover bg-center bg-no-repeat bg-scroll md:bg-fixed"
-                    style={{
-                        backgroundImage: "url('/test1.jpg')",
-                        backgroundPosition: 'center',
-                        backgroundSize: 'cover',
-                        backgroundRepeat: 'no-repeat',
-                    }}
-                >
-                    <div className="absolute inset-0 bg-black/30" aria-hidden="true" />
+                <section className="relative z-10 w-full py-16">
+                    <div className="absolute inset-0 z-0 bg-black/25 backdrop-blur-md" aria-hidden="true" />
                     <div className="relative z-10 container mx-auto px-4 py-16">
                         <div className="grid gap-8 md:grid-cols-3">
                             {featureCards.map((feature, index) => {
@@ -109,13 +132,16 @@ export default function AboutPage() {
                                         transition={{ duration: 0.6, delay: index * 0.1, ease: "easeOut" }}
                                         className="rounded-2xl border border-white/80 bg-white/90 p-8 shadow-lg backdrop-blur-sm"
                                     >
-                                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 text-primary mb-5">
-                                            <Image
+                                        <div className="w-32 h-32 relative overflow-hidden rounded-full bg-primary/10 mb-5">
+                                            <img
                                                 src={feature.icon}
                                                 alt={feature.title}
-                                                width={56}
-                                                height={56}
-                                                className="w-14 h-14 object-contain"
+                                                className="absolute left-0 w-full object-cover"
+                                                style={{
+                                                    top: '0%',
+                                                    height: '100%',
+                                                    objectPosition: feature.objectPosition,
+                                                }}
                                             />
                                         </div>
                                         <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
@@ -127,7 +153,8 @@ export default function AboutPage() {
                     </div>
                 </section>
 
-                <section className="container mx-auto px-4 py-16">
+                <section className="relative z-10 w-full bg-base-200 py-16">
+                    <div className="container mx-auto px-4">
                     <motion.div
                         initial={{ opacity: 0, y: 24 }}
                         whileInView={{ opacity: 1, y: 0 }}
@@ -171,14 +198,18 @@ export default function AboutPage() {
                             })}
                         </div>
                     </motion.div>
+                    </div>
                 </section>
 
-                <section className="container mx-auto px-4">
-                    <div className="bg-primary/20 border border-warning rounded-2xl p-6 md:p-8">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Important disclaimer</h3>
-                        <p className="text-gray-700 text-sm md:text-base leading-relaxed">
-                            PropWiz delivers indicative estimates based on current public information. We recommend confirming figures with your conveyancer, lender, or licensed financial advisor before committing to any property purchase.
-                        </p>
+                <section className="relative z-10 w-full py-8">
+                    <div className="absolute inset-0 z-0 bg-black/25 backdrop-blur-md" aria-hidden="true" />
+                    <div className="relative z-10 container mx-auto px-4">
+                        <div className="rounded-2xl border border-white/80 bg-primary/80 backdrop-blur-sm shadow-lg p-6 md:p-8">
+                            <h3 className="text-lg font-semibold text-white mb-2">Important disclaimer</h3>
+                            <p className="text-white text-sm md:text-base leading-relaxed">
+                                PropWiz delivers indicative estimates based on current public information. We recommend confirming figures with your conveyancer, lender, or licensed financial advisor before committing to any property purchase.
+                            </p>
+                        </div>
                     </div>
                 </section>
             </main>

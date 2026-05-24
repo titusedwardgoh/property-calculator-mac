@@ -94,11 +94,22 @@ export default function HomePage() {
 
     return (
         <div className="min-h-screen bg-base-200">
-            {/* Single page-level parallax background — shared by Hook and Social Proof */}
+            {/* Desktop parallax background — hidden on mobile */}
             <motion.div
-                className="fixed inset-0 z-0 pointer-events-none"
+                className="fixed inset-0 z-0 pointer-events-none hidden md:block"
                 style={{
                     y: parallaxY,
+                    backgroundImage: "url('/test6.jpg')",
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center center',
+                    backgroundRepeat: 'no-repeat',
+                }}
+                aria-hidden="true"
+            />
+            {/* Mobile static background — hidden on desktop */}
+            <div
+                className="fixed inset-0 z-0 pointer-events-none md:hidden"
+                style={{
                     backgroundImage: "url('/test6.jpg')",
                     backgroundSize: 'cover',
                     backgroundPosition: 'center center',
