@@ -17,7 +17,7 @@ export default function SettingsNavigation() {
 
     return (
         <nav
-            className={`sticky ${MOBILE_HEADER_MENU_TOP_CLASS} ${LOGGED_IN_HEADER_CLEARANCE_MARGIN_CLASS} z-[140] border-b border-white/15 bg-accent`}
+            className={`sticky ${MOBILE_HEADER_MENU_TOP_CLASS} ${LOGGED_IN_HEADER_CLEARANCE_MARGIN_CLASS} z-[140] border-b border-white/15 bg-base-content`}
         >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex space-x-8">

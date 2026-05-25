@@ -1943,7 +1943,7 @@ export default function DashboardContent({
       <main className="flex flex-1 flex-col">
         {/* Hero Section */}
         <section
-          className={`mx-auto w-full max-w-[1920px] shrink-0 bg-accent px-4 py-5 ${LOGGED_IN_HEADER_CLEARANCE_MARGIN_CLASS} md:px-6 lg:px-8 lg:py-6`}
+          className={`mx-auto w-full max-w-[1920px] shrink-0 bg-base-content px-4 py-5 ${LOGGED_IN_HEADER_CLEARANCE_MARGIN_CLASS} md:px-6 lg:px-8 lg:py-6`}
         >
           <div className="w-full text-left">
             <div className="flex items-center gap-4 md:gap-5">
