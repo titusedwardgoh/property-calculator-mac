@@ -189,7 +189,7 @@ export default function HomePage() {
                                         height={1080}
                                         priority
                                         unoptimized
-                                        className="w-full h-auto object-contain xl:scale-90 xl:origin-center"
+                                        className="faded-image w-full h-auto object-contain xl:scale-90 xl:origin-center"
                                     />
                                 </div>
                             </motion.div>
@@ -390,7 +390,7 @@ export default function HomePage() {
             </section>
 
             {/* Feature Preview Section */}
-            <section className="relative z-10 w-full bg-base-200">
+            <section className="relative z-10 w-full bg-gray-50">
                 <div className="container mx-auto px-4 py-16">
                     <div className="max-w-6xl mx-auto">
                     <motion.h2
@@ -437,18 +437,7 @@ export default function HomePage() {
                                 whileInView={{ opacity: 1, y: 0 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.6, delay: index * 0.05 }}
-                                className="rounded-lg p-6 border border-base-300 shadow-sm hover:shadow-md hover:border-primary transition-colors"
-                                style={{
-                                    background: `
-                                        radial-gradient(ellipse 110% 80% at 12% 36%, rgba(226, 149, 120, 0.18), transparent 74%),
-                                        radial-gradient(ellipse 98% 74% at 52% 42%, rgba(226, 149, 120, 0.12), transparent 76%),
-                                        radial-gradient(ellipse 94% 72% at 84% 78%, rgba(255, 255, 255, 0.68), transparent 70%),
-                                        radial-gradient(ellipse 86% 66% at 76% 20%, rgba(255, 255, 255, 0.44), transparent 73%),
-                                        radial-gradient(ellipse 84% 66% at 82% 82%, rgba(226, 149, 120, 0.14), transparent 75%),
-                                        radial-gradient(ellipse 78% 60% at 30% 72%, rgba(226, 149, 120, 0.1), transparent 77%),
-                                        linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.95) 46%, rgba(254,246,228,0.92) 100%)
-                                    `,
-                                }}
+                                className="rounded-xl bg-white p-6 cursor-pointer shadow-md border border-gray-200 border-l-4 border-l-primary hover:shadow-lg transition-shadow"
                             >
                                 <h3 className="text-lg font-semibold text-gray-900 mb-2 text-center md:text-left">
                                     {feature.title}
@@ -502,8 +491,8 @@ export default function HomePage() {
             </section>
 
             {/* Final CTA Section */}
-            <section className="relative z-10 w-full bg-base-100">
-                <div className="container mx-auto px-4 py-16">
+            <section className="relative z-10 w-full bg-white border-t border-gray-200/50">
+                <div className="container mx-auto px-4 pt-20 pb-16 md:pt-24 md:pb-20">
                     <div className="max-w-3xl mx-auto text-center">
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}

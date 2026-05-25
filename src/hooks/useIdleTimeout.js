@@ -101,13 +101,35 @@ export function useIdleTimeout(user, onWarning, onLogout) {
   useLayoutEffect(() => {
     if (!user) return;
     hadAuthenticatedUserRef.current = true;
-    // Always write a fresh timestamp on mount when a session is confirmed.
-    // This prevents a stale value from a previous session triggering an
-    // immediate idle-logout on the next login (common on production after
-    // a full page reload where clearActivityTimestamp was skipped).
-    syncActivityTimestamp();
+    const stored = readStoredActivityMs();
+    if (stored === null) {
+      // No existing timestamp — this is a fresh login, write one now
+      syncActivityTimestamp();
+    }
+    // If a timestamp already exists, do NOT overwrite it.
+    // checkActivity will read the existing timestamp and logout if it is
+    // older than IDLE_TIMEOUT — this is what catches the "browser closed
+    // and reopened after 2+ hours" case.
     warningShownRef.current = false;
     checkActivity();
+  }, [user, checkActivity]);
+
+  useEffect(() => {
+    if (!user) return;
+    // When the tab becomes visible after being backgrounded or after the
+    // browser is reopened, run checkActivity immediately so stale sessions
+    // are caught as soon as the user returns.
+    const handleVisibilityOnMount = () => {
+      if (document.visibilityState === 'visible') {
+        checkActivity();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityOnMount);
+    // Also run immediately in case the tab is already visible on mount
+    checkActivity();
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityOnMount);
+    };
   }, [user, checkActivity]);
 
   useEffect(() => {

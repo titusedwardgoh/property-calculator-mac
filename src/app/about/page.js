@@ -130,7 +130,7 @@ export default function AboutPage() {
                                         whileInView={{ opacity: 1, y: 0 }}
                                         viewport={{ once: true }}
                                         transition={{ duration: 0.6, delay: index * 0.1, ease: "easeOut" }}
-                                        className="rounded-2xl border border-white/80 bg-white/90 p-8 shadow-lg backdrop-blur-sm"
+                                        className="rounded-2xl border border-white/80 bg-base-200 p-8 shadow-lg backdrop-blur-sm"
                                     >
                                         <div className="w-32 h-32 relative overflow-hidden rounded-full bg-primary/10 mb-5">
                                             <img
@@ -204,9 +204,9 @@ export default function AboutPage() {
                 <section className="relative z-10 w-full py-8">
                     <div className="absolute inset-0 z-0 bg-black/25 backdrop-blur-md" aria-hidden="true" />
                     <div className="relative z-10 container mx-auto px-4">
-                        <div className="rounded-2xl border border-white/80 bg-primary/80 backdrop-blur-sm shadow-lg p-6 md:p-8">
-                            <h3 className="text-lg font-semibold text-white mb-2">Important disclaimer</h3>
-                            <p className="text-white text-sm md:text-base leading-relaxed">
+                        <div className="rounded-2xl border border-primary/40 bg-white/90 backdrop-blur-sm px-8 py-6">
+                            <h3 className="text-primary font-semibold mb-2">Important disclaimer</h3>
+                            <p className="text-gray-800 text-sm leading-relaxed">
                                 PropWiz delivers indicative estimates based on current public information. We recommend confirming figures with your conveyancer, lender, or licensed financial advisor before committing to any property purchase.
                             </p>
                         </div>

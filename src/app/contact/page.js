@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
 import { Mail, Send, CheckCircle, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
 export default function ContactPage() {
+  const { scrollY } = useScroll();
+  const parallaxY = useTransform(scrollY, [0, 3000], [0, -200]);
+
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -86,26 +89,43 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen w-full relative">
-      <div
-        className="absolute inset-0 z-0"
+    <div className="min-h-screen bg-base-200">
+      {/* Desktop parallax background — hidden on mobile */}
+      <motion.div
+        className="fixed left-0 right-0 top-[-10vh] h-[120vh] z-0 pointer-events-none hidden md:block"
         style={{
-          background: `
-            radial-gradient(ellipse 96% 70% at 12% 30%, rgba(67, 151, 117, 0.28), transparent 70%),
-            radial-gradient(ellipse 88% 64% at 60% 24%, rgba(242, 255, 229, 0.5), transparent 72%),
-            radial-gradient(ellipse 78% 60% at 84% 72%, rgba(226, 149, 120, 0.22), transparent 74%),
-            radial-gradient(ellipse 86% 62% at 28% 82%, rgba(226, 149, 120, 0.14), transparent 76%),
-            radial-gradient(ellipse 80% 60% at 78% 42%, rgba(67, 151, 117, 0.14), transparent 75%),
-            linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.94) 42%, rgba(242,255,229,0.94) 100%)
-          `,
+          y: parallaxY,
+          backgroundImage: "url('/test11.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center center",
+          backgroundRepeat: "no-repeat",
         }}
+        aria-hidden="true"
       />
-      <main className="container mx-auto px-4 py-12 md:py-16 lg:py-20 pb-24 relative z-10">
+      {/* Mobile static background — hidden on desktop */}
+      <div
+        className="fixed left-0 right-0 top-[-10vh] h-[120vh] z-0 pointer-events-none md:hidden"
+        style={{
+          backgroundImage: "url('/test11.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center center",
+          backgroundRepeat: "no-repeat",
+        }}
+        aria-hidden="true"
+      />
+
+      <main className="relative z-10">
+        <section className="relative min-h-screen">
+          <div
+            className="absolute inset-0 z-0 bg-grey/25 backdrop-blur-md"
+            aria-hidden="true"
+          />
+          <div className="relative z-10 container mx-auto px-4 py-12 md:py-16 lg:py-20 pb-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.32, ease: "easeOut" }}
-          className="max-w-5xl mx-auto bg-white/80 backdrop-blur-sm border border-white/60 rounded-3xl shadow-md p-8 md:p-12 lg:p-14"
+          className="max-w-5xl mx-auto bg-white/90 backdrop-blur-sm border border-white/80 rounded-3xl shadow-lg p-8 md:p-12 lg:p-14"
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 lg:items-stretch">
             {/* Left: intro + contact — bottom card aligns with form / Send on large screens */}
@@ -350,12 +370,14 @@ export default function ContactPage() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.36, ease: "easeOut" }}
-          className="max-w-3xl mx-auto mt-8 text-center text-sm text-gray-600 leading-relaxed px-2"
+          className="max-w-3xl mx-auto mt-8 text-center text-sm text-white/90 leading-relaxed px-2"
         >
           PropWiz is for planning and education only—we are not financial
           advisers, brokers, or lawyers. For advice tailored to you, speak with
           a qualified professional.
         </motion.p>
+          </div>
+        </section>
       </main>
     </div>
   );

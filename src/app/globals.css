@@ -366,3 +366,9 @@ html[data-theme='flyingwizard'] {
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
+/* Bottom fade for hero/hook images (mask keeps top opaque, fades to transparent) */
+.faded-image {
+  -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+}
