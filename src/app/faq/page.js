@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { ChevronDown, HelpCircle, Search } from "lucide-react";
 import Link from "next/link";
 
@@ -93,6 +93,8 @@ function matchesQuery(faq, q) {
 }
 
 export default function FAQPage() {
+  const { scrollY } = useScroll();
+  const parallaxY = useTransform(scrollY, [0, 3000], [0, -200]);
   const [openItems, setOpenItems] = useState(() => new Set());
   const [query, setQuery] = useState("");
 
@@ -113,22 +115,38 @@ export default function FAQPage() {
   };
 
   return (
-    <div className="min-h-screen w-full relative">
-      <div
-        className="absolute inset-0 z-0"
+    <div className="min-h-screen bg-base-200">
+      {/* Desktop parallax background — hidden on mobile */}
+      <motion.div
+        className="fixed inset-0 z-0 pointer-events-none hidden md:block"
         style={{
-          background: `
-            radial-gradient(ellipse 96% 70% at 12% 30%, rgba(67, 151, 117, 0.10), transparent 70%),
-            radial-gradient(ellipse 88% 64% at 60% 24%, rgba(242, 255, 229, 0.20), transparent 72%),
-            radial-gradient(ellipse 78% 60% at 84% 72%, rgba(226, 149, 120, 0.08), transparent 74%),
-            radial-gradient(ellipse 86% 62% at 28% 82%, rgba(226, 149, 120, 0.05), transparent 76%),
-            radial-gradient(ellipse 80% 60% at 78% 42%, rgba(67, 151, 117, 0.05), transparent 75%),
-            linear-gradient(180deg, #ffffff 0%, #ffffff 55%, #fefffc 100%)
-          `,
+          y: parallaxY,
+          backgroundImage: "url('/test12.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center center",
+          backgroundRepeat: "no-repeat",
         }}
+        aria-hidden="true"
       />
-      <main className="pb-24 relative z-10">
-        <section className="container mx-auto px-4 py-16 lg:py-20">
+      {/* Mobile static background — hidden on desktop */}
+      <div
+        className="fixed inset-0 z-0 pointer-events-none md:hidden"
+        style={{
+          backgroundImage: "url('/test12.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center center",
+          backgroundRepeat: "no-repeat",
+        }}
+        aria-hidden="true"
+      />
+
+      <main className="relative z-10">
+        <section className="relative">
+          <div
+            className="absolute inset-0 z-0 bg-white/60 backdrop-blur-md"
+            aria-hidden="true"
+          />
+          <div className="relative z-10 container mx-auto px-4 py-16 lg:py-20">
           <div className="max-w-3xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, y: 16 }}
@@ -158,11 +176,11 @@ export default function FAQPage() {
               
             </motion.p>
           </div>
-        </section>
+          </div>
 
-        <section className="container mx-auto px-4 pb-16">
+          <div className="relative z-10 container mx-auto px-4 pb-12">
           <div className="max-w-4xl mx-auto">
-            <div className="sticky top-4 z-20 mb-10 rounded-2xl border border-white/20 bg-accent shadow-md px-4 py-3 md:px-5">
+            <div className="sticky top-4 z-20 mb-10 rounded-2xl border border-white/20 bg-base-content shadow-md px-4 py-3 md:px-5">
               <label htmlFor="faq-search" className="sr-only">
                 Search questions
               </label>
@@ -203,7 +221,7 @@ export default function FAQPage() {
                       {group.items.map((faq) => (
                         <div
                           key={faq.id}
-                          className="bg-primary/30 rounded-2xl border border-primary/25 shadow-sm overflow-hidden"
+                          className="bg-white/90 rounded-2xl border border-primary/25 shadow-sm overflow-hidden"
                         >
                           <button
                             type="button"
@@ -252,7 +270,7 @@ export default function FAQPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6, ease: "easeOut" }}
-              className="bg-primary/10 border border-primary/20 rounded-2xl p-6 md:p-8 mt-12"
+              className="bg-white/90 border border-primary/20 rounded-2xl p-6 md:p-8 mt-12"
             >
               <h3 className="text-lg font-semibold text-primary mb-2">
                 Still have questions?
@@ -268,6 +286,7 @@ export default function FAQPage() {
                 Contact Us
               </Link>
             </motion.div>
+          </div>
           </div>
         </section>
       </main>

@@ -117,7 +117,7 @@ export default function ContactPage() {
       <main className="relative z-10">
         <section className="relative min-h-screen">
           <div
-            className="absolute inset-0 z-0 bg-grey/25 backdrop-blur-md"
+            className="absolute inset-0 z-0 bg-white/30 backdrop-blur-md"
             aria-hidden="true"
           />
           <div className="relative z-10 container mx-auto px-4 py-12 md:py-16 lg:py-20 pb-12">
@@ -125,7 +125,7 @@ export default function ContactPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.32, ease: "easeOut" }}
-          className="max-w-5xl mx-auto bg-white/90 backdrop-blur-sm border border-white/80 rounded-3xl shadow-lg p-8 md:p-12 lg:p-14"
+          className="max-w-5xl mx-auto bg-white/100 backdrop-blur-sm border border-white/80 rounded-3xl shadow-lg p-8 md:p-12 lg:p-14"
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 lg:items-stretch">
             {/* Left: intro + contact — bottom card aligns with form / Send on large screens */}

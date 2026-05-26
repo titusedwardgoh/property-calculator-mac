@@ -6,20 +6,7 @@ import Link from 'next/link';
 
 export default function DisclaimerPage() {
   return (
-    <div className="min-h-screen w-full relative">
-      <div
-        className="absolute inset-0 z-0"
-        style={{
-          background: `
-            radial-gradient(ellipse 96% 70% at 12% 30%, rgba(67, 151, 117, 0.28), transparent 70%),
-            radial-gradient(ellipse 88% 64% at 60% 24%, rgba(242, 255, 229, 0.5), transparent 72%),
-            radial-gradient(ellipse 78% 60% at 84% 72%, rgba(226, 149, 120, 0.22), transparent 74%),
-            radial-gradient(ellipse 86% 62% at 28% 82%, rgba(226, 149, 120, 0.14), transparent 76%),
-            radial-gradient(ellipse 80% 60% at 78% 42%, rgba(67, 151, 117, 0.14), transparent 75%),
-            linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.94) 42%, rgba(242,255,229,0.94) 100%)
-          `,
-        }}
-      />
+    <div className="min-h-screen w-full bg-gray-50">
       <main className="pb-24 relative z-10">
         {/* Hero Section */}
         <section className="container mx-auto px-4 py-16 lg:py-20">

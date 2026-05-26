@@ -80,13 +80,13 @@ export default function AboutPage() {
 
             <main className="relative">
                 <section className="relative z-10 w-full bg-base-200">
-                    <div className="container mx-auto px-4 py-16 lg:py-20">
+                    <div className="container mx-auto px-4 py-16 md:py-24 lg:py-20">
                     <motion.div className="max-w-3xl mx-auto text-center">
                         <motion.h1
                             initial={{ opacity: 0, y: 16 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.6, ease: "easeOut" }}
-                            className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6"
+                            className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight mb-6 capitalize"
                         >
                             Built to remove the guesswork from Australian property costs
                         </motion.h1>

@@ -120,7 +120,7 @@ export default function HomePage() {
 
             {/* Hero Section */}
             <section className="relative z-10 w-full bg-base-200">
-                <div className="container mx-auto px-4 py-16 md:py-24 lg:py-">
+                <div className="container mx-auto px-4 py-16 md:py-24 lg:py-20">
                     <div className="max-w-4xl mx-auto text-center">
                     <motion.h1
                         initial={{ opacity: 0, y: 20 }}
