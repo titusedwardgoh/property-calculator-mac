@@ -1939,7 +1939,7 @@ export default function DashboardContent({
   });
 
   return (
-    <div className="flex min-h-screen flex-col bg-base-200">
+    <div className="flex min-h-screen flex-col bg-gray-50">
       <main className="flex flex-1 flex-col">
         {/* Hero Section */}
         <section
@@ -1992,14 +1992,8 @@ export default function DashboardContent({
           </div>
         </section>
 
-        {/* Dashboard Content — aurora wash (fills space down to footer; avoids flat white band) */}
-        <div className="relative flex min-h-0 flex-1 flex-col">
-          <div className="dashboard-aurora-bg" aria-hidden="true">
-            <span className="dashboard-aurora-blob dashboard-aurora-blob--1" />
-            <span className="dashboard-aurora-blob dashboard-aurora-blob--2" />
-            <span className="dashboard-aurora-blob dashboard-aurora-blob--3" />
-            <span className="dashboard-aurora-blob dashboard-aurora-blob--bottom" />
-          </div>
+        {/* Dashboard Content */}
+        <div className="relative flex min-h-0 flex-1 flex-col bg-gray-50">
         <section className="relative z-10 mx-auto w-full max-w-[1920px] px-4 py-6 pb-24 md:px-6 lg:px-8 lg:py-8">
           <div className="w-full space-y-5">
             {/* Saved Surveys — outer wrapper does not fade cards; header + card list animate separately */}

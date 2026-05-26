@@ -1308,7 +1308,7 @@ export default function AccountSettingsPage() {
 
     if (loading || isDataLoading) {
         return (
-            <div className="aurora-loading-overlay min-h-screen flex items-center justify-center">
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                     <p className="text-gray-600">Loading...</p>
@@ -1336,7 +1336,7 @@ export default function AccountSettingsPage() {
                             className="bg-white rounded-lg shadow-md overflow-hidden relative"
                         >
                             {/* Top Half - Different Background Color (from midpoint of profile pic upwards) */}
-                            <div className="bg-primary/50 px-6 pt-6 pb-12">
+                            <div className="bg-primary/30 px-6 pt-6 pb-12">
                                 <h2 className="text-gray-900 font-bold text-xl mb-4">Profile</h2>
                             </div>
                             

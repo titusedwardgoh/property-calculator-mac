@@ -372,9 +372,14 @@ export default function ContactPage() {
           transition={{ duration: 0.36, ease: "easeOut" }}
           className="max-w-3xl mx-auto mt-8 text-center text-sm text-white/90 leading-relaxed px-2"
         >
-          PropWiz is for planning and education only—we are not financial
-          advisers, brokers, or lawyers. For advice tailored to you, speak with
-          a qualified professional.
+          For information about the limitations of our calculations, see our{" "}
+          <Link
+            href="/disclaimer"
+            className="text-white hover:underline  font-medium"
+          >
+            Disclaimer
+          </Link>
+          .
         </motion.p>
           </div>
         </section>
