@@ -134,7 +134,7 @@ function SignupPageContent() {
   };
 
   return (
-    <div className="min-h-screen w-full relative flex items-start justify-center px-4 py-16 lg:py-12">
+    <div className="min-h-screen w-full relative flex items-start justify-center px-4 pt-20 pb-16 md:pt-24 md:pb-20 lg:pt-28 lg:pb-24">
       <div
         className="absolute inset-0 z-0"
         style={{

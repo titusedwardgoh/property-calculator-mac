@@ -120,7 +120,7 @@ export default function ContactPage() {
             className="absolute inset-0 z-0 bg-white/30 backdrop-blur-md"
             aria-hidden="true"
           />
-          <div className="relative z-10 container mx-auto px-4 py-12 md:py-16 lg:py-20 pb-12">
+          <div className="relative z-10 container mx-auto px-4 pt-20 pb-12 md:pt-24 md:pb-16 lg:pt-28 lg:pb-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
