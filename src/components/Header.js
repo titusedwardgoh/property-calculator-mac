@@ -14,6 +14,7 @@ import {
   MOBILE_MENU_OVERLAY_STYLE,
 } from '@/lib/loggedInHeaderGlassStyle';
 import SiteHeaderShell from '@/components/SiteHeaderShell';
+import SurveyLoadingOverlay from '@/components/SurveyLoadingOverlay';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -355,12 +356,7 @@ export default function Header() {
 
       {/* Loading overlay when navigating to dashboard */}
       {isNavigatingToDashboard && (
-        <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading dashboard...</p>
-          </div>
-        </div>
+        <SurveyLoadingOverlay message="Loading dashboard..." />
       )}
     </>
   );

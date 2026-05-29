@@ -301,6 +301,88 @@ export const useFormStore = create((set, get) => ({
   
   // Set resume flag
   setIsResumingSurvey: (isResuming) => set({ isResumingSurvey: isResuming }),
+
+  /** Load a saved property record in one shot (avoids updateFormData branch resets during resume). */
+  hydrateFromPropertyRecord: (record) =>
+    set((state) => {
+      const pd = record.property_details || {};
+      const bd = record.buyer_details || {};
+      const ld = record.loan_details || {};
+      const sq = record.seller_questions || {};
+      const cv = record.calculated_values || {};
+
+      const mergeSection = (section) => {
+        const merged = {};
+        Object.entries(section).forEach(([key, value]) => {
+          if (value !== null && value !== undefined) {
+            merged[key] = value;
+          }
+        });
+        return merged;
+      };
+
+      const propertyDetailsFormComplete = pd.propertyDetailsFormComplete || false;
+      const propertyDetailsComplete =
+        pd.propertyDetailsComplete || propertyDetailsFormComplete || false;
+      const buyerDetailsComplete = bd.buyerDetailsComplete || false;
+      const loanDetailsComplete = ld.loanDetailsComplete || false;
+      const sellerQuestionsComplete = sq.sellerQuestionsComplete || false;
+      const needsLoan = bd.needsLoan || '';
+
+      const next = {
+        ...state,
+        propertyId: record.id,
+        isResumingSurvey: true,
+        showWelcomePage: false,
+        editingFromReview: false,
+        showAdditionalQuestions: false,
+        showLoanDetails: false,
+        showSellerQuestions: false,
+        allFormsComplete: false,
+        showSummary: false,
+        showReviewPage: false,
+        ...mergeSection(pd),
+        ...mergeSection(bd),
+        ...mergeSection(ld),
+        ...mergeSection(sq),
+        ...mergeSection(cv),
+      };
+
+      if (record.property_price !== null && record.property_price !== undefined) {
+        next.propertyPrice = record.property_price;
+      }
+      if (record.property_address) {
+        next.propertyAddress = record.property_address;
+      }
+      if (record.selected_state) {
+        next.selectedState = record.selected_state;
+      }
+
+      if (propertyDetailsComplete) {
+        next.propertyDetailsComplete = true;
+      }
+      if (buyerDetailsComplete) {
+        next.buyerDetailsComplete = true;
+        if (needsLoan === 'yes') {
+          next.showLoanDetails = true;
+        } else {
+          next.showSellerQuestions = true;
+        }
+      }
+      if (loanDetailsComplete) {
+        next.loanDetailsComplete = true;
+        next.showLoanDetails = true;
+        next.showSellerQuestions = true;
+      }
+      if (sellerQuestionsComplete) {
+        next.sellerQuestionsComplete = true;
+        next.allFormsComplete = true;
+        next.showSummary = true;
+        next.showReviewPage = false;
+      }
+
+      return next;
+    }),
   
   // Set review page visibility
   setShowReviewPage: (val) => set({ showReviewPage: val }),

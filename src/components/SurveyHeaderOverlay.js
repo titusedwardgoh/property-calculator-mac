@@ -8,6 +8,7 @@ import { useFormStore } from '../stores/formStore';
 import { useAuth } from '@/hooks/useAuth';
 import SiteHeaderShell from '@/components/SiteHeaderShell';
 import { PUBLIC_HEADER_GLASS_STYLE } from '@/lib/loggedInHeaderGlassStyle';
+import SurveyLoadingOverlay from '@/components/SurveyLoadingOverlay';
 
 export default function SurveyHeaderOverlay() {
     const router = useRouter();
@@ -215,16 +216,13 @@ export default function SurveyHeaderOverlay() {
 
         {/* Loading overlay when navigating away from survey */}
         {isNavigatingAway && (
-            <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-gray-600">
-                        {navigationDestination === '/dashboard' 
-                            ? 'Returning to dashboard...' 
-                            : 'Returning to home...'}
-                    </p>
-                </div>
-            </div>
+            <SurveyLoadingOverlay
+                message={
+                    navigationDestination === '/dashboard'
+                        ? 'Returning to dashboard...'
+                        : 'Returning to home...'
+                }
+            />
         )}
     </>
     );

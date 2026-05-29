@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import useFormNavigation from "./shared/FormNavigation.js";
 import { useFormStore } from "../stores/formStore";
 import { getFieldUIConfig } from "../lib/fieldUIConfigs";
+import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from "@/components/SurveyLoadingOverlay";
 import { formatCurrency } from "../states/shared/baseCalculations";
 import { isFieldAnswered } from "../lib/progressCalculation";
 import {
@@ -436,47 +437,39 @@ export default function AdditionalQuestions() {
 
   if (showEntryOverlay) {
     return (
-      <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">A few more questions...</p>
-        </div>
-      </div>
+      <SurveyLoadingOverlay message="A few more questions..." />
     );
   }
 
   if (showCompletionOverlay) {
     return (
-      <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <div className="min-h-[2.5rem] flex items-center justify-center">
-            <AnimatePresence mode="wait">
-              {completionPhase === "adding" ? (
-                <motion.p
-                  key="adding"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-gray-600"
-                >
-                  Hang on, adding in new information..
-                </motion.p>
-              ) : (
-                <motion.p
-                  key="complete"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="text-gray-600"
-                >
-                  Survey complete!
-                </motion.p>
-              )}
-            </AnimatePresence>
-          </div>
+      <SurveyLoadingOverlay>
+        <div className="flex min-h-[3rem] items-center justify-center">
+          <AnimatePresence mode="wait">
+            {completionPhase === "adding" ? (
+              <motion.p
+                key="adding"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className={SURVEY_LOADING_TEXT_CLASS}
+              >
+                Hang on, adding in new information..
+              </motion.p>
+            ) : (
+              <motion.p
+                key="complete"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className={SURVEY_LOADING_TEXT_CLASS}
+              >
+                Survey complete!
+              </motion.p>
+            )}
+          </AnimatePresence>
         </div>
-      </div>
+      </SurveyLoadingOverlay>
     );
   }
 

@@ -11,6 +11,7 @@ import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animat
 import { calculateGlobalProgress, getMissingFields } from '../lib/progressCalculation';
 import QuestionInfoTooltip from './shared/QuestionInfoTooltip';
 import { QUESTION_TOOLTIPS } from '../lib/questionTooltips';
+import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
 
 export default function PropertyDetails() {
   const formData = useFormStore();
@@ -1386,36 +1387,33 @@ export default function PropertyDetails() {
   return (
     <>
       {showCalculatingOverlay && (
-        <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <div className="min-h-[2.5rem] flex items-center justify-center">
-              <AnimatePresence mode="wait">
-                {overlayPhase === 'calculating' ? (
-                  <motion.p
-                    key="calculating"
-                    initial={{ y: 0, opacity: 1 }}
-                    exit={{ y: 50, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                    className="text-gray-600"
-                  >
-                    Hang on, calculating basic stamp duty
-                  </motion.p>
-                ) : (
-                  <motion.p
-                    key="done"
-                    initial={{ y: -30, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                    className="text-gray-600"
-                  >
-                    Done, that was quick!
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </div>
+        <SurveyLoadingOverlay>
+          <div className="flex min-h-[3rem] items-center justify-center">
+            <AnimatePresence mode="wait">
+              {overlayPhase === 'calculating' ? (
+                <motion.p
+                  key="calculating"
+                  initial={{ y: 0, opacity: 1 }}
+                  exit={{ y: 50, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className={SURVEY_LOADING_TEXT_CLASS}
+                >
+                  Hang on, calculating basic stamp duty
+                </motion.p>
+              ) : (
+                <motion.p
+                  key="done"
+                  initial={{ y: -30, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className={SURVEY_LOADING_TEXT_CLASS}
+                >
+                  Done, that was quick!
+                </motion.p>
+              )}
+            </AnimatePresence>
           </div>
-        </div>
+        </SurveyLoadingOverlay>
       )}
     <div className="bg-transparent rounded-lg overflow-visible mt-15">
         <div className="flex">

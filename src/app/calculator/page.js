@@ -15,6 +15,7 @@ import WelcomePage from '../../components/WelcomePage';
 import ReviewSummary from '../../components/ReviewSummary';
 import AdditionalQuestions from '../../components/AdditionalQuestions';
 import SurveyHeaderOverlay from '../../components/SurveyHeaderOverlay';
+import SurveyLoadingScreen, { SurveyLoadingFallback } from '../../components/SurveyLoadingOverlay';
 import NavigationWarning from '../../components/NavigationWarning';
 import EndOfSurveyPrompt from '../../components/EndOfSurveyPrompt';
 import EmailModal from '../../components/EmailModal';
@@ -29,6 +30,7 @@ import Link from 'next/link';
 function CalculatorPageContent() {
     const formData = useFormStore();
     const updateFormData = formData.updateFormData;
+    const hydrateFromPropertyRecord = formData.hydrateFromPropertyRecord;
     const propertyId = formData.propertyId;
     const setPropertyId = formData.setPropertyId;
     const setIsResumingSurvey = formData.setIsResumingSurvey;
@@ -42,6 +44,7 @@ function CalculatorPageContent() {
     const [showEmailSuccess, setShowEmailSuccess] = useState(false);
     const [emailSuccessData, setEmailSuccessData] = useState(null);
     const hasResumedRef = useRef(false);
+    const initialWelcomeCheckedRef = useRef(false);
     
     // Get state-specific functions for calculations
     const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW');
@@ -61,219 +64,80 @@ function CalculatorPageContent() {
         }
     );
     
-    // Handle resume functionality
+    // Resume / view a saved survey from the dashboard
     useEffect(() => {
-        const resumePropertyId = sessionStorage.getItem('resumePropertyId');
-        const shouldResume = searchParams.get('resume') === 'true' && resumePropertyId;
-        
-        // Wait for auth to finish loading before attempting resume
-        if (authLoading) {
+        const resumePropertyId =
+            searchParams.get('propertyId') || sessionStorage.getItem('resumePropertyId');
+        const wantsResume = searchParams.get('resume') === 'true' && resumePropertyId;
+
+        if (authLoading || !wantsResume || hasResumedRef.current) {
             return;
         }
-        
-        // Prevent multiple resume attempts
-        if (shouldResume && !isLoadingResume && !hasResumedRef.current) {
-            hasResumedRef.current = true;
-            setIsLoadingResume(true);
-            setIsResumingSurvey(true);
-            
-            // Immediately hide welcome page while loading
-            updateFormData('showWelcomePage', false);
-            
-            // Load the property data
-            fetch('/api/supabase', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    action: 'loadPropertyById',
-                    propertyId: resumePropertyId,
-                    userId: user?.id, // Will be undefined if not logged in, server will get from session
-                }),
-            })
-            .then(res => res.json())
-            .then(result => {
-                console.log('📥 Resume API response:', result);
+
+        hasResumedRef.current = true;
+        setIsLoadingResume(true);
+        sessionStorage.setItem('resumePropertyId', resumePropertyId);
+        updateFormData('showWelcomePage', false);
+
+        fetch('/api/supabase', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                action: 'loadPropertyById',
+                propertyId: resumePropertyId,
+                userId: user?.id,
+            }),
+        })
+            .then((res) => res.json())
+            .then((result) => {
                 if (result.success && result.data) {
-                    const record = result.data;
-                    console.log('📋 Loaded record data:', {
-                        id: record.id,
-                        is_active: record.is_active,
-                        parent_id: record.parent_id,
-                        user_saved: record.user_saved,
-                        hasPropertyDetails: !!record.property_details,
-                        hasBuyerDetails: !!record.buyer_details,
-                        propertyPrice: record.property_price,
-                        propertyAddress: record.property_address,
-                        message: result.message
-                    });
-                        console.log('📋 Full property_details object:', record.property_details);
-                        console.log('📋 Full buyer_details object:', record.buyer_details);
-                    
-                    setPropertyId(record.id);
-                    
-                    // First, set the top-level fields
-                    if (record.property_price !== null && record.property_price !== undefined) {
-                        updateFormData('propertyPrice', record.property_price);
-                    }
-                    if (record.property_address) {
-                        updateFormData('propertyAddress', record.property_address);
-                    }
-                    if (record.selected_state) {
-                        updateFormData('selectedState', record.selected_state);
-                    }
-                    
-                    // Then merge all sections back into form data
-                    // Handle nested objects properly
-                    const sectionsToMerge = [
-                        { data: record.property_details, name: 'property_details' },
-                        { data: record.buyer_details, name: 'buyer_details' },
-                        { data: record.loan_details, name: 'loan_details' },
-                        { data: record.seller_questions, name: 'seller_questions' },
-                        { data: record.calculated_values, name: 'calculated_values' }
-                    ];
-                    
-                    // Check completion status from the loaded record data BEFORE merging
-                    // This ensures we have the correct values before they get merged
-                    // For PropertyDetails, check both propertyDetailsComplete and propertyDetailsFormComplete
-                    // propertyDetailsFormComplete means they reached the completion page
-                    const propertyDetailsFormComplete = record.property_details?.propertyDetailsFormComplete || false;
-                    const propertyDetailsComplete = record.property_details?.propertyDetailsComplete || propertyDetailsFormComplete || false;
-                    // For BuyerDetails, check buyerDetailsComplete - if true, they completed the section
-                    const buyerDetailsComplete = record.buyer_details?.buyerDetailsComplete || false;
-                    const loanDetailsComplete = record.loan_details?.loanDetailsComplete || false;
-                    const sellerQuestionsComplete = record.seller_questions?.sellerQuestionsComplete || false;
-                    const needsLoan = record.buyer_details?.needsLoan || '';
-                    
-                    console.log('🔍 Resume completion status:', {
-                        propertyDetailsComplete,
-                        propertyDetailsFormComplete,
-                        buyerDetailsComplete,
-                        loanDetailsComplete,
-                        sellerQuestionsComplete,
-                        needsLoan
-                    });
-                    console.log('🔍 Raw property_details.propertyDetailsComplete:', record.property_details?.propertyDetailsComplete);
-                    console.log('🔍 Raw property_details.propertyDetailsFormComplete:', record.property_details?.propertyDetailsFormComplete);
-                    console.log('🔍 Raw buyer_details.buyerDetailsComplete:', record.buyer_details?.buyerDetailsComplete);
-                    
-                    sectionsToMerge.forEach(({ data, name }) => {
-                        if (data && typeof data === 'object') {
-                            Object.entries(data).forEach(([key, value]) => {
-                                if (value !== null && value !== undefined) {
-                                    updateFormData(key, value);
-                                }
-                            });
-                        }
-                    });
-                    
-                    // Ensure welcome page is hidden
-                    updateFormData('showWelcomePage', false);
-                    
-                    // Handle transitions for completed sections on resume
-                    // Set completion flags and navigation flags immediately to ensure correct component rendering
-                    if (propertyDetailsComplete) {
-                        console.log('✅ PropertyDetails is complete, transitioning to BuyerDetails');
-                        updateFormData('propertyDetailsComplete', true);
-                        // Only set buyerDetailsActiveStep to 1 if it's not already set (user hasn't started BuyerDetails yet)
-                        const savedBuyerDetailsActiveStep = record.buyer_details?.buyerDetailsActiveStep;
-                        if (!savedBuyerDetailsActiveStep || savedBuyerDetailsActiveStep === 1) {
-                            updateFormData('buyerDetailsActiveStep', 1);
-                        }
-                    }
-                    if (buyerDetailsComplete) {
-                        console.log('✅ BuyerDetails is complete, transitioning to next section');
-                        updateFormData('buyerDetailsComplete', true);
-                        // Set navigation flags immediately based on needsLoan
-                        if (needsLoan === 'yes') {
-                            console.log('✅ Needs loan, transitioning to LoanDetails');
-                            updateFormData('showLoanDetails', true);
-                            // Only set loanDetailsActiveStep to 1 if it's not already set (user hasn't started LoanDetails yet)
-                            const savedLoanDetailsActiveStep = record.loan_details?.loanDetailsActiveStep;
-                            if (!savedLoanDetailsActiveStep || savedLoanDetailsActiveStep === 1) {
-                                updateFormData('loanDetailsActiveStep', 1);
-                            }
-                        } else {
-                            console.log('✅ No loan needed, transitioning to SellerQuestions');
-                            updateFormData('showSellerQuestions', true);
-                            // Only set sellerQuestionsActiveStep to 1 if it's not already set (user hasn't started SellerQuestions yet)
-                            const savedSellerQuestionsActiveStep = record.seller_questions?.sellerQuestionsActiveStep;
-                            if (!savedSellerQuestionsActiveStep || savedSellerQuestionsActiveStep === 1) {
-                                updateFormData('sellerQuestionsActiveStep', 1);
-                            }
-                        }
-                    }
-                    if (loanDetailsComplete) {
-                        console.log('✅ LoanDetails is complete, transitioning to SellerQuestions');
-                        updateFormData('loanDetailsComplete', true);
-                        updateFormData('showSellerQuestions', true);
-                        // Only set sellerQuestionsActiveStep to 1 if it's not already set (user hasn't started SellerQuestions yet)
-                        const savedSellerQuestionsActiveStep = record.seller_questions?.sellerQuestionsActiveStep;
-                        if (!savedSellerQuestionsActiveStep || savedSellerQuestionsActiveStep === 1) {
-                            updateFormData('sellerQuestionsActiveStep', 1);
-                        }
-                    }
-                    if (sellerQuestionsComplete) {
-                        console.log('✅ SellerQuestions is complete, showing final page');
-                        updateFormData('sellerQuestionsComplete', true);
-                        updateFormData('allFormsComplete', true);
-                        updateFormData('showSummary', true);
-                        updateFormData('showReviewPage', false); // Land on All Forms Complete, not Review
-                        updateFormData('editingFromReview', false); // So Summary/Upfront/Ongoing dropdowns show
-                    }
-                    
-                    console.log('✅ Form data updated from resume');
-                    
-                    // Set baseline state for change detection after form has stabilized.
-                    // Read current state at timeout time to avoid stale closure (setOriginalLoadedState()
-                    // from effect closure would see pre-merge formData).
-                    setTimeout(() => {
-                      const currentState = useFormStore.getState();
-                      setOriginalLoadedState(currentState);
-                      setIsLoadingResume(false);
-                    }, 800);
-                    
-                    // Clear resume flag from sessionStorage
+                    hydrateFromPropertyRecord(result.data);
                     sessionStorage.removeItem('resumePropertyId');
+
+                    setTimeout(() => {
+                        setOriginalLoadedState(useFormStore.getState());
+                        setIsLoadingResume(false);
+                    }, 800);
                 } else {
                     console.error('❌ Resume failed - no data in response:', result);
-                    // If resume fails, show welcome page
-                    updateFormData('showWelcomePage', true);
-                    hasResumedRef.current = false; // Allow retry
+                    hasResumedRef.current = false;
                     setIsLoadingResume(false);
+                    updateFormData('showWelcomePage', true);
                 }
             })
-            .catch(error => {
+            .catch((error) => {
                 console.error('Error loading survey to resume:', error);
-                // If error, show welcome page
-                updateFormData('showWelcomePage', true);
-                hasResumedRef.current = false; // Allow retry
+                hasResumedRef.current = false;
                 setIsLoadingResume(false);
-            });
-        } else if (!shouldResume) {
-            // Reset ref when not resuming (allows resume again if user navigates back)
-            hasResumedRef.current = false;
-            
-            // When NOT resuming, only show welcome page if there's no form data
-            // Don't reset if we're just navigating (might have unsaved data)
-            // Only run this check once on initial mount when not resuming
-            const hasFormData = formData.propertyPrice || 
-                               formData.propertyAddress || 
-                               formData.selectedState || 
-                               formData.buyerType;
-        
-            // Only show welcome page if there's no form data and we haven't already set it
-            // This prevents showing welcome page when user has unsaved changes or is resuming
-            if (!hasFormData) {
-                // Ensure address is cleared when starting fresh survey
-                if (formData.propertyAddress) {
-                    updateFormData('propertyAddress', '');
-                }
                 updateFormData('showWelcomePage', true);
+            });
+    }, [searchParams, authLoading, user?.id, hydrateFromPropertyRecord, updateFormData, setOriginalLoadedState]);
+
+    // Fresh calculator visit (not resuming) — show welcome when there is no in-progress data
+    useEffect(() => {
+        if (authLoading) return;
+        if (searchParams.get('resume') === 'true') return;
+        if (initialWelcomeCheckedRef.current) return;
+
+        initialWelcomeCheckedRef.current = true;
+        hasResumedRef.current = false;
+
+        const state = useFormStore.getState();
+        const hasFormData =
+            state.propertyPrice ||
+            state.propertyAddress ||
+            state.selectedState ||
+            state.buyerType;
+
+        if (!hasFormData) {
+            if (state.propertyAddress) {
+                updateFormData('propertyAddress', '');
             }
+            updateFormData('showWelcomePage', true);
         }
-    }, [searchParams, authLoading, user?.id, isLoadingResume, setIsResumingSurvey, updateFormData]); // Removed formData to prevent infinite loop
+    }, [authLoading, searchParams, updateFormData]);
     
     // Safety check: Stop resuming if all forms are complete
     useEffect(() => {
@@ -593,43 +457,21 @@ function CalculatorPageContent() {
             
             {/* Loading overlay during resume auto-advance */}
             {formData.isResumingSurvey && (
-                <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                        <p className="text-gray-600">Loading your survey...</p>
-                    </div>
-                </div>
+                <SurveyLoadingScreen message="Loading your survey..." />
             )}
             
-            {/* Loading overlay when returning to dashboard */}
             {isReturningToDashboard && (
-                <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                        <p className="text-gray-600">Returning to dashboard...</p>
-                    </div>
-                </div>
+                <SurveyLoadingScreen message="Returning to dashboard..." />
             )}
 
-            {/* Overlay when clicking Review/Edit All Answers */}
             {showReviewOverlay && (
-                <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                        <p className="text-gray-600">Let&apos;s review your responses</p>
-                    </div>
-                </div>
+                <SurveyLoadingScreen message="Let's review your responses" />
             )}
             
             {showWelcomePage && !isLoadingResume ? (
                 <WelcomePage />
             ) : isLoadingResume ? (
-                <div className="flex items-center justify-center min-h-screen">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                        <p className="text-gray-600">Loading your survey...</p>
-                    </div>
-                </div>
+                <SurveyLoadingScreen message="Loading your survey..." />
             ) : (
                 <main className="container mx-auto max-w-7xl px-3 sm:px-4 max-md:pt-30 md:pt-35 pb-4 lg:pb-10">
                 {/* Progress Bars - above questions on larger screens */}
@@ -1265,14 +1107,7 @@ function CalculatorPageContent() {
 
 export default function CalculatorPage() {
     return (
-        <Suspense fallback={
-            <div className="aurora-page-bg min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading calculator...</p>
-                </div>
-            </div>
-        }>
+        <Suspense fallback={<SurveyLoadingFallback message="Loading calculator..." />}>
             <CalculatorPageContent />
         </Suspense>
     );

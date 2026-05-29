@@ -6,6 +6,7 @@ import { useFormStore } from '../stores/formStore';
 import { getRequiredFields, getMissingFields, calculateGlobalProgress } from '../lib/progressCalculation';
 import { getFieldLabel, formatFieldValue, parsePropertyAddressForReview } from '../lib/fieldMapping';
 import ReviewGapFiller from './ReviewGapFiller';
+import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
 
 export default function ReviewSummary() {
   const formData = useFormStore();
@@ -221,44 +222,36 @@ export default function ReviewSummary() {
   return (
     <>
       {showRemovingLoanOverlay && (
-        <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <div className="min-h-[2.5rem] flex items-center justify-center">
-              <AnimatePresence mode="wait">
-                {overlayPhase === 'removing' ? (
-                  <motion.p
-                    key="removing"
-                    initial={{ y: 0, opacity: 1 }}
-                    exit={{ y: 50, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                    className="text-gray-600"
-                  >
-                    Removing your Loan!
-                  </motion.p>
-                ) : (
-                  <motion.p
-                    key="done"
-                    initial={{ y: -30, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                    className="text-gray-600"
-                  >
-                    Done, that was quick!
-                  </motion.p>
-                )}
-              </AnimatePresence>
-            </div>
+        <SurveyLoadingOverlay>
+          <div className="flex min-h-[3rem] items-center justify-center">
+            <AnimatePresence mode="wait">
+              {overlayPhase === 'removing' ? (
+                <motion.p
+                  key="removing"
+                  initial={{ y: 0, opacity: 1 }}
+                  exit={{ y: 50, opacity: 0 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className={SURVEY_LOADING_TEXT_CLASS}
+                >
+                  Removing your Loan!
+                </motion.p>
+              ) : (
+                <motion.p
+                  key="done"
+                  initial={{ y: -30, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className={SURVEY_LOADING_TEXT_CLASS}
+                >
+                  Done, that was quick!
+                </motion.p>
+              )}
+            </AnimatePresence>
           </div>
-        </div>
+        </SurveyLoadingOverlay>
       )}
       {showEditSectionOverlay && (
-        <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-gray-600">Taking you back to {editSectionLabel}</p>
-          </div>
-        </div>
+        <SurveyLoadingOverlay message={`Taking you back to ${editSectionLabel}`} />
       )}
     <AnimatePresence mode="wait">
       <motion.div

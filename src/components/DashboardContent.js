@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
 import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle, Search, ArrowUpDown, Map as MapIcon, List, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
@@ -983,7 +982,6 @@ export default function DashboardContent({
   const geocoderForPhotosRef = useRef(null);
   const persistedPhotoKeysRef = useRef(new Set());
   const googleApiKeyRef = useRef('');
-  const router = useRouter();
   const { user } = useAuth();
   const supabase = createClient();
   const resetForm = useFormStore(state => state.resetForm);
@@ -1022,17 +1020,16 @@ export default function DashboardContent({
   useEffect(() => {
     if (openCardMenuId == null) return;
 
-    const handlePointerDown = (event) => {
-      if (openCardMenuRef.current && !openCardMenuRef.current.contains(event.target)) {
-        setOpenCardMenuId(null);
-      }
+    const handleClickOutside = (event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (openCardMenuRef.current?.contains(target)) return;
+      setOpenCardMenuId(null);
     };
 
-    document.addEventListener('mousedown', handlePointerDown);
-    document.addEventListener('touchstart', handlePointerDown);
+    document.addEventListener('click', handleClickOutside, true);
     return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('touchstart', handlePointerDown);
+      document.removeEventListener('click', handleClickOutside, true);
     };
   }, [openCardMenuId]);
 
@@ -1336,10 +1333,13 @@ export default function DashboardContent({
   }, [user, surveys, propertyPhotoCache]);
 
   const handleResume = (propertyId) => {
-    // Store property ID in sessionStorage to resume
-    sessionStorage.setItem('resumePropertyId', propertyId);
-    router.push('/calculator?resume=true');
+    if (!propertyId) return;
+    setOpenCardMenuId(null);
+    sessionStorage.setItem('resumePropertyId', String(propertyId));
   };
+
+  const getSurveyResumeHref = (propertyId) =>
+    `/calculator?resume=true&propertyId=${encodeURIComponent(propertyId)}`;
 
   const handleDeleteClick = (propertyId, e) => {
     e.stopPropagation();
@@ -1774,7 +1774,9 @@ export default function DashboardContent({
         key={survey.id}
         variants={SURVEY_CARD_ITEM_VARIANTS}
         onClick={handleCardClick}
-        className="h-full min-h-[230px] cursor-pointer rounded-2xl border border-secondary p-4 shadow-sm transition-[box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-xl lg:p-5 xl:p-6"
+        className={`h-full min-h-[230px] cursor-pointer rounded-2xl border border-secondary p-4 shadow-sm transition-[box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-xl lg:p-5 xl:p-6 ${
+          openCardMenuId === survey.id ? 'relative z-50 overflow-visible' : ''
+        }`}
       >
         <div className="relative -mx-4 -mt-4 mb-4 aspect-[16/9] w-[calc(100%+2rem)] overflow-hidden rounded-t-2xl bg-base-100 lg:-mx-5 lg:-mt-5 lg:w-[calc(100%+2.5rem)] xl:-mx-6 xl:-mt-6 xl:w-[calc(100%+3rem)]">
           {!isPhotoLoaded && (
@@ -1856,19 +1858,18 @@ export default function DashboardContent({
                   <MoreHorizontal className="h-6 w-6" aria-hidden />
                 </button>
                 {openCardMenuId === survey.id && (
-                    <div className="absolute right-0 z-20 mt-2 min-w-[9rem] rounded-xl border border-base-300 bg-white p-1.5 shadow-lg">
-                  <button
-                    type="button"
+                    <div className="absolute right-0 z-[60] mt-2 min-w-[9rem] rounded-xl border border-base-300 bg-white p-1.5 shadow-lg">
+                  <Link
+                    href={getSurveyResumeHref(survey.id)}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleResume(survey.id);
-                      setOpenCardMenuId(null);
                     }}
                     className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-800 transition-colors hover:bg-base-200"
                   >
                     {isComplete ? <Eye className="h-4 w-4" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />}
                     {isComplete ? 'View' : 'Resume'}
-                  </button>
+                  </Link>
                   <button
                     type="button"
                     onClick={(e) => {

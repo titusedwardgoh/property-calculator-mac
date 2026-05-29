@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useFormStore } from '../stores/formStore';
 import { createNewSession } from '../lib/sessionManager';
 import Image from 'next/image';
+import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
 
 const LOADING_QUESTIONS_MS = 1500;
 const HERE_WE_GO_MS = 1500;
@@ -68,9 +69,8 @@ export default function WelcomePage() {
     return (
         <div className="ml-0 md:ml-10 bg-transparent">
             {showLoadingOverlay && (
-                <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
-                    <div className="text-center min-h-[2.5rem] flex flex-col items-center justify-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+                <SurveyLoadingOverlay>
+                    <div className="flex min-h-[3rem] flex-col items-center justify-center">
                         <AnimatePresence mode="wait">
                             {overlayPhase === 'loading' ? (
                                 <motion.p
@@ -78,7 +78,7 @@ export default function WelcomePage() {
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
-                                    className="text-gray-600"
+                                    className={SURVEY_LOADING_TEXT_CLASS}
                                 >
                                     Loading questions
                                 </motion.p>
@@ -88,14 +88,14 @@ export default function WelcomePage() {
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
-                                    className="text-gray-600"
+                                    className={SURVEY_LOADING_TEXT_CLASS}
                                 >
                                     Here we go!
                                 </motion.p>
                             )}
                         </AnimatePresence>
                     </div>
-                </div>
+                </SurveyLoadingOverlay>
             )}
             <main className="container mx-auto max-w-7xl px-3 sm:px-4 max-md:pt-30 md:pt-35 pb-4 lg:pb-10">
                 {/* Spacer — matches survey progress bars height so heading aligns with step questions */}
