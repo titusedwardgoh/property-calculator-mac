@@ -7,6 +7,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useFormStore } from '../stores/formStore';
 import { useAuth } from '@/hooks/useAuth';
 import SiteHeaderShell from '@/components/SiteHeaderShell';
+import { PUBLIC_HEADER_GLASS_STYLE } from '@/lib/loggedInHeaderGlassStyle';
 
 export default function SurveyHeaderOverlay() {
     const router = useRouter();
@@ -125,15 +126,7 @@ export default function SurveyHeaderOverlay() {
         <>
         <header
             className="fixed top-0 left-0 right-0 z-[150]"
-            style={{
-                background: 'rgba(255, 255, 255, 0.15)',
-                backdropFilter: 'blur(20px) saturate(180%)',
-                WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                border: '1px solid rgba(255, 255, 255, 0.25)',
-                borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-                boxShadow:
-                    '0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.4)'
-            }}
+            style={PUBLIC_HEADER_GLASS_STYLE}
         >
             <SiteHeaderShell>
                 {/* Mobile */}
@@ -152,7 +145,7 @@ export default function SurveyHeaderOverlay() {
                     </Link>
                     <button
                         onClick={handleClose}
-                        className="focus:outline-none cursor-pointer p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        className="focus:outline-none mr-2 cursor-pointer"
                         aria-label="Close survey"
                     >
                         <svg
@@ -196,7 +189,7 @@ export default function SurveyHeaderOverlay() {
                             <div className="flex w-full max-w-md justify-end pr-12 lg:pr-12">
                                 <button
                                     onClick={handleClose}
-                                    className="focus:outline-none cursor-pointer p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                    className="flex cursor-pointer items-center justify-center px-3 py-2 focus:outline-none"
                                     aria-label="Close survey"
                                 >
                                     <svg

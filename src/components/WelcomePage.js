@@ -66,7 +66,7 @@ export default function WelcomePage() {
     }, [handleGetStarted]);
 
     return (
-        <div className="pt-40 ml-0 md:ml-10 bg-transparent">
+        <div className="ml-0 md:ml-10 bg-transparent">
             {showLoadingOverlay && (
                 <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
                     <div className="text-center min-h-[2.5rem] flex flex-col items-center justify-center">
@@ -97,10 +97,27 @@ export default function WelcomePage() {
                     </div>
                 </div>
             )}
-            <main className="container mx-auto px-4 py-4 lg:py-10 max-w-7xl">
+            <main className="container mx-auto max-w-7xl px-3 sm:px-4 max-md:pt-30 md:pt-35 pb-4 lg:pb-10">
+                {/* Spacer — matches survey progress bars height so heading aligns with step questions */}
+                <div className="hidden md:block mb-0 md:w-[57%]" aria-hidden="true">
+                    <div className="space-y-4 ml-10">
+                        <div>
+                            <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2 invisible">
+                                Overall Progress
+                            </h4>
+                            <div className="w-full h-1" />
+                        </div>
+                        <div>
+                            <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2 invisible">
+                                Current Form Progress
+                            </h4>
+                            <div className="w-full h-1" />
+                        </div>
+                    </div>
+                </div>
                 <div className="flex flex-col md:flex-row">
-                    {/* Main content area */}
-                    <div className="order-2 md:order-1 md:w-3/5">
+                    {/* Main content area — mt-15 matches PropertyDetails wrapper */}
+                    <div className="order-2 md:order-1 md:w-3/5 mt-15">
                         <AnimatePresence>
                             {!isExiting && (
                                 <motion.div

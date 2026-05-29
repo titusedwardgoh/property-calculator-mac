@@ -5,7 +5,7 @@ export const PUBLIC_HEADER_GLASS_STYLE = {
   backdropFilter: 'blur(20px) saturate(125%)',
   WebkitBackdropFilter: 'blur(20px) saturate(125%)',
   border: '1px solid rgba(255, 255, 255, 0.25)',
-  borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+  borderBottom: '1px solid #e5e7eb',
   boxShadow:
     '0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.4)',
 };
