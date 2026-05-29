@@ -13,10 +13,12 @@ import {
   MOBILE_HEADER_MENU_TOP_CLASS,
   MOBILE_MENU_OVERLAY_STYLE,
 } from '@/lib/loggedInHeaderGlassStyle';
+import SiteHeaderShell from '@/components/SiteHeaderShell';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNavigatingToDashboard, setIsNavigatingToDashboard] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -61,10 +63,14 @@ export default function Header() {
   const publicPages = ['/', '/about', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup', '/reset-password', '/forgot-password'];
   const isPublicPage = publicPages.includes(pathname);
   
-  // Hide header only on calculator route (simplified overlay is shown instead)
-  // On public pages, always show the normal header (even if logged in)
-  // On protected pages (dashboard, settings), LoggedInHeaderOverlay will be shown instead
-  const shouldHideHeader = pathname === '/calculator' || (user && !isPublicPage && pathname !== '/calculator');
+  // Hide on calculator always; hide on protected routes only after mount so SSR matches first client paint
+  const shouldHideHeader =
+    pathname === '/calculator' ||
+    (hasMounted && user && !isPublicPage && pathname !== '/calculator');
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
@@ -91,136 +97,134 @@ export default function Header() {
         className={`sticky top-0 z-100 ${shouldHideHeader ? 'hidden' : ''}`}
         style={PUBLIC_HEADER_GLASS_STYLE}
       >
-        <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Link href="/" className="flex items-center">
-                {/* Mobile: Show icon2.png */}
-                <div className="w-28 h-9 md:hidden flex items-center">
-                  <Image
-                    src="/icon2.png"
-                    alt="PropWiz"
-                    width={447}
-                    height={444}
-                    className="w-full h-full object-contain object-left"
-                    priority
-                  />
-                </div>
-                {/* Desktop: Show Icon3.png */}
-                <div className="hidden md:flex md:items-center md:h-12">
-                  <Image
-                    src="/icon2.png"
-                    alt="PropWiz"
-                    width={447}
-                    height={444}
-                    className="h-full w-auto object-contain"
-                    priority
-                  />
-                </div>
-              </Link>
-              {/* Desktop nav links */}
-              <nav className="hidden md:flex items-center gap-10 lg: gap-15 font-medium text-md lg:text-lg ml-10 lg:ml-20">
-                <Link
-                  href="/"
-                  className={`hover:text-primary transition-colors ${
-                    pathname === '/' ? 'underline underline-offset-6 decoration-2' : ''
-                  }`}
-                >
-                  Home
-                </Link>
-                <Link
-                  href="/about"
-                  className={`hover:text-primary transition-colors ${
-                    pathname === '/about' ? 'underline underline-offset-6 decoration-2' : ''
-                  }`}
-                >
-                  About
-                </Link>
-                <Link
-                  href="/contact"
-                  className={`hover:text-primary transition-colors ${
-                    pathname === '/contact' ? 'underline underline-offset-6 decoration-2' : ''
-                  }`}
-                >
-                  Contact
-                </Link>
-              </nav>
-            </div>
-            
-            <div className="flex items-center">
-              {/* Auth buttons - desktop only */}
-              <div className="hidden md:flex items-center gap-3 mr-4">
-                {loading ? (
-                  // Show nothing while loading
-                  null
-                ) : (user && pathname !== '/reset-password' && pathname !== '/forgot-password') ? (
-                  // Show Account and Logout when logged in (except on reset/forgot password pages)
-                  <>
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setIsNavigatingToDashboard(true)}
-                      className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors flex items-center gap-2"
-                    >
-                      <User className="w-4 h-4" />
-                      Account
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2 cursor-pointer"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
-                  </>
-                ) : (
-                  // Show Login and Sign Up when not logged in or on reset/forgot password pages
-                  <>
-                     <Link
-                      href="/login"
-                      onClick={() => {
-                        // If on reset/forgot password page, set flag to prevent auto-login
-                        if (pathname === '/reset-password' || pathname === '/forgot-password') {
-                          sessionStorage.setItem('fromPasswordReset', 'true');
-                        }
-                      }}
-                      className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors"
-                    >
-                      Log In
-                    </Link>
-                     <Link
-                       href="/signup"
-                       className="px-3 py-2 text-sm font-medium text-secondary bg-primary rounded-full hover:bg-primary/90 transition-colors"
-                     >
-                       Sign Up
-                     </Link>
-                  </>
-                )}
+        <SiteHeaderShell>
+          {/* Mobile */}
+          <div className="flex md:hidden items-center justify-between">
+            <Link href="/" className="flex items-center">
+              <div className="w-28 h-9 flex items-center">
+                <Image
+                  src="/icon2.png"
+                  alt="PropWiz"
+                  width={447}
+                  height={444}
+                  className="w-full h-full object-contain object-left"
+                  priority
+                />
               </div>
-              
-              {/* Hamburger button - mobile only */}
-              <button
-                onClick={toggleMenu}
-                className="md:hidden focus:outline-none mr-2"
-                aria-label="Toggle menu"
-              >
-                <div className="space-y-1.5">
-                  <motion.span
-                    animate={isMenuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }}
-                    className="block h-0.5 w-6 bg-base-content transition-all duration-300"
-                  />
-                  <motion.span
-                    animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
-                    className="block h-0.5 w-6 bg-base-content transition-all duration-300"
-                  />
-                  <motion.span
-                    animate={isMenuOpen ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }}
-                    className="block h-0.5 w-6 bg-base-content transition-all duration-300"
-                  />
+            </Link>
+            <button
+              onClick={toggleMenu}
+              className="focus:outline-none mr-2"
+              aria-label="Toggle menu"
+            >
+              <div className="space-y-1.5">
+                <motion.span
+                  animate={isMenuOpen ? { rotate: 45, y: 6 } : { rotate: 0, y: 0 }}
+                  className="block h-0.5 w-6 bg-base-content transition-all duration-300"
+                />
+                <motion.span
+                  animate={isMenuOpen ? { opacity: 0 } : { opacity: 1 }}
+                  className="block h-0.5 w-6 bg-base-content transition-all duration-300"
+                />
+                <motion.span
+                  animate={isMenuOpen ? { rotate: -45, y: -6 } : { rotate: 0, y: 0 }}
+                  className="block h-0.5 w-6 bg-base-content transition-all duration-300"
+                />
+              </div>
+            </button>
+          </div>
+
+          {/* Desktop — matches SurveyHeaderOverlay column alignment */}
+          <div className="relative hidden md:flex min-h-12 w-full items-center">
+            <div className="flex w-full flex-row items-center">
+              <div className="w-3/5 shrink-0 flex items-center gap-10 lg:gap-12">
+                <Link href="/" className="inline-flex items-center">
+                  <div className="flex h-12 items-center">
+                    <Image
+                      src="/icon2.png"
+                      alt="PropWiz"
+                      width={447}
+                      height={444}
+                      className="h-full w-auto object-contain"
+                      priority
+                    />
+                  </div>
+                </Link>
+                <nav className="flex items-center gap-8 lg:gap-10 font-medium text-md lg:text-lg">
+                  <Link
+                    href="/"
+                    className={`hover:text-primary transition-colors ${
+                      pathname === '/' ? 'underline underline-offset-6 decoration-2' : ''
+                    }`}
+                  >
+                    Home
+                  </Link>
+                  <Link
+                    href="/about"
+                    className={`hover:text-primary transition-colors ${
+                      pathname === '/about' ? 'underline underline-offset-6 decoration-2' : ''
+                    }`}
+                  >
+                    About
+                  </Link>
+                  <Link
+                    href="/contact"
+                    className={`hover:text-primary transition-colors ${
+                      pathname === '/contact' ? 'underline underline-offset-6 decoration-2' : ''
+                    }`}
+                  >
+                    Contact
+                  </Link>
+                </nav>
+              </div>
+              <div className="w-1/2 shrink-0 -ml-12 flex items-center justify-center">
+                <div className="flex w-full max-w-md justify-end pr-12 lg:pr-12">
+                  <div className="flex shrink-0 items-center gap-3">
+                    {loading ? null : (user && pathname !== '/reset-password' && pathname !== '/forgot-password') ? (
+                      <>
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setIsNavigatingToDashboard(true)}
+                          className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors flex items-center gap-2"
+                        >
+                          <User className="w-4 h-4" />
+                          Account
+                        </Link>
+                        <button
+                          onClick={handleLogout}
+                          className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2 cursor-pointer"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Logout
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <Link
+                          href="/login"
+                          onClick={() => {
+                            if (pathname === '/reset-password' || pathname === '/forgot-password') {
+                              sessionStorage.setItem('fromPasswordReset', 'true');
+                            }
+                          }}
+                          className="px-3 py-2 text-sm font-medium text-primary border border-primary rounded-full hover:bg-primary/10 transition-colors"
+                        >
+                          Log In
+                        </Link>
+                        <Link
+                          href="/signup"
+                          className="px-3 py-2 text-sm font-medium text-secondary bg-primary rounded-full hover:bg-primary/90 transition-colors"
+                        >
+                          Sign Up
+                        </Link>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </button>
+              </div>
             </div>
           </div>
-        </div>
+        </SiteHeaderShell>
       </header>
 
       {/* Mobile menu overlay */}

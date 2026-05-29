@@ -13,6 +13,7 @@ import {
     MOBILE_HEADER_MENU_TOP_CLASS,
     MOBILE_MENU_OVERLAY_STYLE,
 } from '@/lib/loggedInHeaderGlassStyle';
+import SiteHeaderShell from '@/components/SiteHeaderShell';
 
 export default function LoggedInHeaderOverlay() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -74,79 +75,28 @@ export default function LoggedInHeaderOverlay() {
                 className="fixed top-0 left-0 right-0 z-[150]"
                 style={PUBLIC_HEADER_GLASS_STYLE}
             >
-                <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
-                    <div className="flex items-center justify-between">
-                        {/* Mobile: Logo left — matches public Header */}
-                        <div className="flex items-center md:hidden">
-                            <Link
-                                href="/dashboard"
-                                onClick={() => setIsNavigatingToDashboard(true)}
-                                className="flex items-center"
-                            >
-                                <div className="w-28 h-9 flex items-center">
-                                    <Image
-                                        src="/icon2.png"
-                                        alt="PropWiz"
-                                        width={447}
-                                        height={444}
-                                        className="w-full h-full object-contain object-left"
-                                        priority
-                                    />
-                                </div>
-                            </Link>
-                        </div>
-
-                        {/* Desktop: Logo on left with nav links */}
-                        <div className="hidden md:flex md:items-center md:space-x-2 md:flex-1">
-                            <Link href="/dashboard" onClick={() => setIsNavigatingToDashboard(true)} className="flex items-center">
-                                <div className="h-12 flex items-center">
-                                    <Image
-                                        src="/icon2.png"
-                                        alt="PropWiz"
-                                        width={447}
-                                        height={444}
-                                        className="h-full w-auto object-contain"
-                                        priority
-                                    />
-                                </div>
-                            </Link>
-                            {/* Desktop nav links */}
-                            <nav className="flex items-center gap-10 lg:gap-15 font-medium text-md lg:text-lg ml-10 lg:ml-20">
-                                <Link
-                                    href="/dashboard"
-                                    onClick={() => setIsNavigatingToDashboard(true)}
-                                    className={`hover:text-primary transition-colors ${
-                                        pathname === '/dashboard' ? 'underline underline-offset-6 decoration-2' : ''
-                                    }`}
-                                >
-                                    Dashboard
-                                </Link>
-                                <Link
-                                    href="/settings/account"
-                                    className={`hover:text-primary transition-colors ${
-                                        pathname.startsWith('/settings') ? 'underline underline-offset-6 decoration-2' : ''
-                                    }`}
-                                >
-                                    Settings
-                                </Link>
-                            </nav>
-                        </div>
-
-                        {/* Desktop: Logout on right */}
-                        <div className="hidden md:flex md:items-center md:gap-3">
-                            <button
-                                onClick={handleLogout}
-                                className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2 cursor-pointer"
-                            >
-                                <LogOut className="w-4 h-4" />
-                                Logout
-                            </button>
-                        </div>
-
-                        {/* Hamburger button - mobile only */}
+                <SiteHeaderShell>
+                    {/* Mobile — matches public Header */}
+                    <div className="flex md:hidden items-center justify-between">
+                        <Link
+                            href="/dashboard"
+                            onClick={() => setIsNavigatingToDashboard(true)}
+                            className="flex items-center"
+                        >
+                            <div className="w-28 h-9 flex items-center">
+                                <Image
+                                    src="/icon2.png"
+                                    alt="PropWiz"
+                                    width={447}
+                                    height={444}
+                                    className="w-full h-full object-contain object-left"
+                                    priority
+                                />
+                            </div>
+                        </Link>
                         <button
                             onClick={toggleMenu}
-                            className="md:hidden focus:outline-none mr-2"
+                            className="focus:outline-none mr-2"
                             aria-label="Toggle menu"
                         >
                             <div className="space-y-1.5">
@@ -165,7 +115,61 @@ export default function LoggedInHeaderOverlay() {
                             </div>
                         </button>
                     </div>
-                </div>
+
+                    {/* Desktop — matches public Header: logo + nav left, logout right */}
+                    <div className="hidden md:flex min-h-12 w-full items-center">
+                        <div className="flex w-full flex-row items-center">
+                            <div className="w-3/5 shrink-0 flex items-center gap-10 lg:gap-12">
+                                <Link
+                                    href="/dashboard"
+                                    onClick={() => setIsNavigatingToDashboard(true)}
+                                    className="inline-flex items-center"
+                                >
+                                    <div className="flex h-12 items-center">
+                                        <Image
+                                            src="/icon2.png"
+                                            alt="PropWiz"
+                                            width={447}
+                                            height={444}
+                                            className="h-full w-auto object-contain"
+                                            priority
+                                        />
+                                    </div>
+                                </Link>
+                                <nav className="flex items-center gap-8 lg:gap-10 font-medium text-md lg:text-lg">
+                                    <Link
+                                        href="/dashboard"
+                                        onClick={() => setIsNavigatingToDashboard(true)}
+                                        className={`hover:text-primary transition-colors ${
+                                            pathname === '/dashboard' ? 'underline underline-offset-6 decoration-2' : ''
+                                        }`}
+                                    >
+                                        Dashboard
+                                    </Link>
+                                    <Link
+                                        href="/settings/account"
+                                        className={`hover:text-primary transition-colors ${
+                                            pathname.startsWith('/settings') ? 'underline underline-offset-6 decoration-2' : ''
+                                        }`}
+                                    >
+                                        Settings
+                                    </Link>
+                                </nav>
+                            </div>
+                            <div className="w-1/2 shrink-0 -ml-12 flex items-center justify-center">
+                                <div className="flex w-full max-w-md justify-end pr-12 lg:pr-12">
+                                    <button
+                                        onClick={handleLogout}
+                                        className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors flex items-center gap-2 cursor-pointer"
+                                    >
+                                        <LogOut className="w-4 h-4" />
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </SiteHeaderShell>
             </header>
 
             {/* Mobile menu overlay */}

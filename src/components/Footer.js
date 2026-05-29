@@ -31,7 +31,7 @@ export default function Footer() {
               className="inline-flex items-center gap-2 mb-4 hover:opacity-90 transition-opacity"
             >
               <Image
-                src="/icon.png"
+                src="/icon2.png"
                 alt="PropWiz"
                 width={40}
                 height={40}

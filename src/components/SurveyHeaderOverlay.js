@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useFormStore } from '../stores/formStore';
 import { useAuth } from '@/hooks/useAuth';
+import SiteHeaderShell from '@/components/SiteHeaderShell';
 
 export default function SurveyHeaderOverlay() {
     const router = useRouter();
@@ -134,56 +135,89 @@ export default function SurveyHeaderOverlay() {
                     '0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.4)'
             }}
         >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                <div className="flex items-center justify-between">
-                    {/* Home icon - left side */}
+            <SiteHeaderShell>
+                {/* Mobile */}
+                <div className="flex md:hidden items-center justify-between">
                     <Link href="/" onClick={handleLogoClick} className="flex items-center">
-                        {/* Mobile: Show Icon2.png */}
-                        <div className="w-12 h-12 md:hidden flex items-center">
-                            <Image
-                                src="/icon.png"
-                                alt="PropWiz"
-                                width={447}
-                                height={444}
-                                className="w-full h-full object-contain"
-                                priority
-                            />
-                        </div>
-                        {/* Desktop: Show Icon3.png */}
-                        <div className="hidden md:flex md:items-center md:h-12">
+                        <div className="w-28 h-9 flex items-center">
                             <Image
                                 src="/icon2.png"
                                 alt="PropWiz"
                                 width={447}
                                 height={444}
-                                className="h-full w-auto object-contain"
+                                className="w-full h-full object-contain object-left"
                                 priority
                             />
                         </div>
                     </Link>
-                    
-                    {/* Close button - right side */}
                     <button
                         onClick={handleClose}
                         className="focus:outline-none cursor-pointer p-2 hover:bg-gray-100 rounded-full transition-colors"
                         aria-label="Close survey"
                     >
-                        <svg 
-                            className="w-6 h-6 text-base-content" 
-                            fill="none" 
-                            stroke="currentColor" 
+                        <svg
+                            className="w-6 h-6 text-base-content"
+                            fill="none"
+                            stroke="currentColor"
                             viewBox="0 0 24 24"
                         >
-                            <path 
-                                strokeLinecap="round" 
-                                strokeLinejoin="round" 
-                                strokeWidth={2} 
-                                d="M6 18L18 6M6 6l12 12" 
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
                             />
                         </svg>
                     </button>
                 </div>
-            </div>
+
+                {/* Desktop — mirror WelcomePage columns so X aligns with illustration right edge */}
+                <div className="hidden md:flex min-h-12 w-full items-center">
+                    <div className="flex w-full flex-row items-center">
+                        <div className="w-3/5 shrink-0">
+                            <Link
+                                href="/"
+                                onClick={handleLogoClick}
+                                className="inline-flex items-center"
+                            >
+                                <div className="flex h-12 items-center">
+                                    <Image
+                                        src="/icon2.png"
+                                        alt="PropWiz"
+                                        width={447}
+                                        height={444}
+                                        className="h-full w-auto object-contain"
+                                        priority
+                                    />
+                                </div>
+                            </Link>
+                        </div>
+                        <div className="w-1/2 shrink-0 -ml-12 flex items-center justify-center">
+                            <div className="flex w-full max-w-md justify-end pr-12 lg:pr-12">
+                                <button
+                                    onClick={handleClose}
+                                    className="focus:outline-none cursor-pointer p-2 hover:bg-gray-100 rounded-full transition-colors"
+                                    aria-label="Close survey"
+                                >
+                                    <svg
+                                        className="w-6 h-6 text-base-content"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M6 18L18 6M6 6l12 12"
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </SiteHeaderShell>
         </header>
 
         {/* Loading overlay when navigating away from survey */}
