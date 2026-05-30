@@ -183,17 +183,22 @@ export default function HomePage() {
             </section>
 
             {/* Hook Section */}
-            <section className="relative z-10 overflow-hidden bg-black/40">
+            <section className="relative z-10 overflow-hidden">
+                <div
+                    className="absolute inset-0 z-0 bg-black/25 backdrop-blur-md"
+                    aria-hidden="true"
+                />
                 <div className="relative z-10 container mx-auto px-4 py-16 lg:py-32">
                         <div className="grid gap-12 lg:gap-20 md:grid-cols-2 items-center">
+                            {/* Stabilized Framer Motion container with aspect layout constraints for clean mobile composition rendering */}
                             <motion.div
-                                initial={{ opacity: 0, y: isMobile ? 15 : 0, x: isMobile ? 0 : -40 }}
-                                whileInView={{ opacity: 1, y: 0, x: 0 }}
-                                viewport={{ once: true, amount: 0.1 }}
+                                initial={{ opacity: 0, x: isMobile ? 0 : -40, y: isMobile ? 15 : 0 }}
+                                whileInView={{ opacity: 1, x: 0, y: 0 }}
+                                viewport={{ once: true, amount: 0.05 }}
                                 transition={{ duration: 0.5, ease: "easeOut" }}
-                                className="flex justify-center"
+                                className="flex justify-center w-full"
                             >
-                                <div className="w-full mx-auto relative min-h-[300px] md:min-h-auto">
+                                <div className="w-full mx-auto aspect-square relative max-w-[450px] md:max-w-none">
                                     <Image
                                         src="/test7.png"
                                         alt="Person contemplating home buying costs"
@@ -206,9 +211,9 @@ export default function HomePage() {
                                 </div>
                             </motion.div>
                             <motion.div
-                                initial={{ opacity: 0, y: isMobile ? 15 : 0, x: isMobile ? 0 : 40 }}
-                                whileInView={{ opacity: 1, y: 0, x: 0 }}
-                                viewport={{ once: true, amount: 0.1 }}
+                                initial={{ opacity: 0, x: isMobile ? 0 : 40, y: isMobile ? 15 : 0 }}
+                                whileInView={{ opacity: 1, x: 0, y: 0 }}
+                                viewport={{ once: true, amount: 0.05 }}
                                 transition={{ duration: 0.5, delay: isMobile ? 0 : 0.1, ease: "easeOut" }}
                                 className="max-w-xl text-center md:text-left"
                             >
