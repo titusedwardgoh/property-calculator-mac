@@ -183,21 +183,17 @@ export default function HomePage() {
             </section>
 
             {/* Hook Section */}
-            <section className="relative z-10">
-                <div
-                    className="absolute inset-0 z-0 bg-black/25 backdrop-blur-md"
-                    aria-hidden="true"
-                />
+            <section className="relative z-10 overflow-hidden bg-black/40">
                 <div className="relative z-10 container mx-auto px-4 py-16 lg:py-32">
                         <div className="grid gap-12 lg:gap-20 md:grid-cols-2 items-center">
                             <motion.div
-                                initial={{ opacity: 0, x: -40 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                viewport={{ once: true, amount: 0.3 }}
-                                transition={{ duration: 0.6, ease: "easeOut" }}
+                                initial={{ opacity: 0, y: isMobile ? 15 : 0, x: isMobile ? 0 : -40 }}
+                                whileInView={{ opacity: 1, y: 0, x: 0 }}
+                                viewport={{ once: true, amount: 0.1 }}
+                                transition={{ duration: 0.5, ease: "easeOut" }}
                                 className="flex justify-center"
                             >
-                                <div className="w-full mx-auto">
+                                <div className="w-full mx-auto relative min-h-[300px] md:min-h-auto">
                                     <Image
                                         src="/test7.png"
                                         alt="Person contemplating home buying costs"
@@ -210,10 +206,10 @@ export default function HomePage() {
                                 </div>
                             </motion.div>
                             <motion.div
-                                initial={{ opacity: 0, x: 40 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                viewport={{ once: true, amount: 0.3 }}
-                                transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+                                initial={{ opacity: 0, y: isMobile ? 15 : 0, x: isMobile ? 0 : 40 }}
+                                whileInView={{ opacity: 1, y: 0, x: 0 }}
+                                viewport={{ once: true, amount: 0.1 }}
+                                transition={{ duration: 0.5, delay: isMobile ? 0 : 0.1, ease: "easeOut" }}
                                 className="max-w-xl text-center md:text-left"
                             >
                                 <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white leading-tight mb-5">
