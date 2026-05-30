@@ -108,15 +108,12 @@ export default function HomePage() {
             />
             {/* Mobile static background — hidden on desktop */}
             <div
-                className="fixed top-0 left-0 w-full md:hidden pointer-events-none z-0"
+                className="fixed inset-0 md:hidden pointer-events-none z-0"
                 style={{
-                    height: '100vmax',
                     backgroundImage: "url('/test6.jpg')",
                     backgroundSize: 'cover',
                     backgroundPosition: 'center center',
                     backgroundRepeat: 'no-repeat',
-                    willChange: 'transform',
-                    transform: 'translateZ(0)',
                 }}
                 aria-hidden="true"
             />
