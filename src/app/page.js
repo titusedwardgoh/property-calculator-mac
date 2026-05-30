@@ -46,17 +46,31 @@ export default function HomePage() {
 
     const [activeIndex, setActiveIndex] = useState(0);
     const [visibleCount, setVisibleCount] = useState(1);
+    const [isMobile, setIsMobile] = useState(true);
     const autoScrollRef = useRef(null);
     const isHovering = useRef(false);
+    const lastWidthRef = useRef(0);
 
     const { scrollY } = useScroll();
     const parallaxY = useTransform(scrollY, [0, 3000], [0, -200]);
 
     useEffect(() => {
         const update = () => {
-            if (window.innerWidth >= 1024) setVisibleCount(3);
-            else if (window.innerWidth >= 768) setVisibleCount(2);
-            else setVisibleCount(1);
+            const currentWidth = window.innerWidth;
+
+            if (currentWidth === lastWidthRef.current) return;
+            lastWidthRef.current = currentWidth;
+
+            if (currentWidth >= 1024) {
+                setVisibleCount(3);
+                setIsMobile(false);
+            } else if (currentWidth >= 768) {
+                setVisibleCount(2);
+                setIsMobile(false);
+            } else {
+                setVisibleCount(1);
+                setIsMobile(true);
+            }
         };
         update();
         window.addEventListener('resize', update);
@@ -88,24 +102,26 @@ export default function HomePage() {
     }, [visibleCount]);
 
     const handleGetStarted = () => {
-        // Navigate to calculator route (welcome page will show first)
         router.push('/calculator');
     };
 
     return (
         <div className="min-h-screen bg-base-200">
-            {/* Desktop parallax background — hidden on mobile */}
-            <motion.div
-                className="fixed inset-0 z-0 pointer-events-none hidden md:block"
-                style={{
-                    y: parallaxY,
-                    backgroundImage: "url('/test6.jpg')",
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center center',
-                    backgroundRepeat: 'no-repeat',
-                }}
-                aria-hidden="true"
-            />
+            {/* Desktop parallax background — Completely omitted from the DOM on mobile to stop frame thrashes */}
+            {!isMobile && (
+                <motion.div
+                    className="fixed inset-0 z-0 pointer-events-none hidden md:block"
+                    style={{
+                        y: parallaxY,
+                        backgroundImage: "url('/test6.jpg')",
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center center',
+                        backgroundRepeat: 'no-repeat',
+                    }}
+                    aria-hidden="true"
+                />
+            )}
+
             {/* Mobile static background — hidden on desktop */}
             <div
                 className="fixed inset-0 md:hidden pointer-events-none z-0"
@@ -133,7 +149,7 @@ export default function HomePage() {
                             Free, Instant, No Account Needed
                         </span>
                     </motion.h1>
-                    
+
                     <motion.p
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -157,7 +173,7 @@ export default function HomePage() {
                         >
                             Start Free Calculator
                         </motion.button>
-                        
+
                         <p className="text-sm text-gray-500">
                             Takes less than 5 minutes
                         </p>
@@ -404,7 +420,6 @@ export default function HomePage() {
                     </motion.h2>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {/* Free Features */}
                         {[
                             {
                                 title: "Comprehensive Cost Breakdown",
