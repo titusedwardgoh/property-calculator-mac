@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Minus, DollarSign, Download, Mail, Edit, Plus, ArrowRight, Loader2, CheckCircle2 } from 'lucide-react';
+import { Home, Minus, DollarSign, Download, Mail, Edit, Plus, ArrowRight, Loader2, CheckCircle2, ChevronDown } from 'lucide-react';
 import UpfrontCosts from '../../components/UpfrontCosts';
 import OngoingCosts from '../../components/OngoingCosts';
 import Summary from '../../components/Summary';
@@ -25,6 +25,7 @@ import { useSupabaseSync } from '../../hooks/useSupabaseSync';
 import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency } from '../../states/shared/baseCalculations.js';
 import { useStateSelector } from '../../states/useStateSelector.js';
+import { formatFieldValue } from '../../lib/fieldMapping.js';
 import Link from 'next/link';
 
 function CalculatorPageContent() {
@@ -43,6 +44,7 @@ function CalculatorPageContent() {
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [showEmailSuccess, setShowEmailSuccess] = useState(false);
     const [emailSuccessData, setEmailSuccessData] = useState(null);
+    const [isPropertyCardExpanded, setIsPropertyCardExpanded] = useState(false);
     const hasResumedRef = useRef(false);
     const initialWelcomeCheckedRef = useRef(false);
     
@@ -831,6 +833,14 @@ function CalculatorPageContent() {
 
                                 const monthlyCashFlow = getMonthlyOngoingCosts();
                                 const annualOperatingCost = getAnnualOngoingCosts();
+
+                                const propertyDisplayAddress =
+                                    formData.propertyAddress?.trim() ||
+                                    [formData.propertyStreetAddress, formData.propertySuburbPostcode]
+                                        .filter(Boolean)
+                                        .join(', ') ||
+                                    'Not specified';
+                                const propertyDisplayPrice = parseInt(formData.propertyPrice) || 0;
                                 
                                 return (
                                 <AnimatePresence mode="wait">
@@ -851,7 +861,7 @@ function CalculatorPageContent() {
                                                 className="text-center md:text-left mb-2 md:pt-4"
                                             >
                                                 <h2 className="text-3xl md:text-4xl font-black tracking-tight text-secondary leading-tight">
-                                                    Summary of Results
+                                                    Results Summary
                                                 </h2>
                                             </motion.div>
 
@@ -862,6 +872,108 @@ function CalculatorPageContent() {
                                                 transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
                                                 className="bg-base-200 border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm space-y-8"
                                             >
+                                                {/* Property summary */}
+                                                <div className="pb-6 border-b border-gray-100">
+                                                    <div 
+                                                        className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm"
+                                                        onClick={() => setIsPropertyCardExpanded(!isPropertyCardExpanded)}
+                                                    >
+                                                        {/* Card Header Row */}
+                                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                <div className="p-2.5 bg-white rounded-lg border border-[#fef6e4] shadow-sm shrink-0">
+                                                                    <Home className="w-5 h-5 text-primary" />
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Property Address</span>
+                                                                    <p className="text-base md:text-lg font-bold text-secondary mt-0.5 break-words">
+                                                                        {propertyDisplayAddress}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-4 sm:pl-4 shrink-0 justify-between sm:justify-end">
+                                                                <div className="sm:text-right">
+                                                                    <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Property Price</span>
+                                                                    <p className="text-2xl md:text-3xl font-black text-secondary mt-0.5 tracking-tight">
+                                                                        {formatCurrency(propertyDisplayPrice)}
+                                                                    </p>
+                                                                </div>
+                                                                <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
+                                                                    <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isPropertyCardExpanded ? 'rotate-180' : ''}`} />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Expanded Details Row */}
+                                                        <AnimatePresence initial={false}>
+                                                            {isPropertyCardExpanded && (
+                                                                <motion.div
+                                                                    initial={{ height: 0, opacity: 0 }}
+                                                                    animate={{ height: "auto", opacity: 1 }}
+                                                                    exit={{ height: 0, opacity: 0 }}
+                                                                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                                                                    className="overflow-hidden border-t border-[#fef6e4] pt-4 mt-2"
+                                                                    onClick={(e) => e.stopPropagation()} // Prevent collapse on detail click
+                                                                >
+                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 text-sm text-secondary">
+                                                                        {/* State */}
+                                                                        <div>
+                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">State</span>
+                                                                            <p className="font-semibold text-secondary mt-0.5">{formData.selectedState || 'Not specified'}</p>
+                                                                        </div>
+
+                                                                        {/* New/Existing (propertyType) */}
+                                                                        <div>
+                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">New/Existing</span>
+                                                                            <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('propertyType', formData.propertyType)}</p>
+                                                                        </div>
+
+                                                                        {/* Property Type (propertyCategory) */}
+                                                                        <div>
+                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Property Type</span>
+                                                                            <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('propertyCategory', formData.propertyCategory)}</p>
+                                                                        </div>
+
+                                                                        {/* Construction Started (conditional) */}
+                                                                        {(formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land') && formData.constructionStarted && (
+                                                                            <div>
+                                                                                <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Construction Started</span>
+                                                                                <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('constructionStarted', formData.constructionStarted)}</p>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* Dutiable Value (conditional) */}
+                                                                        {formData.dutiableValue && (
+                                                                            <div>
+                                                                                <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Dutiable Value</span>
+                                                                                <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('dutiableValue', formData.dutiableValue)}</p>
+                                                                            </div>
+                                                                        )}
+
+                                                                        {/* WA Specific Fields */}
+                                                                        {formData.selectedState === 'WA' && (
+                                                                            <>
+                                                                                {formData.isWA && (
+                                                                                    <div>
+                                                                                        <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">WA Region</span>
+                                                                                        <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('isWA', formData.isWA)}</p>
+                                                                                    </div>
+                                                                                )}
+                                                                                {formData.isWAMetro && (
+                                                                                    <div>
+                                                                                        <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Metro Area</span>
+                                                                                        <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('isWAMetro', formData.isWAMetro)}</p>
+                                                                                    </div>
+                                                                                )}
+                                                                            </>
+                                                                        )}
+                                                                    </div>
+                                                                </motion.div>
+                                                            )}
+                                                        </AnimatePresence>
+                                                    </div>
+                                                </div>
+
                                                 {/* Settlement Section */}
                                                 <div className="space-y-6">
                                                     <div>
@@ -982,7 +1094,7 @@ function CalculatorPageContent() {
                                                         <div className="bg-emerald-50/30 border-2 border-emerald-100 rounded-xl p-6 text-center">
                                                             <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
                                                             <h3 className="text-lg font-bold text-secondary mb-1">Check your inbox!</h3>
-                                                            <p className="text-sm text-gray-600 mb-4">Your detailed property matrix has been dispatched to {emailSuccessData?.email}</p>
+                                                            <p className="text-sm text-gray-600 mb-4">Your detailed property report has been dispatched to {emailSuccessData?.email}</p>
                                                             
                                                             {emailSuccessData?.testingMode && (
                                                                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-left">
@@ -991,24 +1103,26 @@ function CalculatorPageContent() {
                                                                 </div>
                                                             )}
                                                             
-                                                            {emailSuccessData?.emailExists ? (
-                                                                <>
-                                                                    <p className="text-xs text-gray-500 mb-4">An identified account vector exists for this address. Sign in to sync your calculation sheets.</p>
-                                                                    <Link href={`/login?email=${encodeURIComponent(emailSuccessData.email)}&next=/calculator`} className="inline-block">
-                                                                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-secondary hover:bg-secondary/90 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
-                                                                            Sign In to Your Account
-                                                                        </motion.button>
-                                                                    </Link>
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <p className="text-xs text-gray-500 mb-4">Want to track these properties over long horizons? Open a persistent record track.</p>
-                                                                    <Link href={`/signup?email=${encodeURIComponent(emailSuccessData.email)}`} className="inline-block">
-                                                                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
-                                                                            Create My Account
-                                                                        </motion.button>
-                                                                    </Link>
-                                                                </>
+                                                            {!user && (
+                                                                emailSuccessData?.emailExists ? (
+                                                                    <>
+                                                                        <p className="text-xs text-gray-500 mb-4">An identified account vector exists for this address. Sign in to sync your calculation sheets.</p>
+                                                                        <Link href={`/login?email=${encodeURIComponent(emailSuccessData.email)}&next=/calculator`} className="inline-block">
+                                                                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-secondary hover:bg-secondary/90 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
+                                                                                Sign In to Your Account
+                                                                            </motion.button>
+                                                                        </Link>
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <p className="text-xs text-gray-500 mb-4">Want to track these properties over long horizons? Open a persistent record track.</p>
+                                                                        <Link href={`/signup?email=${encodeURIComponent(emailSuccessData.email)}`} className="inline-block">
+                                                                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
+                                                                                Create My Account
+                                                                            </motion.button>
+                                                                        </Link>
+                                                                    </>
+                                                                )
                                                             )}
                                                         </div>
                                                     </motion.div>
@@ -1017,7 +1131,7 @@ function CalculatorPageContent() {
                                                         <motion.button
                                                             whileHover={{ scale: 1.02 }}
                                                             whileTap={{ scale: 0.98 }}
-                                                            className="flex items-center cursor-pointer justify-center gap-2 bg-primary hover:bg-primary/95 text-white px-6 py-4 rounded-xl font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150"
+                                                            className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-primary hover:bg-primary/95 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150"
                                                         >
                                                             <Download className="w-4 h-4" />
                                                             Download Full PDF Report
@@ -1028,7 +1142,7 @@ function CalculatorPageContent() {
                                                             whileTap={{ scale: 0.98 }}
                                                             onClick={handleEmailPDF}
                                                             disabled={isEmailingPDF}
-                                                            className="flex items-center cursor-pointer justify-center gap-2 bg-base-200 border-2 border-secondary text-secondary hover:bg-secondary/5 px-6 py-4 rounded-xl font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-base-200 border-2 border-secondary text-secondary hover:bg-secondary/5 px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
                                                         >
                                                             {isEmailingPDF ? (
                                                                 <>
@@ -1064,7 +1178,7 @@ function CalculatorPageContent() {
                                                             setShowReviewOverlay(false);
                                                         }, 2000);
                                                     }}
-                                                    className="flex items-center cursor-pointer justify-center gap-2 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-lg font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
+                                                    className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                     Review/Edit All Answers
@@ -1076,7 +1190,7 @@ function CalculatorPageContent() {
                                                     onClick={() => {
                                                         formData.resetForm();
                                                     }}
-                                                    className="flex items-center cursor-pointer justify-center gap-2 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-lg font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
+                                                    className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
                                                 >
                                                     <Plus className="w-4 h-4" />
                                                     Start New Survey
@@ -1099,7 +1213,7 @@ function CalculatorPageContent() {
                                                             window.__navigationWarning.checkNavigation(targetUrl);
                                                         }
                                                     }}
-                                                    className="flex items-center cursor-pointer justify-center gap-2 bg-secondary hover:bg-secondary-focus text-white px-6 py-3 rounded-lg font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
+                                                    className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-secondary hover:bg-secondary-focus text-white px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
                                                 >
                                                     {user ? (
                                                         <>
