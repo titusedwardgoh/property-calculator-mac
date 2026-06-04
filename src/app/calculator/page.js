@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Minus, DollarSign, Download, Mail, Edit, Plus, ArrowRight, Loader2, CheckCircle2, ChevronDown } from 'lucide-react';
+import { Home, Minus, DollarSign, Download, Mail, Edit, Plus, ArrowRight, Loader2, CheckCircle2, ChevronDown, User } from 'lucide-react';
 import UpfrontCosts from '../../components/UpfrontCosts';
 import OngoingCosts from '../../components/OngoingCosts';
 import Summary from '../../components/Summary';
@@ -25,7 +25,7 @@ import { useSupabaseSync } from '../../hooks/useSupabaseSync';
 import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency } from '../../states/shared/baseCalculations.js';
 import { useStateSelector } from '../../states/useStateSelector.js';
-import { formatFieldValue } from '../../lib/fieldMapping.js';
+import { formatFieldValue, fieldLabels } from '../../lib/fieldMapping.js';
 import Link from 'next/link';
 
 function CalculatorPageContent() {
@@ -45,27 +45,29 @@ function CalculatorPageContent() {
     const [showEmailSuccess, setShowEmailSuccess] = useState(false);
     const [emailSuccessData, setEmailSuccessData] = useState(null);
     const [isPropertyCardExpanded, setIsPropertyCardExpanded] = useState(false);
+    const [isBuyerCardExpanded, setIsBuyerCardExpanded] = useState(false);
+    const [isUpfrontCostsExpanded, setIsUpfrontCostsExpanded] = useState(false);
     const hasResumedRef = useRef(false);
     const initialWelcomeCheckedRef = useRef(false);
-    
+
     // Get state-specific functions for calculations
     const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW');
-    
+
     // Initialize Supabase sync
     // Auto-save to database is ALWAYS enabled (for both logged-in and anonymous users)
     // The "save" prompts are about linking records to user's dashboard (user_id)
     const { saveToSupabase, hasUnsavedChanges, loadFromSupabase, setOriginalLoadedState } = useSupabaseSync(
-        formData, 
-        updateFormData, 
-        propertyId, 
+        formData,
+        updateFormData,
+        propertyId,
         setPropertyId,
-        { 
+        {
             autoSave: true, // Enable auto-save functionality
             enableAutoSave: true, // Always auto-save to database (logged in or not)
             isLoadingResume
         }
     );
-    
+
     // Resume / view a saved survey from the dashboard
     useEffect(() => {
         const resumePropertyId =
@@ -140,22 +142,22 @@ function CalculatorPageContent() {
             updateFormData('showWelcomePage', true);
         }
     }, [authLoading, searchParams, updateFormData]);
-    
+
     // Safety check: Stop resuming if all forms are complete
     useEffect(() => {
-      if (formData.isResumingSurvey && formData.allFormsComplete) {
-        setTimeout(() => {
-          formData.setIsResumingSurvey(false);
-        }, 200);
-      }
+        if (formData.isResumingSurvey && formData.allFormsComplete) {
+            setTimeout(() => {
+                formData.setIsResumingSurvey(false);
+            }, 200);
+        }
     }, [formData.isResumingSurvey, formData.allFormsComplete]);
-    
+
     // Define handleLinkToAccount before useEffect that uses it
     const handleLinkToAccount = useCallback(async (userId) => {
         // When anonymous user logs in/creates account, link existing record to their account
         const linkPropertyId = typeof window !== 'undefined' ? sessionStorage.getItem('linkPropertyIdAfterAuth') : null;
         const targetPropertyId = linkPropertyId || propertyId;
-        
+
         if (targetPropertyId) {
             try {
                 const response = await fetch('/api/supabase', {
@@ -177,7 +179,7 @@ function CalculatorPageContent() {
                 }
 
                 console.log('✅ Property linked to account:', result.message);
-                
+
                 // If we linked a property that wasn't the current one, reload the page to get the updated data
                 if (linkPropertyId && linkPropertyId !== propertyId) {
                     window.location.reload();
@@ -187,19 +189,19 @@ function CalculatorPageContent() {
             }
         }
     }, [propertyId]);
-    
+
     // Check if user just logged in and needs to link a property
     useEffect(() => {
-      if (typeof window === 'undefined') return;
-      
-      const linkPropertyId = sessionStorage.getItem('linkPropertyIdAfterAuth');
-      if (linkPropertyId && user) {
-        // User logged in and there's a property to link - link it via API
-        handleLinkToAccount(user.id);
-        sessionStorage.removeItem('linkPropertyIdAfterAuth');
-      }
+        if (typeof window === 'undefined') return;
+
+        const linkPropertyId = sessionStorage.getItem('linkPropertyIdAfterAuth');
+        if (linkPropertyId && user) {
+            // User logged in and there's a property to link - link it via API
+            handleLinkToAccount(user.id);
+            sessionStorage.removeItem('linkPropertyIdAfterAuth');
+        }
     }, [user, handleLinkToAccount]);
-    
+
     const showWelcomePage = formData.showWelcomePage;
     const propertyDetailsComplete = formData.propertyDetailsComplete;
     const buyerDetailsComplete = formData.buyerDetailsComplete;
@@ -217,14 +219,14 @@ function CalculatorPageContent() {
     const selectedState = formData.selectedState;
     const isACT = formData.isACT;
     const propertyType = formData.propertyType;
-    
+
     // Subscribe to the active step fields to ensure re-renders
     const propertyDetailsCurrentStep = formData.propertyDetailsCurrentStep;
     const propertyDetailsActiveStep = formData.propertyDetailsActiveStep;
     const buyerDetailsActiveStep = formData.buyerDetailsActiveStep;
     const loanDetailsActiveStep = formData.loanDetailsActiveStep;
     const sellerQuestionsActiveStep = formData.sellerQuestionsActiveStep;
-    
+
 
 
     const handleSave = async (userSaved = false) => {
@@ -282,7 +284,7 @@ function CalculatorPageContent() {
                     const depositAmount = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanDeposit) || 0) : 0;
                     const settlementFee = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanSettlementFees) || 0) : 0;
                     const establishmentFee = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanEstablishmentFee) || 0) : 0;
-                    
+
                     return {
                         stampDuty: { amount: stampDutyAmount, label: "Stamp Duty" },
                         concessions: [],
@@ -292,7 +294,7 @@ function CalculatorPageContent() {
                         totalUpfrontCosts: stampDutyAmount + depositAmount + settlementFee + establishmentFee
                     };
                 }
-                
+
                 const buyerData = {
                     selectedState: formData.selectedState,
                     buyerType: formData.buyerType,
@@ -309,7 +311,7 @@ function CalculatorPageContent() {
                     constructionStarted: formData.constructionStarted,
                     sellerQuestionsComplete: formData.sellerQuestionsComplete
                 };
-                
+
                 const propertyData = {
                     propertyPrice: formData.propertyPrice,
                     propertyType: formData.propertyType,
@@ -318,59 +320,59 @@ function CalculatorPageContent() {
                     isWAMetro: formData.isWAMetro,
                     isACT: formData.isACT
                 };
-                
+
                 const upfrontCostsResult = stateFunctions.calculateUpfrontCosts(buyerData, propertyData, formData.selectedState);
-                
+
                 const firbFee = parseInt(formData.FIRBFee) || 0;
                 upfrontCostsResult.totalUpfrontCosts += firbFee;
-                
+
                 if (formData.loanDetailsComplete && formData.needsLoan === 'yes') {
                     const depositAmount = parseInt(formData.loanDeposit) || 0;
                     const settlementFee = parseInt(formData.loanSettlementFees) || 0;
                     const establishmentFee = parseInt(formData.loanEstablishmentFee) || 0;
-                    
+
                     let additionalCosts = 0;
                     if (formData.sellerQuestionsComplete) {
                         additionalCosts += parseInt(formData.landTransferFee) || 0;
                         additionalCosts += parseInt(formData.legalFees) || 0;
                         additionalCosts += parseInt(formData.buildingAndPestInspection) || 0;
                     }
-                    
+
                     return {
                         ...upfrontCostsResult,
                         totalUpfrontCosts: upfrontCostsResult.totalUpfrontCosts + depositAmount + settlementFee + establishmentFee + additionalCosts
                     };
                 }
-                
+
                 if (formData.sellerQuestionsComplete) {
                     const landTransferFee = parseInt(formData.landTransferFee) || 0;
                     const legalFees = parseInt(formData.legalFees) || 0;
                     const buildingAndPest = parseInt(formData.buildingAndPestInspection) || 0;
                     const additionalCosts = landTransferFee + legalFees + buildingAndPest;
-                    
+
                     return {
                         ...upfrontCostsResult,
                         totalUpfrontCosts: upfrontCostsResult.totalUpfrontCosts + additionalCosts
                     };
                 }
-                
+
                 return upfrontCostsResult;
             };
 
             const getMonthlyOngoingCosts = () => {
-                const propertyCosts = (formData.COUNCIL_RATES_MONTHLY || 0) + 
-                                     (formData.WATER_RATES_MONTHLY || 0) + 
-                                     (formData.BODY_CORP_MONTHLY || 0);
+                const propertyCosts = (formData.COUNCIL_RATES_MONTHLY || 0) +
+                    (formData.WATER_RATES_MONTHLY || 0) +
+                    (formData.BODY_CORP_MONTHLY || 0);
                 const loanCosts = formData.needsLoan === 'yes' ? (formData.MONTHLY_LOAN_REPAYMENT || 0) : 0;
                 return propertyCosts + loanCosts;
             };
 
             const getAnnualOngoingCosts = () => {
                 const hasLoan = formData.loanDetailsComplete && formData.needsLoan === 'yes';
-                return (hasLoan ? (formData.ANNUAL_LOAN_REPAYMENT || 0) : 0) + 
-                       (formData.sellerQuestionsComplete ? (parseInt(formData.councilRates) || 0) : 0) + 
-                       (formData.sellerQuestionsComplete ? (parseInt(formData.waterRates) || 0) : 0) + 
-                       (formData.sellerQuestionsComplete ? (parseInt(formData.bodyCorp) || 0) : 0);
+                return (hasLoan ? (formData.ANNUAL_LOAN_REPAYMENT || 0) : 0) +
+                    (formData.sellerQuestionsComplete ? (parseInt(formData.councilRates) || 0) : 0) +
+                    (formData.sellerQuestionsComplete ? (parseInt(formData.waterRates) || 0) : 0) +
+                    (formData.sellerQuestionsComplete ? (parseInt(formData.bodyCorp) || 0) : 0);
             };
 
             const upfrontCosts = calculateAllUpfrontCosts();
@@ -451,17 +453,17 @@ function CalculatorPageContent() {
                     }, 2000);
                 }}
             />
-            
+
             {/* End of survey save prompt - now handled by NavigationWarning when user tries to navigate */}
-            
+
             {/* Simplified header overlay - always shown on calculator route */}
             <SurveyHeaderOverlay />
-            
+
             {/* Loading overlay during resume auto-advance */}
             {formData.isResumingSurvey && (
                 <SurveyLoadingScreen message="Loading your survey..." />
             )}
-            
+
             {isReturningToDashboard && (
                 <SurveyLoadingScreen message="Returning to dashboard..." />
             )}
@@ -469,777 +471,961 @@ function CalculatorPageContent() {
             {showReviewOverlay && (
                 <SurveyLoadingScreen message="Let's review your responses" />
             )}
-            
+
             {showWelcomePage && !isLoadingResume ? (
                 <WelcomePage />
             ) : isLoadingResume ? (
                 <SurveyLoadingScreen message="Loading your survey..." />
             ) : (
                 <main className={`container mx-auto max-w-7xl px-3 sm:px-4 pb-4 lg:pb-10 md:pt-35 ${showCostsSidebar ? 'max-md:pt-20' : 'max-md:pt-30'}`}>
-                {/* Progress Bars - above questions on larger screens */}
-                <div className="hidden md:block mb-0 md:w-[57%]">
-                    <div className="space-y-4 ml-10">
-                        {/* Overall Progress */}
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: 0.2 }}
-                        >
-                            <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2">Overall Progress</h4>
-                            <div className="w-full bg-gray-100 h-1">
-                                <motion.div 
-                                    initial={{ opacity: 0, scaleY: 0 }}
-                                    animate={{ opacity: 1, scaleY: 1 }}
-                                    transition={{ duration: 0.5, delay: 0.4 }}
-                                    className="bg-primary h-1 transition-all duration-300 origin-top"
-                                    style={{ width: `${(() => {
-                                        if (showReviewPage || editingFromReview) {
-                                            if (showAdditionalQuestions) {
-                                                const aqFields = formData.additionalQuestionsFields || [];
-                                                const frozen = { ...formData };
-                                                aqFields.forEach(k => { frozen[k] = ''; });
-                                                return calculateGlobalProgress(frozen, {});
-                                            }
-                                            if (missingFields.length === 0 && showReviewPage) {
-                                                return calculateGlobalProgress(formData, {});
-                                            }
-                                            const totalSections = needsLoan === 'yes' ? 4 : 3;
-                                            const propertyDone = propertyDetailsComplete || formData.propertyDetailsFormComplete;
-                                            let completeCount = (propertyDone ? 1 : 0) + (buyerDetailsComplete ? 1 : 0) + (sellerQuestionsComplete ? 1 : 0);
-                                            if (needsLoan === 'yes') completeCount += loanDetailsComplete ? 1 : 0;
-                                            return Math.round((completeCount / totalSections) * 100);
-                                        }
-                                        if (!propertyDetailsComplete) return 0;
-                                        if (!buyerDetailsComplete) return 25;
-                                        if (buyerDetailsComplete && needsLoan === 'yes' && !loanDetailsComplete) return 50;
-                                        if (buyerDetailsComplete && needsLoan === 'yes' && loanDetailsComplete && !showSellerQuestions) return 75;
-                                        if (buyerDetailsComplete && showSellerQuestions && !sellerQuestionsComplete) return 75;
-                                        if (buyerDetailsComplete && sellerQuestionsComplete) return 100;
-                                        if (buyerDetailsComplete && needsLoan !== 'yes') return 75;
-                                        return 0;
-                                    })()}%` }}
-                                ></motion.div>
-                            </div>
-                        </motion.div>
-                        
-                        {/* Current Form Progress */}
-                        <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.5, delay: 0.3 }}
-                        >
-                            <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2">Current Form Progress</h4>
-                            <div className="w-full bg-gray-100 h-1">
-                                <motion.div 
-                                    initial={{ opacity: 0, scaleY: 0 }}
-                                    animate={{ opacity: 1, scaleY: 1 }}
-                                    transition={{ duration: 0.5, delay: 0.5 }}
-                                    className="bg-primary h-1 transition-all duration-300 origin-top"
-                                    style={{ width: `${(() => {
-                                        let progress = 0;
-                                        
-                                        if (showReviewPage && !showAdditionalQuestions) return 0;
-                                        
-                                        if (showReviewPage && showAdditionalQuestions) {
-                                            const aqFields = formData.additionalQuestionsFields || [];
-                                            if (aqFields.length === 0) return 0;
-                                            const aqStep = formData.additionalQuestionsStep || 1;
-                                            return Math.round(((aqStep - 1) / aqFields.length) * 100);
-                                        }
-                                        
-                                        if (!propertyDetailsComplete) {
-                                            // PropertyDetails progress - calculate based on display step and total steps
-                                            const internalStep = propertyDetailsActiveStep || 1;
-                                            let displayStep = internalStep;
-                                            
-                                            // For non-WA states, adjust step numbers to match what user sees
-                                            if (selectedState !== 'WA' && internalStep >= 4) {
-                                                displayStep = internalStep - 1; // Show 3, 4, 5 instead of 4, 5, 6
-                                            }
-                                            
-                                            const totalSteps = selectedState === 'WA' ? 6 : 5;
-                                            
-                                            // Check if we're actually on the completion page (step 6 and form complete)
-                                            if (internalStep === 6 && formData.propertyDetailsFormComplete) {
-                                                progress = 100;
-                                            } else {
-                                                progress = ((displayStep - 1) / totalSteps) * 100;
-                                            }
-                                            
-                                        } else if (!buyerDetailsComplete || (buyerDetailsComplete && !formData.showLoanDetails && !formData.showSellerQuestions)) {
-                                            // BuyerDetails progress - calculate based on current step and total steps
-                                            const currentStep = buyerDetailsActiveStep || 1;
-                                            const totalSteps = isACT ? 10 : 7;
-                                            
-                                            // Check if form is complete (on completion page)
-                                            if (formData.buyerDetailsComplete && !formData.showLoanDetails && !formData.showSellerQuestions) {
-                                                progress = 100;
-                                            } else {
-                                                progress = ((currentStep - 1) / totalSteps) * 100;
-                                            }
-                                        } else if (needsLoan === 'yes' && showLoanDetails && !loanDetailsComplete) {
-                                            // LoanDetails progress - calculate based on current step and total steps
-                                            const currentStep = loanDetailsActiveStep || 1;
-                                            const totalSteps = 7;
-                                            
-                                            progress = ((currentStep - 1) / totalSteps) * 100;
-                                        } else if (needsLoan === 'yes' && loanDetailsComplete && !showSellerQuestions) {
-                                            // LoanDetails complete - show 100%
-                                            progress = 100;
-                                        } else if (showSellerQuestions && !sellerQuestionsComplete) {
-                                            // SellerQuestions progress - calculate based on current step and total steps
-                                            const currentStep = sellerQuestionsActiveStep || 1;
-                                            
-                                            // Calculate actual steps shown based on property type (same logic as SellerQuestions)
-                                            const shouldShowConstructionQuestions = propertyType === 'off-the-plan' || propertyType === 'house-and-land';
-                                            const isOffThePlanNonVIC = propertyType === 'off-the-plan' && selectedState !== 'VIC';
-                                            
-                                            let totalSteps;
-                                            if (shouldShowConstructionQuestions) {
-                                                if (isOffThePlanNonVIC) {
-                                                    // Off-the-plan (non-VIC): Skip dutiable value question (subtract 1)
-                                                    totalSteps = 7;
-                                                } else {
-                                                    // VIC off-the-plan or house-and-land: All questions shown
-                                                    totalSteps = 8;
-                                                }
-                                            } else {
-                                                // Construction questions are skipped (subtract 2)
-                                                totalSteps = 6;
-                                            }
-                                            
-                                            // Map internal currentStep to actual step position within visible steps
-                                            let actualStepPosition;
-                                            if (shouldShowConstructionQuestions) {
-                                                if (isOffThePlanNonVIC) {
-                                                    // Off-the-plan (non-VIC): Skip dutiable value question (case 4)
-                                                    if (currentStep <= 3) {
-                                                        actualStepPosition = currentStep;
-                                                    } else if (currentStep >= 5) {
-                                                        actualStepPosition = currentStep - 1; // Adjust for skipped case 4
-                                                    } else {
-                                                        actualStepPosition = currentStep; // Case 4 shouldn't happen, but fallback
+                    {/* Progress Bars - above questions on larger screens */}
+                    <div className="hidden md:block mb-0 md:w-[57%]">
+                        <div className="space-y-4 ml-10">
+                            {/* Overall Progress */}
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: 0.2 }}
+                            >
+                                <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2">Overall Progress</h4>
+                                <div className="w-full bg-gray-100 h-1">
+                                    <motion.div
+                                        initial={{ opacity: 0, scaleY: 0 }}
+                                        animate={{ opacity: 1, scaleY: 1 }}
+                                        transition={{ duration: 0.5, delay: 0.4 }}
+                                        className="bg-primary h-1 transition-all duration-300 origin-top"
+                                        style={{
+                                            width: `${(() => {
+                                                if (showReviewPage || editingFromReview) {
+                                                    if (showAdditionalQuestions) {
+                                                        const aqFields = formData.additionalQuestionsFields || [];
+                                                        const frozen = { ...formData };
+                                                        aqFields.forEach(k => { frozen[k] = ''; });
+                                                        return calculateGlobalProgress(frozen, {});
                                                     }
-                                                } else {
-                                                    // VIC off-the-plan or house-and-land: All questions shown
-                                                    actualStepPosition = currentStep;
+                                                    if (missingFields.length === 0 && showReviewPage) {
+                                                        return calculateGlobalProgress(formData, {});
+                                                    }
+                                                    const totalSections = needsLoan === 'yes' ? 4 : 3;
+                                                    const propertyDone = propertyDetailsComplete || formData.propertyDetailsFormComplete;
+                                                    let completeCount = (propertyDone ? 1 : 0) + (buyerDetailsComplete ? 1 : 0) + (sellerQuestionsComplete ? 1 : 0);
+                                                    if (needsLoan === 'yes') completeCount += loanDetailsComplete ? 1 : 0;
+                                                    return Math.round((completeCount / totalSections) * 100);
                                                 }
-                                            } else {
-                                                // Construction questions are skipped (cases 3-4)
-                                                if (currentStep <= 2) {
-                                                    actualStepPosition = currentStep;
-                                                } else if (currentStep >= 5) {
-                                                    actualStepPosition = currentStep - 2; // Adjust for skipped cases 3-4
-                                                } else {
-                                                    actualStepPosition = currentStep; // Cases 3-4 shouldn't happen, but fallback
-                                                }
-                                            }
-                                            
-                                            // Check if form is complete (on completion page)
-                                            if (formData.sellerQuestionsComplete) {
-                                                progress = 100;
-                                            } else {
-                                                progress = ((actualStepPosition - 1) / totalSteps) * 100;
-                                            }
-                                        }
-                                        
-                                        return progress;
-                                    })()}%` }}
-                                ></motion.div>
-                            </div>
-                        </motion.div>
-                    </div>
-                </div>
+                                                if (!propertyDetailsComplete) return 0;
+                                                if (!buyerDetailsComplete) return 25;
+                                                if (buyerDetailsComplete && needsLoan === 'yes' && !loanDetailsComplete) return 50;
+                                                if (buyerDetailsComplete && needsLoan === 'yes' && loanDetailsComplete && !showSellerQuestions) return 75;
+                                                if (buyerDetailsComplete && showSellerQuestions && !sellerQuestionsComplete) return 75;
+                                                if (buyerDetailsComplete && sellerQuestionsComplete) return 100;
+                                                if (buyerDetailsComplete && needsLoan !== 'yes') return 75;
+                                                return 0;
+                                            })()}%`
+                                        }}
+                                    ></motion.div>
+                                </div>
+                            </motion.div>
 
-                <div className="flex flex-col md:flex-row md:items-start">
-                    {/* Sidebar: Summary, Upfront and Ongoing Costs - only when on Review with no missing fields */}
-                    {showCostsSidebar && (
-                    <div className="order-1 md:order-2 md:w-2/5 md:flex-shrink-0 px-4 pb-4 max-md:pt-0 md:px-6 md:pb-6 md:pt-4 md:mt-4 md:rounded-r-lg">
-                        <AnimatePresence>
-                            {formData.showSummary && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: -20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5 }}
-                                    className="mb-4"
-                                >
-                                    <Summary />
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                        <motion.div
-                            layout
-                            transition={{ duration: 0.3, ease: "easeInOut" }}
-                        >
-                            <AnimatePresence mode="wait">
-                                <UpfrontCosts />
-                            </AnimatePresence>
-                            <div className="mt-3 -mb-5">
-                                <AnimatePresence mode="wait">
-                                    <OngoingCosts />
+                            {/* Current Form Progress */}
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.5, delay: 0.3 }}
+                            >
+                                <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2">Current Form Progress</h4>
+                                <div className="w-full bg-gray-100 h-1">
+                                    <motion.div
+                                        initial={{ opacity: 0, scaleY: 0 }}
+                                        animate={{ opacity: 1, scaleY: 1 }}
+                                        transition={{ duration: 0.5, delay: 0.5 }}
+                                        className="bg-primary h-1 transition-all duration-300 origin-top"
+                                        style={{
+                                            width: `${(() => {
+                                                let progress = 0;
+
+                                                if (showReviewPage && !showAdditionalQuestions) return 0;
+
+                                                if (showReviewPage && showAdditionalQuestions) {
+                                                    const aqFields = formData.additionalQuestionsFields || [];
+                                                    if (aqFields.length === 0) return 0;
+                                                    const aqStep = formData.additionalQuestionsStep || 1;
+                                                    return Math.round(((aqStep - 1) / aqFields.length) * 100);
+                                                }
+
+                                                if (!propertyDetailsComplete) {
+                                                    // PropertyDetails progress - calculate based on display step and total steps
+                                                    const internalStep = propertyDetailsActiveStep || 1;
+                                                    let displayStep = internalStep;
+
+                                                    // For non-WA states, adjust step numbers to match what user sees
+                                                    if (selectedState !== 'WA' && internalStep >= 4) {
+                                                        displayStep = internalStep - 1; // Show 3, 4, 5 instead of 4, 5, 6
+                                                    }
+
+                                                    const totalSteps = selectedState === 'WA' ? 6 : 5;
+
+                                                    // Check if we're actually on the completion page (step 6 and form complete)
+                                                    if (internalStep === 6 && formData.propertyDetailsFormComplete) {
+                                                        progress = 100;
+                                                    } else {
+                                                        progress = ((displayStep - 1) / totalSteps) * 100;
+                                                    }
+
+                                                } else if (!buyerDetailsComplete || (buyerDetailsComplete && !formData.showLoanDetails && !formData.showSellerQuestions)) {
+                                                    // BuyerDetails progress - calculate based on current step and total steps
+                                                    const currentStep = buyerDetailsActiveStep || 1;
+                                                    const totalSteps = isACT ? 10 : 7;
+
+                                                    // Check if form is complete (on completion page)
+                                                    if (formData.buyerDetailsComplete && !formData.showLoanDetails && !formData.showSellerQuestions) {
+                                                        progress = 100;
+                                                    } else {
+                                                        progress = ((currentStep - 1) / totalSteps) * 100;
+                                                    }
+                                                } else if (needsLoan === 'yes' && showLoanDetails && !loanDetailsComplete) {
+                                                    // LoanDetails progress - calculate based on current step and total steps
+                                                    const currentStep = loanDetailsActiveStep || 1;
+                                                    const totalSteps = 7;
+
+                                                    progress = ((currentStep - 1) / totalSteps) * 100;
+                                                } else if (needsLoan === 'yes' && loanDetailsComplete && !showSellerQuestions) {
+                                                    // LoanDetails complete - show 100%
+                                                    progress = 100;
+                                                } else if (showSellerQuestions && !sellerQuestionsComplete) {
+                                                    // SellerQuestions progress - calculate based on current step and total steps
+                                                    const currentStep = sellerQuestionsActiveStep || 1;
+
+                                                    // Calculate actual steps shown based on property type (same logic as SellerQuestions)
+                                                    const shouldShowConstructionQuestions = propertyType === 'off-the-plan' || propertyType === 'house-and-land';
+                                                    const isOffThePlanNonVIC = propertyType === 'off-the-plan' && selectedState !== 'VIC';
+
+                                                    let totalSteps;
+                                                    if (shouldShowConstructionQuestions) {
+                                                        if (isOffThePlanNonVIC) {
+                                                            // Off-the-plan (non-VIC): Skip dutiable value question (subtract 1)
+                                                            totalSteps = 7;
+                                                        } else {
+                                                            // VIC off-the-plan or house-and-land: All questions shown
+                                                            totalSteps = 8;
+                                                        }
+                                                    } else {
+                                                        // Construction questions are skipped (subtract 2)
+                                                        totalSteps = 6;
+                                                    }
+
+                                                    // Map internal currentStep to actual step position within visible steps
+                                                    let actualStepPosition;
+                                                    if (shouldShowConstructionQuestions) {
+                                                        if (isOffThePlanNonVIC) {
+                                                            // Off-the-plan (non-VIC): Skip dutiable value question (case 4)
+                                                            if (currentStep <= 3) {
+                                                                actualStepPosition = currentStep;
+                                                            } else if (currentStep >= 5) {
+                                                                actualStepPosition = currentStep - 1; // Adjust for skipped case 4
+                                                            } else {
+                                                                actualStepPosition = currentStep; // Case 4 shouldn't happen, but fallback
+                                                            }
+                                                        } else {
+                                                            // VIC off-the-plan or house-and-land: All questions shown
+                                                            actualStepPosition = currentStep;
+                                                        }
+                                                    } else {
+                                                        // Construction questions are skipped (cases 3-4)
+                                                        if (currentStep <= 2) {
+                                                            actualStepPosition = currentStep;
+                                                        } else if (currentStep >= 5) {
+                                                            actualStepPosition = currentStep - 2; // Adjust for skipped cases 3-4
+                                                        } else {
+                                                            actualStepPosition = currentStep; // Cases 3-4 shouldn't happen, but fallback
+                                                        }
+                                                    }
+
+                                                    // Check if form is complete (on completion page)
+                                                    if (formData.sellerQuestionsComplete) {
+                                                        progress = 100;
+                                                    } else {
+                                                        progress = ((actualStepPosition - 1) / totalSteps) * 100;
+                                                    }
+                                                }
+
+                                                return progress;
+                                            })()}%`
+                                        }}
+                                    ></motion.div>
+                                </div>
+                            </motion.div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col md:flex-row md:items-start">
+                        {/* Sidebar: Summary, Upfront and Ongoing Costs - only when on Review with no missing fields */}
+                        {showCostsSidebar && (
+                            <div className="order-1 md:order-2 md:w-2/5 md:flex-shrink-0 px-4 pb-4 max-md:pt-0 md:px-6 md:pb-6 md:pt-4 md:mt-4 md:rounded-r-lg">
+                                <AnimatePresence>
+                                    {formData.showSummary && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, y: -20 }}
+                                            transition={{ duration: 0.5 }}
+                                            className="mb-4"
+                                        >
+                                            <Summary />
+                                        </motion.div>
+                                    )}
                                 </AnimatePresence>
+                                <motion.div
+                                    layout
+                                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                                >
+                                    <AnimatePresence mode="wait">
+                                        <UpfrontCosts />
+                                    </AnimatePresence>
+                                    <div className="mt-3 -mb-5">
+                                        <AnimatePresence mode="wait">
+                                            <OngoingCosts />
+                                        </AnimatePresence>
+                                    </div>
+                                </motion.div>
                             </div>
-                        </motion.div>
-                    </div>
-                    )}
-                    
-                    {/* Main content area - showReviewPage first so user stays on Review when branch resets create gaps */}
-                    <div className="order-2 md:order-1 md:w-3/5">
-                        {(() => {
-                            if (showReviewPage && showAdditionalQuestions) return <AdditionalQuestions />;
-                            if (showReviewPage) return <ReviewSummary />;
-                            if (!propertyDetailsComplete) return <PropertyDetails />;
-                            if (!buyerDetailsComplete) return <BuyerDetails />;
-                            if (buyerDetailsComplete && showLoanDetails && !loanDetailsComplete) return <LoanDetails />;
-                            if (buyerDetailsComplete && loanDetailsComplete && !showSellerQuestions) return <LoanDetails />;
-                            if (buyerDetailsComplete && showSellerQuestions && !sellerQuestionsComplete) return <SellerQuestions />;
-                            if (buyerDetailsComplete && sellerQuestionsComplete && !allFormsComplete && !editingFromReview) return <SellerQuestions />;
-                            if (buyerDetailsComplete && !showLoanDetails && !showSellerQuestions && !formData.buyerDetailsCurrentStep) return <BuyerDetails />;
-                            if (formData.buyerDetailsCurrentStep) return <BuyerDetails />;
-                            if (allFormsComplete) return (() => {
-                                // Calculate stamp duty
-                                const calculateStampDuty = () => {
-                                    if (!stateFunctions || !formData.propertyPrice || !formData.selectedState || !formData.propertyType) {
-                                        return 0;
-                                    }
-                                    return stateFunctions.calculateStampDuty(formData.propertyPrice, formData.selectedState);
-                                };
-                                
-                                // Calculate all upfront costs
-                                const calculateAllUpfrontCosts = () => {
-                                    if (!formData.buyerDetailsComplete || !stateFunctions?.calculateUpfrontCosts) {
-                                        const stampDutyAmount = calculateStampDuty();
-                                        const depositAmount = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanDeposit) || 0) : 0;
-                                        const settlementFee = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanSettlementFees) || 0) : 0;
-                                        const establishmentFee = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanEstablishmentFee) || 0) : 0;
-                                        
-                                        return {
-                                            stampDuty: { amount: stampDutyAmount, label: "Stamp Duty" },
-                                            concessions: [],
-                                            grants: [],
-                                            foreignDuty: { amount: 0, applicable: false },
-                                            netStateDuty: stampDutyAmount,
-                                            totalUpfrontCosts: stampDutyAmount + depositAmount + settlementFee + establishmentFee
-                                        };
-                                    }
-                                    
-                                    const buyerData = {
-                                        selectedState: formData.selectedState,
-                                        buyerType: formData.buyerType,
-                                        isPPR: formData.isPPR,
-                                        isAustralianResident: formData.isAustralianResident,
-                                        isFirstHomeBuyer: formData.isFirstHomeBuyer,
-                                        ownedPropertyLast5Years: formData.ownedPropertyLast5Years,
-                                        hasPensionCard: formData.hasPensionCard,
-                                        needsLoan: formData.needsLoan,
-                                        savingsAmount: formData.savingsAmount,
-                                        income: formData.income,
-                                        dependants: formData.dependants,
-                                        dutiableValue: formData.dutiableValue,
-                                        constructionStarted: formData.constructionStarted,
-                                        sellerQuestionsComplete: formData.sellerQuestionsComplete
-                                    };
-                                    
-                                    const propertyData = {
-                                        propertyPrice: formData.propertyPrice,
-                                        propertyType: formData.propertyType,
-                                        propertyCategory: formData.propertyCategory,
-                                        isWA: formData.isWA,
-                                        isWAMetro: formData.isWAMetro,
-                                        isACT: formData.isACT
-                                    };
-                                    
-                                    const upfrontCostsResult = stateFunctions.calculateUpfrontCosts(buyerData, propertyData, formData.selectedState);
-                                    
-                                    const firbFee = parseInt(formData.FIRBFee) || 0;
-                                    upfrontCostsResult.totalUpfrontCosts += firbFee;
-                                    
-                                    if (formData.loanDetailsComplete && formData.needsLoan === 'yes') {
-                                        const depositAmount = parseInt(formData.loanDeposit) || 0;
-                                        const settlementFee = parseInt(formData.loanSettlementFees) || 0;
-                                        const establishmentFee = parseInt(formData.loanEstablishmentFee) || 0;
-                                        
-                                        let additionalCosts = 0;
-                                        if (formData.sellerQuestionsComplete) {
-                                            additionalCosts += parseInt(formData.landTransferFee) || 0;
-                                            additionalCosts += parseInt(formData.legalFees) || 0;
-                                            additionalCosts += parseInt(formData.buildingAndPestInspection) || 0;
+                        )}
+
+                        {/* Main content area - showReviewPage first so user stays on Review when branch resets create gaps */}
+                        <div className="order-2 md:order-1 md:w-3/5">
+                            {(() => {
+                                if (showReviewPage && showAdditionalQuestions) return <AdditionalQuestions />;
+                                if (showReviewPage) return <ReviewSummary />;
+                                if (!propertyDetailsComplete) return <PropertyDetails />;
+                                if (!buyerDetailsComplete) return <BuyerDetails />;
+                                if (buyerDetailsComplete && showLoanDetails && !loanDetailsComplete) return <LoanDetails />;
+                                if (buyerDetailsComplete && loanDetailsComplete && !showSellerQuestions) return <LoanDetails />;
+                                if (buyerDetailsComplete && showSellerQuestions && !sellerQuestionsComplete) return <SellerQuestions />;
+                                if (buyerDetailsComplete && sellerQuestionsComplete && !allFormsComplete && !editingFromReview) return <SellerQuestions />;
+                                if (buyerDetailsComplete && !showLoanDetails && !showSellerQuestions && !formData.buyerDetailsCurrentStep) return <BuyerDetails />;
+                                if (formData.buyerDetailsCurrentStep) return <BuyerDetails />;
+                                if (allFormsComplete) return (() => {
+                                    // Calculate stamp duty
+                                    const calculateStampDuty = () => {
+                                        if (!stateFunctions || !formData.propertyPrice || !formData.selectedState || !formData.propertyType) {
+                                            return 0;
                                         }
-                                        
-                                        return {
-                                            ...upfrontCostsResult,
-                                            totalUpfrontCosts: upfrontCostsResult.totalUpfrontCosts + depositAmount + settlementFee + establishmentFee + additionalCosts
+                                        return stateFunctions.calculateStampDuty(formData.propertyPrice, formData.selectedState);
+                                    };
+
+                                    // Calculate all upfront costs
+                                    const calculateAllUpfrontCosts = () => {
+                                        if (!formData.buyerDetailsComplete || !stateFunctions?.calculateUpfrontCosts) {
+                                            const stampDutyAmount = calculateStampDuty();
+                                            const depositAmount = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanDeposit) || 0) : 0;
+                                            const settlementFee = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanSettlementFees) || 0) : 0;
+                                            const establishmentFee = (formData.loanDetailsComplete && formData.needsLoan === 'yes') ? (parseInt(formData.loanEstablishmentFee) || 0) : 0;
+
+                                            return {
+                                                stampDuty: { amount: stampDutyAmount, label: "Stamp Duty" },
+                                                concessions: [],
+                                                grants: [],
+                                                foreignDuty: { amount: 0, applicable: false },
+                                                netStateDuty: stampDutyAmount,
+                                                totalUpfrontCosts: stampDutyAmount + depositAmount + settlementFee + establishmentFee
+                                            };
+                                        }
+
+                                        const buyerData = {
+                                            selectedState: formData.selectedState,
+                                            buyerType: formData.buyerType,
+                                            isPPR: formData.isPPR,
+                                            isAustralianResident: formData.isAustralianResident,
+                                            isFirstHomeBuyer: formData.isFirstHomeBuyer,
+                                            ownedPropertyLast5Years: formData.ownedPropertyLast5Years,
+                                            hasPensionCard: formData.hasPensionCard,
+                                            needsLoan: formData.needsLoan,
+                                            savingsAmount: formData.savingsAmount,
+                                            income: formData.income,
+                                            dependants: formData.dependants,
+                                            dutiableValue: formData.dutiableValue,
+                                            constructionStarted: formData.constructionStarted,
+                                            sellerQuestionsComplete: formData.sellerQuestionsComplete
                                         };
-                                    }
-                                    
-                                    if (formData.sellerQuestionsComplete) {
-                                        const landTransferFee = parseInt(formData.landTransferFee) || 0;
-                                        const legalFees = parseInt(formData.legalFees) || 0;
-                                        const buildingAndPest = parseInt(formData.buildingAndPestInspection) || 0;
-                                        const additionalCosts = landTransferFee + legalFees + buildingAndPest;
-                                        
-                                        return {
-                                            ...upfrontCostsResult,
-                                            totalUpfrontCosts: upfrontCostsResult.totalUpfrontCosts + additionalCosts
+
+                                        const propertyData = {
+                                            propertyPrice: formData.propertyPrice,
+                                            propertyType: formData.propertyType,
+                                            propertyCategory: formData.propertyCategory,
+                                            isWA: formData.isWA,
+                                            isWAMetro: formData.isWAMetro,
+                                            isACT: formData.isACT
                                         };
-                                    }
-                                    
-                                    return upfrontCostsResult;
-                                };
-                                
-                                const getMonthlyOngoingCosts = () => {
-                                    const propertyCosts = (formData.COUNCIL_RATES_MONTHLY || 0) + 
-                                                          (formData.WATER_RATES_MONTHLY || 0) + 
-                                                          (formData.BODY_CORP_MONTHLY || 0);
-                                    const loanCosts = formData.needsLoan === 'yes' ? (formData.MONTHLY_LOAN_REPAYMENT || 0) : 0;
-                                    return propertyCosts + loanCosts;
-                                };
-                                
-                                const getAnnualOngoingCosts = () => {
+
+                                        const upfrontCostsResult = stateFunctions.calculateUpfrontCosts(buyerData, propertyData, formData.selectedState);
+
+                                        const firbFee = parseInt(formData.FIRBFee) || 0;
+                                        upfrontCostsResult.totalUpfrontCosts += firbFee;
+
+                                        if (formData.loanDetailsComplete && formData.needsLoan === 'yes') {
+                                            const depositAmount = parseInt(formData.loanDeposit) || 0;
+                                            const settlementFee = parseInt(formData.loanSettlementFees) || 0;
+                                            const establishmentFee = parseInt(formData.loanEstablishmentFee) || 0;
+
+                                            let additionalCosts = 0;
+                                            if (formData.sellerQuestionsComplete) {
+                                                additionalCosts += parseInt(formData.landTransferFee) || 0;
+                                                additionalCosts += parseInt(formData.legalFees) || 0;
+                                                additionalCosts += parseInt(formData.buildingAndPestInspection) || 0;
+                                            }
+
+                                            return {
+                                                ...upfrontCostsResult,
+                                                totalUpfrontCosts: upfrontCostsResult.totalUpfrontCosts + depositAmount + settlementFee + establishmentFee + additionalCosts
+                                            };
+                                        }
+
+                                        if (formData.sellerQuestionsComplete) {
+                                            const landTransferFee = parseInt(formData.landTransferFee) || 0;
+                                            const legalFees = parseInt(formData.legalFees) || 0;
+                                            const buildingAndPest = parseInt(formData.buildingAndPestInspection) || 0;
+                                            const additionalCosts = landTransferFee + legalFees + buildingAndPest;
+
+                                            return {
+                                                ...upfrontCostsResult,
+                                                totalUpfrontCosts: upfrontCostsResult.totalUpfrontCosts + additionalCosts
+                                            };
+                                        }
+
+                                        return upfrontCostsResult;
+                                    };
+
+                                    const getMonthlyOngoingCosts = () => {
+                                        const propertyCosts = (formData.COUNCIL_RATES_MONTHLY || 0) +
+                                            (formData.WATER_RATES_MONTHLY || 0) +
+                                            (formData.BODY_CORP_MONTHLY || 0);
+                                        const loanCosts = formData.needsLoan === 'yes' ? (formData.MONTHLY_LOAN_REPAYMENT || 0) : 0;
+                                        return propertyCosts + loanCosts;
+                                    };
+
+                                    const getAnnualOngoingCosts = () => {
+                                        const hasLoan = formData.loanDetailsComplete && formData.needsLoan === 'yes';
+                                        return (hasLoan ? (formData.ANNUAL_LOAN_REPAYMENT || 0) : 0) +
+                                            (formData.sellerQuestionsComplete ? (parseInt(formData.councilRates) || 0) : 0) +
+                                            (formData.sellerQuestionsComplete ? (parseInt(formData.waterRates) || 0) : 0) +
+                                            (formData.sellerQuestionsComplete ? (parseInt(formData.bodyCorp) || 0) : 0);
+                                    };
+
+                                    const upfrontCosts = calculateAllUpfrontCosts();
+                                    const stampDuty = calculateStampDuty();
+                                    const totalPurchaseCost = upfrontCosts?.totalUpfrontCosts || 0;
+                                    const appliedConcessions = upfrontCosts?.concessions || [];
+                                    const appliedGrants = upfrontCosts?.grants || [];
+                                    const grantsConcessionsTotal = [...appliedConcessions, ...appliedGrants].reduce((sum, item) => sum + (item.amount || 0), 0);
+                                    const estimatedNetUpfront = totalPurchaseCost - grantsConcessionsTotal;
+
                                     const hasLoan = formData.loanDetailsComplete && formData.needsLoan === 'yes';
-                                    return (hasLoan ? (formData.ANNUAL_LOAN_REPAYMENT || 0) : 0) + 
-                                           (formData.sellerQuestionsComplete ? (parseInt(formData.councilRates) || 0) : 0) + 
-                                           (formData.sellerQuestionsComplete ? (parseInt(formData.waterRates) || 0) : 0) + 
-                                           (formData.sellerQuestionsComplete ? (parseInt(formData.bodyCorp) || 0) : 0);
-                                };
-                                
-                                const upfrontCosts = calculateAllUpfrontCosts();
-                                const stampDuty = calculateStampDuty();
-                                const totalPurchaseCost = upfrontCosts?.totalUpfrontCosts || 0;
-                                const appliedConcessions = upfrontCosts?.concessions || [];
-                                const appliedGrants = upfrontCosts?.grants || [];
-                                const grantsConcessionsTotal = [...appliedConcessions, ...appliedGrants].reduce((sum, item) => sum + (item.amount || 0), 0);
-                                const estimatedNetUpfront = totalPurchaseCost - grantsConcessionsTotal;
+                                    const depositOrPriceAmount = hasLoan
+                                        ? (parseInt(formData.loanDeposit) || 0)
+                                        : (parseInt(formData.propertyPrice) || 0);
+                                    const grossStampDutyAmount = upfrontCosts?.stampDuty?.amount ?? stampDuty;
+                                    let otherCostsAmount = 0;
+                                    if (hasLoan) {
+                                        otherCostsAmount += parseInt(formData.loanSettlementFees) || 0;
+                                        otherCostsAmount += parseInt(formData.loanEstablishmentFee) || 0;
+                                    }
+                                    if (formData.sellerQuestionsComplete) {
+                                        otherCostsAmount += parseInt(formData.landTransferFee) || 0;
+                                        otherCostsAmount += parseInt(formData.legalFees) || 0;
+                                        otherCostsAmount += parseInt(formData.buildingAndPestInspection) || 0;
+                                    }
+                                    if (formData.buyerDetailsComplete && formData.isAustralianResident === 'no' && formData.FIRBFee) {
+                                        otherCostsAmount += parseInt(formData.FIRBFee) || 0;
+                                    }
 
-                                const hasLoan = formData.loanDetailsComplete && formData.needsLoan === 'yes';
-                                const depositOrPriceAmount = hasLoan
-                                    ? (parseInt(formData.loanDeposit) || 0)
-                                    : (parseInt(formData.propertyPrice) || 0);
-                                const grossStampDutyAmount = upfrontCosts?.stampDuty?.amount ?? stampDuty;
-                                let otherCostsAmount = 0;
-                                if (hasLoan) {
-                                    otherCostsAmount += parseInt(formData.loanSettlementFees) || 0;
-                                    otherCostsAmount += parseInt(formData.loanEstablishmentFee) || 0;
-                                }
-                                if (formData.sellerQuestionsComplete) {
-                                    otherCostsAmount += parseInt(formData.landTransferFee) || 0;
-                                    otherCostsAmount += parseInt(formData.legalFees) || 0;
-                                    otherCostsAmount += parseInt(formData.buildingAndPestInspection) || 0;
-                                }
-                                if (formData.buyerDetailsComplete && formData.isAustralianResident === 'no' && formData.FIRBFee) {
-                                    otherCostsAmount += parseInt(formData.FIRBFee) || 0;
-                                }
+                                    const monthlyCashFlow = getMonthlyOngoingCosts();
+                                    const annualOperatingCost = getAnnualOngoingCosts();
 
-                                const monthlyCashFlow = getMonthlyOngoingCosts();
-                                const annualOperatingCost = getAnnualOngoingCosts();
-
-                                const propertyDisplayAddress =
-                                    formData.propertyAddress?.trim() ||
-                                    [formData.propertyStreetAddress, formData.propertySuburbPostcode]
-                                        .filter(Boolean)
-                                        .join(', ') ||
-                                    'Not specified';
+                                    const propertyDisplayAddress =
+                                        formData.propertyAddress?.trim() ||
+                                        [formData.propertyStreetAddress, formData.propertySuburbPostcode]
+                                            .filter(Boolean)
+                                            .join(', ') ||
+                                        'Not specified';
                                 const propertyDisplayPrice = parseInt(formData.propertyPrice) || 0;
+                                const buyerTypeDisplay = formatFieldValue('buyerType', formData.buyerType);
+                                const buyerDetailRows = [
+                                    'isPPR',
+                                    'isAustralianResident',
+                                    'isFirstHomeBuyer',
+                                    ...(formData.isACT ? ['ownedPropertyLast5Years'] : []),
+                                    'hasPensionCard',
+                                    ...(formData.isACT ? ['income', 'dependants'] : []),
+                                    'needsLoan',
+                                    'savingsAmount',
+                                ].map((key) => ({
+                                    key,
+                                    label: fieldLabels[key] || key,
+                                    value: formatFieldValue(key, formData[key]),
+                                }));
                                 
                                 return (
-                                <AnimatePresence mode="wait">
-                                    <motion.div
-                                        key="all-forms-complete"
-                                        initial={{ opacity: 0, y: 20 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        exit={{ opacity: 0, y: -20 }}
-                                        transition={{ duration: 0.5, ease: "easeInOut" }}
-                                        className="mt-8 md:mt-4 w-full"
-                                    >
-                                        <div className="max-w-4xl mx-auto space-y-6">
-                                            {/* Page Intro Text */}
+                                        <AnimatePresence mode="wait">
                                             <motion.div
-                                                initial={{ opacity: 0, y: 10 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                                                className="text-center md:text-left mb-2 md:pt-4"
-                                            >
-                                                <h2 className="text-3xl md:text-4xl font-black tracking-tight text-secondary leading-tight">
-                                                    Results Summary
-                                                </h2>
-                                            </motion.div>
-
-                                            {/* Combined Settlement Summary Card */}
-                                            <motion.div
+                                                key="all-forms-complete"
                                                 initial={{ opacity: 0, y: 20 }}
                                                 animate={{ opacity: 1, y: 0 }}
-                                                transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-                                                className="bg-base-200 border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm space-y-8"
+                                                exit={{ opacity: 0, y: -20 }}
+                                                transition={{ duration: 0.5, ease: "easeInOut" }}
+                                                className="mt-8 md:mt-4 w-full"
                                             >
-                                                {/* Property summary */}
-                                                <div className="pb-6 border-b border-gray-100">
-                                                    <div 
-                                                        className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm"
-                                                        onClick={() => setIsPropertyCardExpanded(!isPropertyCardExpanded)}
+                                                <div className="max-w-4xl mx-auto space-y-6">
+                                                    {/* Page Intro Text */}
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 10 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+                                                        className="text-center md:text-left mb-2 md:pt-4"
                                                     >
-                                                        {/* Card Header Row */}
-                                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                                            <div className="flex items-center gap-3 min-w-0">
-                                                                <div className="p-2.5 bg-white rounded-lg border border-[#fef6e4] shadow-sm shrink-0">
-                                                                    <Home className="w-5 h-5 text-primary" />
-                                                                </div>
-                                                                <div className="min-w-0">
-                                                                    <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Property Address</span>
-                                                                    <p className="text-base md:text-lg font-bold text-secondary mt-0.5 break-words">
-                                                                        {propertyDisplayAddress}
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex items-center gap-4 sm:pl-4 shrink-0 justify-between sm:justify-end">
-                                                                <div className="sm:text-right">
-                                                                    <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Property Price</span>
-                                                                    <p className="text-2xl md:text-3xl font-black text-secondary mt-0.5 tracking-tight">
-                                                                        {formatCurrency(propertyDisplayPrice)}
-                                                                    </p>
-                                                                </div>
-                                                                <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
-                                                                    <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isPropertyCardExpanded ? 'rotate-180' : ''}`} />
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                        <h2 className="text-3xl md:text-4xl font-black tracking-tight text-secondary leading-tight">
+                                                            Results Summary
+                                                        </h2>
+                                                    </motion.div>
 
-                                                        {/* Expanded Details Row */}
-                                                        <AnimatePresence initial={false}>
-                                                            {isPropertyCardExpanded && (
-                                                                <motion.div
-                                                                    initial={{ height: 0, opacity: 0 }}
-                                                                    animate={{ height: "auto", opacity: 1 }}
-                                                                    exit={{ height: 0, opacity: 0 }}
-                                                                    transition={{ duration: 0.3, ease: "easeInOut" }}
-                                                                    className="overflow-hidden border-t border-[#fef6e4] pt-4 mt-2"
-                                                                    onClick={(e) => e.stopPropagation()} // Prevent collapse on detail click
-                                                                >
-                                                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 text-sm text-secondary">
-                                                                        {/* State */}
-                                                                        <div>
-                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">State</span>
-                                                                            <p className="font-semibold text-secondary mt-0.5">{formData.selectedState || 'Not specified'}</p>
-                                                                        </div>
-
-                                                                        {/* New/Existing (propertyType) */}
-                                                                        <div>
-                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">New/Existing</span>
-                                                                            <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('propertyType', formData.propertyType)}</p>
-                                                                        </div>
-
-                                                                        {/* Property Type (propertyCategory) */}
-                                                                        <div>
-                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Property Type</span>
-                                                                            <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('propertyCategory', formData.propertyCategory)}</p>
-                                                                        </div>
-
-                                                                        {/* Construction Started (conditional) */}
-                                                                        {(formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land') && formData.constructionStarted && (
-                                                                            <div>
-                                                                                <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Construction Started</span>
-                                                                                <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('constructionStarted', formData.constructionStarted)}</p>
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* Dutiable Value (conditional) */}
-                                                                        {formData.dutiableValue && (
-                                                                            <div>
-                                                                                <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Dutiable Value</span>
-                                                                                <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('dutiableValue', formData.dutiableValue)}</p>
-                                                                            </div>
-                                                                        )}
-
-                                                                        {/* WA Specific Fields */}
-                                                                        {formData.selectedState === 'WA' && (
-                                                                            <>
-                                                                                {formData.isWA && (
-                                                                                    <div>
-                                                                                        <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">WA Region</span>
-                                                                                        <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('isWA', formData.isWA)}</p>
-                                                                                    </div>
-                                                                                )}
-                                                                                {formData.isWAMetro && (
-                                                                                    <div>
-                                                                                        <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Metro Area</span>
-                                                                                        <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('isWAMetro', formData.isWAMetro)}</p>
-                                                                                    </div>
-                                                                                )}
-                                                                            </>
-                                                                        )}
-                                                                    </div>
-                                                                </motion.div>
-                                                            )}
-                                                        </AnimatePresence>
-                                                    </div>
-                                                </div>
-
-                                                {/* Settlement Section */}
-                                                <div className="space-y-6">
-                                                    <div>
-                                                        <h3 className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-0.5">At Settlement</h3>
-                                                        <h4 className="text-xl font-bold text-secondary">Upfront Costs</h4>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                        {/* Hero: Net Upfront Costs */}
-                                                        <div className="md:col-span-3 border-2 border-primary bg-[#E29578]/5 rounded-xl p-6 relative overflow-hidden flex flex-col justify-between min-h-[130px]">
-                                                            <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-5 pointer-events-none text-primary">
-                                                                <DollarSign className="w-36 h-36" />
-                                                            </div>
-                                                            <div className="flex items-center gap-2 mb-2">
-                                                                <div className="p-1.5 bg-primary rounded-lg text-white">
-                                                                    <DollarSign className="w-4 h-4" />
-                                                                </div>
-                                                                <span className="text-xs font-bold uppercase tracking-wider text-primary">Net Upfront Costs</span>
-                                                            </div>
-                                                            <div>
-                                                                <p className="text-3xl md:text-4xl font-black tracking-tight text-secondary">
-                                                                    {formatCurrency(totalPurchaseCost)}
-                                                                </p>
-                                                                <p className="text-xs text-gray-500 mt-1">Total cash required at settlement after grants and concessions</p>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Deposit (loan) or Property Price (cash) */}
-                                                        <div className="bg-[#fef6e4]/40 border border-[#fef6e4] rounded-xl p-5 flex flex-col justify-between min-h-[105px]">
-                                                            <div className="flex items-center gap-2 mb-1.5 text-gray-400">
-                                                                <Home className="w-4 h-4" />
-                                                                <span className="text-[10px] font-bold uppercase tracking-wider">
-                                                                    {hasLoan ? 'Deposit Amount' : 'Property Price'}
-                                                                </span>
-                                                            </div>
-                                                            <p className="text-xl font-bold text-secondary">{formatCurrency(depositOrPriceAmount)}</p>
-                                                        </div>
-
-                                                        {/* Gross Stamp Duty */}
-                                                        <div className="bg-gray-50 border border-gray-100 rounded-xl p-5 flex flex-col justify-between min-h-[105px]">
-                                                            <div className="flex items-center gap-2 mb-1.5 text-gray-400">
-                                                                <DollarSign className="w-4 h-4" />
-                                                                <span className="text-[10px] font-bold uppercase tracking-wider">Gross Stamp Duty</span>
-                                                            </div>
-                                                            <p className="text-xl font-bold text-secondary">{formatCurrency(grossStampDutyAmount)}</p>
-                                                        </div>
-
-                                                        {/* Other Costs */}
-                                                        <div className="bg-gray-50 border border-gray-100 rounded-xl p-5 flex flex-col justify-between min-h-[105px]">
-                                                            <div className="flex items-center gap-2 mb-1.5 text-gray-400">
-                                                                <DollarSign className="w-4 h-4" />
-                                                                <span className="text-[10px] font-bold uppercase tracking-wider">Other Costs</span>
-                                                            </div>
-                                                            <p className="text-xl font-bold text-secondary">{formatCurrency(otherCostsAmount)}</p>
-                                                        </div>
-
-                                                        {/* Spanning Row Card 2: Offsets Deducted */}
-                                                        <div className="md:col-span-3 bg-[#f2FFE5]/40 border border-[#f2FFE5] rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                                                            <div className="flex items-center gap-3 min-w-0">
-                                                                <div className="p-2 bg-emerald-500 text-white rounded-lg shrink-0">
-                                                                    <Minus className="w-4 h-4" />
-                                                                </div>
-                                                                <div className="min-w-0">
-                                                                    <span className="block text-[10px] font-bold uppercase tracking-wider text-gray-400">Concessions and Grants Deducted</span>
-                                                                    <span className="text-xs text-gray-500">Includes all your eligible state concessions and first home buyer grants</span>
-                                                                </div>
-                                                            </div>
-                                                            <p className={`text-xl md:text-2xl font-bold shrink-0 ${grantsConcessionsTotal > 0 ? 'text-emerald-600' : 'text-gray-400'}`}>
-                                                                {grantsConcessionsTotal > 0 ? `-${formatCurrency(grantsConcessionsTotal)}` : formatCurrency(0)}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* Ongoing Ownership Section */}
-                                                <div className="space-y-6 pt-6 border-t border-gray-100">
-                                                    <div>
-                                                        <h3 className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-0.5">Post-Settlement</h3>
-                                                        <h4 className="text-xl font-bold text-secondary">Ongoing Costs</h4>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                        {/* Monthly Outflow Component */}
-                                                        <div className="bg-base-200 border border-gray-100 rounded-xl p-5 flex flex-col justify-between relative">
-                                                            <div>
-                                                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Monthly Outflow</span>
-                                                                <p className="text-2xl md:text-3xl font-black text-secondary mb-2">
-                                                                    {formatCurrency(monthlyCashFlow)}<span className="text-xs font-normal text-gray-400"> /mo</span>
-                                                                </p>
-                                                            </div>
-                                                            <p className="text-[11px] text-gray-500 italic bg-gray-50/50 p-2 rounded border border-gray-100/30">
-                                                                Includes council rates, water rates, body corporate fees, and loan repayments.
-                                                            </p>
-                                                        </div>
-
-                                                        {/* Annual Operating Cost Component */}
-                                                        <div className="bg-base-200 border border-gray-100 rounded-xl p-5 flex flex-col justify-between relative">
-                                                            <div>
-                                                                <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Annualized Cost</span>
-                                                                <p className="text-2xl md:text-3xl font-black text-secondary mb-2">
-                                                                    {formatCurrency(annualOperatingCost)}<span className="text-xs font-normal text-gray-400"> /yr</span>
-                                                                </p>
-                                                            </div>
-                                                            <p className="text-[11px] text-gray-500 italic bg-gray-50/50 p-2 rounded border border-gray-100/30">
-                                                                Annualised council rates, water rates, body corporate fees, and loan repayments.
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                {/* CTA Action Buttons Component */}
-                                                {showEmailSuccess ? (
+                                                    {/* Combined Settlement Summary Card */}
                                                     <motion.div
                                                         initial={{ opacity: 0, y: 20 }}
                                                         animate={{ opacity: 1, y: 0 }}
-                                                        className="flex flex-col gap-4 pt-2"
+                                                        transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+                                                        className="bg-base-200 border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm space-y-8"
                                                     >
-                                                        <div className="bg-emerald-50/30 border-2 border-emerald-100 rounded-xl p-6 text-center">
-                                                            <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
-                                                            <h3 className="text-lg font-bold text-secondary mb-1">Check your inbox!</h3>
-                                                            <p className="text-sm text-gray-600 mb-4">Your detailed property report has been dispatched to {emailSuccessData?.email}</p>
-                                                            
-                                                            {emailSuccessData?.testingMode && (
-                                                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-left">
-                                                                    <p className="text-xs text-yellow-800 font-semibold mb-1">📝 Developer Runtime Notice:</p>
-                                                                    <p className="text-[11px] text-yellow-700">{emailSuccessData?.reminder || 'Resend validation protocol pending.'}</p>
+                                                        {/* Property summary */}
+                                                        <div className="pb-6 border-b border-gray-100">
+                                                            <div
+                                                                className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm"
+                                                                onClick={() => setIsPropertyCardExpanded(!isPropertyCardExpanded)}
+                                                            >
+                                                                {/* Card Header Row */}
+                                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                                                    <div className="flex items-center gap-3 min-w-0">
+                                                                        <div className="p-2.5 bg-white rounded-lg border border-[#fef6e4] shadow-sm shrink-0">
+                                                                            <Home className="w-5 h-5 text-primary" />
+                                                                        </div>
+                                                                        <div className="min-w-0">
+                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Property Address</span>
+                                                                            <p className="text-base md:text-lg font-bold text-secondary mt-0.5 break-words">
+                                                                                {propertyDisplayAddress}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-4 sm:pl-4 shrink-0 justify-between sm:justify-end">
+                                                                        <div className="sm:text-right">
+                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Property Price</span>
+                                                                            <p className="text-2xl md:text-3xl font-black text-secondary mt-0.5 tracking-tight">
+                                                                                {formatCurrency(propertyDisplayPrice)}
+                                                                            </p>
+                                                                        </div>
+                                                                        <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
+                                                                            <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isPropertyCardExpanded ? 'rotate-180' : ''}`} />
+                                                                        </div>
+                                                                    </div>
                                                                 </div>
-                                                            )}
-                                                            
-                                                            {!user && (
-                                                                emailSuccessData?.emailExists ? (
-                                                                    <>
-                                                                        <p className="text-xs text-gray-500 mb-4">An identified account vector exists for this address. Sign in to sync your calculation sheets.</p>
-                                                                        <Link href={`/login?email=${encodeURIComponent(emailSuccessData.email)}&next=/calculator`} className="inline-block">
-                                                                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-secondary hover:bg-secondary/90 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
-                                                                                Sign In to Your Account
-                                                                            </motion.button>
-                                                                        </Link>
-                                                                    </>
-                                                                ) : (
-                                                                    <>
-                                                                        <p className="text-xs text-gray-500 mb-4">Want to track these properties over long horizons? Open a persistent record track.</p>
-                                                                        <Link href={`/signup?email=${encodeURIComponent(emailSuccessData.email)}`} className="inline-block">
-                                                                            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
-                                                                                Create My Account
-                                                                            </motion.button>
-                                                                        </Link>
-                                                                    </>
-                                                                )
-                                                            )}
+
+                                                                {/* Expanded Details Row */}
+                                                                <AnimatePresence initial={false}>
+                                                                    {isPropertyCardExpanded && (
+                                                                        <motion.div
+                                                                            initial={{ height: 0, opacity: 0 }}
+                                                                            animate={{ height: "auto", opacity: 1 }}
+                                                                            exit={{ height: 0, opacity: 0 }}
+                                                                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                                                                            className="overflow-hidden border-t border-[#fef6e4] pt-4 mt-2"
+                                                                            onClick={(e) => e.stopPropagation()} // Prevent collapse on detail click
+                                                                        >
+                                                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 text-sm text-secondary">
+                                                                                {/* State */}
+                                                                                <div>
+                                                                                    <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">State</span>
+                                                                                    <p className="font-semibold text-secondary mt-0.5">{formData.selectedState || 'Not specified'}</p>
+                                                                                </div>
+
+                                                                                {/* New/Existing (propertyType) */}
+                                                                                <div>
+                                                                                    <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">New/Existing</span>
+                                                                                    <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('propertyType', formData.propertyType)}</p>
+                                                                                </div>
+
+                                                                                {/* Property Type (propertyCategory) */}
+                                                                                <div>
+                                                                                    <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Property Type</span>
+                                                                                    <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('propertyCategory', formData.propertyCategory)}</p>
+                                                                                </div>
+
+                                                                                {/* Construction Started (conditional) */}
+                                                                                {(formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land') && formData.constructionStarted && (
+                                                                                    <div>
+                                                                                        <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Construction Started</span>
+                                                                                        <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('constructionStarted', formData.constructionStarted)}</p>
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {/* Dutiable Value (conditional) */}
+                                                                                {formData.dutiableValue && (
+                                                                                    <div>
+                                                                                        <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Dutiable Value</span>
+                                                                                        <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('dutiableValue', formData.dutiableValue)}</p>
+                                                                                    </div>
+                                                                                )}
+
+                                                                                {/* WA Specific Fields */}
+                                                                                {formData.selectedState === 'WA' && (
+                                                                                    <>
+                                                                                        {formData.isWA && (
+                                                                                            <div>
+                                                                                                <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">WA Region</span>
+                                                                                                <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('isWA', formData.isWA)}</p>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {formData.isWAMetro && (
+                                                                                            <div>
+                                                                                                <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Metro Area</span>
+                                                                                                <p className="font-semibold text-secondary mt-0.5">{formatFieldValue('isWAMetro', formData.isWAMetro)}</p>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </>
+                                                                                )}
+                                                                            </div>
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            </div>
                                                         </div>
+
+                                                        {/* Buyer summary */}
+                                                        <div className="pb-6 border-b border-gray-100">
+                                                            <div
+                                                                className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm"
+                                                                onClick={() => setIsBuyerCardExpanded(!isBuyerCardExpanded)}
+                                                            >
+                                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                                                    <div className="flex items-center gap-3 min-w-0">
+                                                                        <div className="p-2.5 bg-white rounded-lg border border-[#fef6e4] shadow-sm shrink-0">
+                                                                            <User className="w-5 h-5 text-primary" />
+                                                                        </div>
+                                                                        <div className="min-w-0">
+                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Buyer Type</span>
+                                                                            <p className="text-base md:text-lg font-bold text-secondary mt-0.5">
+                                                                                {buyerTypeDisplay}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-4 sm:pl-4 shrink-0 justify-end">
+                                                                        <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
+                                                                            <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isBuyerCardExpanded ? 'rotate-180' : ''}`} />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                <AnimatePresence initial={false}>
+                                                                    {isBuyerCardExpanded && (
+                                                                        <motion.div
+                                                                            initial={{ height: 0, opacity: 0 }}
+                                                                            animate={{ height: "auto", opacity: 1 }}
+                                                                            exit={{ height: 0, opacity: 0 }}
+                                                                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                                                                            className="overflow-hidden border-t border-[#fef6e4] pt-4 mt-2"
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                        >
+                                                                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 text-sm text-secondary">
+                                                                                {buyerDetailRows.map(({ key, label, value }) => (
+                                                                                    <div key={key}>
+                                                                                        <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">{label}</span>
+                                                                                        <p className="font-semibold text-secondary mt-0.5">{value}</p>
+                                                                                    </div>
+                                                                                ))}
+                                                                            </div>
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Settlement Section */}
+                                                        <div className="space-y-6">
+                                                            <div>
+                                                                <h3 className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-0.5">At Settlement</h3>
+                                                                <h4 className="text-xl font-bold text-secondary">Upfront Costs</h4>
+                                                            </div>
+
+                                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                                {/* Hero: Net Upfront Costs */}
+                                                                <div
+                                                                    onClick={() => setIsUpfrontCostsExpanded(!isUpfrontCostsExpanded)}
+                                                                    className={`md:col-span-3 border-2 border-primary bg-[#E29578]/5 rounded-xl p-6 relative overflow-hidden flex flex-col justify-between cursor-pointer transition-all duration-200 hover:shadow-md select-none ${isUpfrontCostsExpanded ? 'pb-4' : 'min-h-[130px]'}`}
+                                                                >
+                                                                    <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-5 pointer-events-none text-primary">
+                                                                        <DollarSign className="w-36 h-36" />
+                                                                    </div>
+                                                                    <div className="flex items-center justify-between w-full mb-2">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <div className="p-1.5 bg-primary rounded-lg text-white">
+                                                                                <DollarSign className="w-4 h-4" />
+                                                                            </div>
+                                                                            <span className="text-xs font-bold uppercase tracking-wider text-primary">Net Upfront Costs</span>
+                                                                        </div>
+                                                                        <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
+                                                                            <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isUpfrontCostsExpanded ? 'rotate-180' : ''}`} />
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex flex-col justify-between">
+                                                                        <p className="text-3xl md:text-4xl font-black tracking-tight text-secondary">
+                                                                            {formatCurrency(totalPurchaseCost)}
+                                                                        </p>
+                                                                        <p className="text-xs text-gray-500 mt-1">Total cash required at settlement after grants and concessions</p>
+                                                                    </div>
+
+                                                                    <AnimatePresence initial={false}>
+                                                                        {isUpfrontCostsExpanded && (
+                                                                            <motion.div
+                                                                                initial={{ height: 0, opacity: 0 }}
+                                                                                animate={{ height: "auto", opacity: 1 }}
+                                                                                exit={{ height: 0, opacity: 0 }}
+                                                                                transition={{ duration: 0.3, ease: "easeInOut" }}
+                                                                                className="overflow-hidden border-t border-primary/20 pt-4 mt-4"
+                                                                                onClick={(e) => e.stopPropagation()} // Prevent collapse on detail click
+                                                                            >
+                                                                                <div className="space-y-2 text-sm text-secondary">
+                                                                                    {(() => {
+                                                                                        const activeConcessions = appliedConcessions.filter(c => c.amount > 0);
+                                                                                        const concessionsTotal = activeConcessions.reduce((sum, c) => sum + c.amount, 0);
+                                                                                        const hasConcessions = activeConcessions.length > 0;
+                                                                                        const netStampDutyVal = Math.max(0, grossStampDutyAmount - concessionsTotal);
+
+                                                                                        const activeGrants = appliedGrants.filter(g => g.amount > 0);
+                                                                                        const grantsTotal = activeGrants.reduce((sum, g) => sum + g.amount, 0);
+                                                                                        const hasGrants = activeGrants.length > 0;
+                                                                                        const totalBeforeGrants = totalPurchaseCost + grantsTotal;
+
+                                                                                        const depositVal = hasLoan
+                                                                                            ? (parseInt(formData.loanDeposit) || 0)
+                                                                                            : (parseInt(formData.propertyPrice) || 0);
+
+                                                                                        const getConcessionLabel = (type) => {
+                                                                                            switch (type) {
+                                                                                                case 'Pensioner': return 'Pensioner Duty Concession';
+                                                                                                case 'First Home Buyer': return 'First Home Buyer Concession';
+                                                                                                case 'First Home Owner': return 'First Home Owner Concession';
+                                                                                                case 'First Home Duty Relief': return 'First Home Duty Relief';
+                                                                                                case 'Off-The-Plan': return 'Off-The-Plan Concession';
+                                                                                                case 'Off the Plan Exemption': return 'Off the Plan Exemption';
+                                                                                                case 'Pensioner Concession': return 'Pensioner Concession';
+                                                                                                case 'Owner Occupier Concession': return 'Owner Occupier Concession';
+                                                                                                case 'Temp Off-The-Plan': return 'Temp Off-The-Plan Concession';
+                                                                                                case 'Home Concession': return 'Home Concession';
+                                                                                                case 'First Home Concession': return 'First Home Concession';
+                                                                                                case 'First Home (New) Concession': return 'First Home (New) Concession';
+                                                                                                case 'First Home (Vac Land) Concession': return 'First Home (Vac Land) Concession';
+                                                                                                case 'House and Land': return 'House and Land Concession';
+                                                                                                case 'Home Buyer Concession': return 'Home Buyer Concession';
+                                                                                                default: return `Stamp Duty Concession${type ? ` (${type})` : ''}`;
+                                                                                            }
+                                                                                        };
+
+                                                                                        return (
+                                                                                            <div className="divide-y divide-primary/10">
+                                                                                                {/* 1. Deposit or Property Price */}
+                                                                                                <div className="flex justify-between items-center py-2">
+                                                                                                    <span className="text-gray-600">{hasLoan ? 'Deposit' : 'Property Price'}</span>
+                                                                                                    <span className="font-semibold text-secondary">{formatCurrency(depositVal)}</span>
+                                                                                                </div>
+
+                                                                                                {/* 2. Stamp Duty (Gross) & Concessions & Net State Duty */}
+                                                                                                <div className="py-2">
+                                                                                                    <div className="flex justify-between items-center py-1">
+                                                                                                        <span className="text-gray-600">Stamp Duty (Gross)</span>
+                                                                                                        <span className="font-semibold text-secondary">{formatCurrency(grossStampDutyAmount)}</span>
+                                                                                                    </div>
+                                                                                                    {activeConcessions.map((c, i) => (
+                                                                                                        <div key={i} className="flex justify-between items-center py-1 text-sm">
+                                                                                                            <span className="text-gray-500 pl-4">{getConcessionLabel(c.type)}</span>
+                                                                                                            <span className="font-semibold text-green-600">-{formatCurrency(c.amount)}</span>
+                                                                                                        </div>
+                                                                                                    ))}
+                                                                                                    {hasConcessions && (
+                                                                                                        <div className="flex justify-between items-center py-1 pt-2 border-t border-dashed border-primary/10 font-medium">
+                                                                                                            <span className="text-secondary pl-4">Net State Duty</span>
+                                                                                                            <span className="text-secondary font-bold">{formatCurrency(netStampDutyVal)}</span>
+                                                                                                        </div>
+                                                                                                    )}
+                                                                                                </div>
+
+                                                                                                {/* 3. Other Fees */}
+                                                                                                {((hasLoan && (parseInt(formData.loanSettlementFees) > 0 || parseInt(formData.loanEstablishmentFee) > 0)) ||
+                                                                                                    (formData.sellerQuestionsComplete && (parseInt(formData.landTransferFee) > 0 || parseInt(formData.legalFees) > 0 || parseInt(formData.buildingAndPestInspection) > 0)) ||
+                                                                                                    (formData.buyerDetailsComplete && formData.isAustralianResident === 'no' && parseInt(formData.FIRBFee) > 0)) && (
+                                                                                                        <div className="py-2 space-y-1">
+                                                                                                            {hasLoan && parseInt(formData.loanSettlementFees) > 0 && (
+                                                                                                                <div className="flex justify-between items-center py-1">
+                                                                                                                    <span className="text-gray-600">Bank Settlement Fee</span>
+                                                                                                                    <span className="font-semibold text-secondary">{formatCurrency(parseInt(formData.loanSettlementFees))}</span>
+                                                                                                                </div>
+                                                                                                            )}
+                                                                                                            {hasLoan && parseInt(formData.loanEstablishmentFee) > 0 && (
+                                                                                                                <div className="flex justify-between items-center py-1">
+                                                                                                                    <span className="text-gray-600">Loan Establishment Fee</span>
+                                                                                                                    <span className="font-semibold text-secondary">{formatCurrency(parseInt(formData.loanEstablishmentFee))}</span>
+                                                                                                                </div>
+                                                                                                            )}
+                                                                                                            {formData.sellerQuestionsComplete && parseInt(formData.landTransferFee) > 0 && (
+                                                                                                                <div className="flex justify-between items-center py-1">
+                                                                                                                    <span className="text-gray-600">Land Transfer Fee</span>
+                                                                                                                    <span className="font-semibold text-secondary">{formatCurrency(parseInt(formData.landTransferFee))}</span>
+                                                                                                                </div>
+                                                                                                            )}
+                                                                                                            {formData.sellerQuestionsComplete && parseInt(formData.legalFees) > 0 && (
+                                                                                                                <div className="flex justify-between items-center py-1">
+                                                                                                                    <span className="text-gray-600">Legal and Conveyancing</span>
+                                                                                                                    <span className="font-semibold text-secondary">{formatCurrency(parseInt(formData.legalFees))}</span>
+                                                                                                                </div>
+                                                                                                            )}
+                                                                                                            {formData.sellerQuestionsComplete && parseInt(formData.buildingAndPestInspection) > 0 && (
+                                                                                                                <div className="flex justify-between items-center py-1">
+                                                                                                                    <span className="text-gray-600">Building and Pest Inspection</span>
+                                                                                                                    <span className="font-semibold text-secondary">{formatCurrency(parseInt(formData.buildingAndPestInspection))}</span>
+                                                                                                                </div>
+                                                                                                            )}
+                                                                                                            {formData.buyerDetailsComplete && formData.isAustralianResident === 'no' && parseInt(formData.FIRBFee) > 0 && (
+                                                                                                                <div className="flex justify-between items-center py-1">
+                                                                                                                    <span className="text-gray-600">FIRB Application Fee</span>
+                                                                                                                    <span className="font-semibold text-secondary">{formatCurrency(parseInt(formData.FIRBFee))}</span>
+                                                                                                                </div>
+                                                                                                            )}
+                                                                                                        </div>
+                                                                                                    )}
+
+                                                                                                {/* 4. Grants and Final Totals */}
+                                                                                                <div className="pt-2">
+                                                                                                    {hasGrants ? (
+                                                                                                        <>
+                                                                                                            <div className="flex justify-between items-center py-2 font-bold text-secondary">
+                                                                                                                <span>Total (before grants)</span>
+                                                                                                                <span>{formatCurrency(totalBeforeGrants)}</span>
+                                                                                                            </div>
+                                                                                                            {activeGrants.map((g, i) => (
+                                                                                                                <div key={i} className="flex justify-between items-center py-1 text-sm">
+                                                                                                                    <span className="text-gray-500 pl-4">{g.label || 'First Home Owners Grant'}</span>
+                                                                                                                    <span className="font-semibold text-green-600">-{formatCurrency(g.amount)}</span>
+                                                                                                                </div>
+                                                                                                            ))}
+                                                                                                            <div className="flex justify-between items-center py-2 pt-3 border-t border-primary/20 font-black text-lg text-secondary">
+                                                                                                                <span>Total Upfront Costs</span>
+                                                                                                                <span>{formatCurrency(totalPurchaseCost)}</span>
+                                                                                                            </div>
+                                                                                                        </>
+                                                                                                    ) : (
+                                                                                                        <div className="flex justify-between items-center py-2 font-black text-lg text-secondary">
+                                                                                                            <span>Total Upfront Costs</span>
+                                                                                                            <span>{formatCurrency(totalPurchaseCost)}</span>
+                                                                                                        </div>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        );
+                                                                                    })()}
+                                                                                </div>
+                                                                            </motion.div>
+                                                                        )}
+                                                                    </AnimatePresence>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Ongoing Ownership Section */}
+                                                        <div className="space-y-6 pt-6 border-t border-gray-100">
+                                                            <div>
+                                                                <h3 className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-0.5">Post-Settlement</h3>
+                                                                <h4 className="text-xl font-bold text-secondary">Ongoing Costs</h4>
+                                                            </div>
+
+                                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                                {/* Monthly Outflow Component */}
+                                                                <div className="bg-base-200 border border-gray-100 rounded-xl p-5 flex flex-col justify-between relative">
+                                                                    <div>
+                                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Monthly Outflow</span>
+                                                                        <p className="text-2xl md:text-3xl font-black text-secondary mb-2">
+                                                                            {formatCurrency(monthlyCashFlow)}<span className="text-xs font-normal text-gray-400"> /mo</span>
+                                                                        </p>
+                                                                    </div>
+                                                                    <p className="text-[11px] text-gray-500 italic bg-gray-50/50 p-2 rounded border border-gray-100/30">
+                                                                        Includes council rates, water rates, body corporate fees, and loan repayments.
+                                                                    </p>
+                                                                </div>
+
+                                                                {/* Annual Operating Cost Component */}
+                                                                <div className="bg-base-200 border border-gray-100 rounded-xl p-5 flex flex-col justify-between relative">
+                                                                    <div>
+                                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Annualized Cost</span>
+                                                                        <p className="text-2xl md:text-3xl font-black text-secondary mb-2">
+                                                                            {formatCurrency(annualOperatingCost)}<span className="text-xs font-normal text-gray-400"> /yr</span>
+                                                                        </p>
+                                                                    </div>
+                                                                    <p className="text-[11px] text-gray-500 italic bg-gray-50/50 p-2 rounded border border-gray-100/30">
+                                                                        Annualised council rates, water rates, body corporate fees, and loan repayments.
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* CTA Action Buttons Component */}
+                                                        {showEmailSuccess ? (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, y: 20 }}
+                                                                animate={{ opacity: 1, y: 0 }}
+                                                                className="flex flex-col gap-4 pt-2"
+                                                            >
+                                                                <div className="bg-emerald-50/30 border-2 border-emerald-100 rounded-xl p-6 text-center">
+                                                                    <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
+                                                                    <h3 className="text-lg font-bold text-secondary mb-1">Check your inbox!</h3>
+                                                                    <p className="text-sm text-gray-600 mb-4">Your detailed property report has been dispatched to {emailSuccessData?.email}</p>
+
+                                                                    {emailSuccessData?.testingMode && (
+                                                                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-left">
+                                                                            <p className="text-xs text-yellow-800 font-semibold mb-1">📝 Developer Runtime Notice:</p>
+                                                                            <p className="text-[11px] text-yellow-700">{emailSuccessData?.reminder || 'Resend validation protocol pending.'}</p>
+                                                                        </div>
+                                                                    )}
+
+                                                                    {!user && (
+                                                                        emailSuccessData?.emailExists ? (
+                                                                            <>
+                                                                                <p className="text-xs text-gray-500 mb-4">An identified account vector exists for this address. Sign in to sync your calculation sheets.</p>
+                                                                                <Link href={`/login?email=${encodeURIComponent(emailSuccessData.email)}&next=/calculator`} className="inline-block">
+                                                                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-secondary hover:bg-secondary/90 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
+                                                                                        Sign In to Your Account
+                                                                                    </motion.button>
+                                                                                </Link>
+                                                                            </>
+                                                                        ) : (
+                                                                            <>
+                                                                                <p className="text-xs text-gray-500 mb-4">Want to track these properties over long horizons? Open a persistent record track.</p>
+                                                                                <Link href={`/signup?email=${encodeURIComponent(emailSuccessData.email)}`} className="inline-block">
+                                                                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
+                                                                                        Create My Account
+                                                                                    </motion.button>
+                                                                                </Link>
+                                                                            </>
+                                                                        )
+                                                                    )}
+                                                                </div>
+                                                            </motion.div>
+                                                        ) : (
+                                                            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                                                                <motion.button
+                                                                    whileHover={{ scale: 1.02 }}
+                                                                    whileTap={{ scale: 0.98 }}
+                                                                    className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-primary hover:bg-primary/95 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150"
+                                                                >
+                                                                    <Download className="w-4 h-4" />
+                                                                    Download Full PDF Report
+                                                                </motion.button>
+
+                                                                <motion.button
+                                                                    whileHover={{ scale: 1.02 }}
+                                                                    whileTap={{ scale: 0.98 }}
+                                                                    onClick={handleEmailPDF}
+                                                                    disabled={isEmailingPDF}
+                                                                    className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-base-200 border-2 border-secondary text-secondary hover:bg-secondary/5 px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                >
+                                                                    {isEmailingPDF ? (
+                                                                        <>
+                                                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                                                            Sending...
+                                                                        </>
+                                                                    ) : (
+                                                                        <>
+                                                                            <Mail className="w-4 h-4" />
+                                                                            Email Me These Results
+                                                                        </>
+                                                                    )}
+                                                                </motion.button>
+                                                            </div>
+                                                        )}
                                                     </motion.div>
-                                                ) : (
-                                                    <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+
+                                                    {/* Action Control: Edit and Reset Summary Row */}
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+                                                        className="flex flex-col sm:flex-row gap-3 justify-center items-center"
+                                                    >
                                                         <motion.button
-                                                            whileHover={{ scale: 1.02 }}
-                                                            whileTap={{ scale: 0.98 }}
-                                                            className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-primary hover:bg-primary/95 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150"
+                                                            whileHover={{ scale: 1.05 }}
+                                                            whileTap={{ scale: 0.95 }}
+                                                            onClick={() => {
+                                                                setShowReviewOverlay(true);
+                                                                setTimeout(() => {
+                                                                    formData.setShowReviewPage(true);
+                                                                    window.scrollTo(0, 0);
+                                                                    setShowReviewOverlay(false);
+                                                                }, 2000);
+                                                            }}
+                                                            className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
                                                         >
-                                                            <Download className="w-4 h-4" />
-                                                            Download Full PDF Report
+                                                            <Edit className="w-4 h-4" />
+                                                            Review/Edit All Answers
                                                         </motion.button>
-                                                        
+
                                                         <motion.button
-                                                            whileHover={{ scale: 1.02 }}
-                                                            whileTap={{ scale: 0.98 }}
-                                                            onClick={handleEmailPDF}
-                                                            disabled={isEmailingPDF}
-                                                            className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-base-200 border-2 border-secondary text-secondary hover:bg-secondary/5 px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            whileHover={{ scale: 1.05 }}
+                                                            whileTap={{ scale: 0.95 }}
+                                                            onClick={() => {
+                                                                formData.resetForm();
+                                                            }}
+                                                            className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
                                                         >
-                                                            {isEmailingPDF ? (
+                                                            <Plus className="w-4 h-4" />
+                                                            Start New Survey
+                                                        </motion.button>
+                                                    </motion.div>
+
+                                                    {/* Dashboard / Auth Navigation Link Button */}
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
+                                                        className="flex justify-center pt-2"
+                                                    >
+                                                        <motion.button
+                                                            whileHover={{ scale: 1.05 }}
+                                                            whileTap={{ scale: 0.95 }}
+                                                            onClick={() => {
+                                                                const targetUrl = user ? '/dashboard' : '/';
+                                                                if (typeof window !== 'undefined' && window.__navigationWarning) {
+                                                                    window.__navigationWarning.checkNavigation(targetUrl);
+                                                                }
+                                                            }}
+                                                            className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-secondary hover:bg-secondary-focus text-white px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
+                                                        >
+                                                            {user ? (
                                                                 <>
-                                                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                                                    Sending...
+                                                                    <Home className="w-4 h-4" />
+                                                                    Exit to My Dashboard
+                                                                    <ArrowRight className="w-4 h-4" />
                                                                 </>
                                                             ) : (
                                                                 <>
                                                                     <Mail className="w-4 h-4" />
-                                                                    Email Me These Results
+                                                                    Log in to Save Progress
+                                                                    <ArrowRight className="w-4 h-4" />
                                                                 </>
                                                             )}
                                                         </motion.button>
-                                                    </div>
-                                                )}
+                                                    </motion.div>
+                                                </div>
                                             </motion.div>
-
-                                            {/* Action Control: Edit and Reset Summary Row */}
-                                            <motion.div
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
-                                                className="flex flex-col sm:flex-row gap-3 justify-center items-center"
-                                            >
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => {
-                                                        setShowReviewOverlay(true);
-                                                        setTimeout(() => {
-                                                            formData.setShowReviewPage(true);
-                                                            window.scrollTo(0, 0);
-                                                            setShowReviewOverlay(false);
-                                                        }, 2000);
-                                                    }}
-                                                    className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
-                                                >
-                                                    <Edit className="w-4 h-4" />
-                                                    Review/Edit All Answers
-                                                </motion.button>
-                                                
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => {
-                                                        formData.resetForm();
-                                                    }}
-                                                    className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
-                                                >
-                                                    <Plus className="w-4 h-4" />
-                                                    Start New Survey
-                                                </motion.button>
-                                            </motion.div>
-                                            
-                                            {/* Dashboard / Auth Navigation Link Button */}
-                                            <motion.div 
-                                                initial={{ opacity: 0, y: 20 }}
-                                                animate={{ opacity: 1, y: 0 }}
-                                                transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
-                                                className="flex justify-center pt-2"
-                                            >
-                                                <motion.button
-                                                    whileHover={{ scale: 1.05 }}
-                                                    whileTap={{ scale: 0.95 }}
-                                                    onClick={() => {
-                                                        const targetUrl = user ? '/dashboard' : '/';
-                                                        if (typeof window !== 'undefined' && window.__navigationWarning) {
-                                                            window.__navigationWarning.checkNavigation(targetUrl);
-                                                        }
-                                                    }}
-                                                    className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-secondary hover:bg-secondary-focus text-white px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
-                                                >
-                                                    {user ? (
-                                                        <>
-                                                            <Home className="w-4 h-4" />
-                                                            Exit to My Dashboard
-                                                            <ArrowRight className="w-4 h-4" />
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <Mail className="w-4 h-4" />
-                                                            Log in to Save Progress
-                                                            <ArrowRight className="w-4 h-4" />
-                                                        </>
-                                                    )}
-                                                </motion.button>
-                                            </motion.div>
-                                        </div>
-                                    </motion.div>
-                                </AnimatePresence>
-                                );
-                            })();
-                            return null;
-                        })()}
+                                        </AnimatePresence>
+                                    );
+                                })();
+                                return null;
+                            })()}
+                        </div>
                     </div>
-                </div>
-            </main>
+                </main>
             )}
 
             {/* Email Modal */}

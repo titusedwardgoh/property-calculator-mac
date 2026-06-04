@@ -1865,7 +1865,7 @@ export default function DashboardContent({
                       e.stopPropagation();
                       handleResume(survey.id);
                     }}
-                    className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-800 transition-colors hover:bg-base-200"
+                    className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-800 transition-colors hover:bg-base-300"
                   >
                     {isComplete ? <Eye className="h-4 w-4" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />}
                     {isComplete ? 'View' : 'Resume'}
@@ -2026,7 +2026,7 @@ export default function DashboardContent({
                 <button
                   type="button"
                   onClick={handleDesktopMapToggle}
-                  className="hidden cursor-pointer items-center gap-2 rounded-full border border-base-300 bg-white px-4 py-1.5 text-sm font-medium text-gray-800 shadow-sm transition-colors hover:bg-base-200 lg:inline-flex"
+                  className="hidden cursor-pointer items-center gap-2 rounded-full border border-base-300 bg-white px-4 py-1.5 text-sm font-medium text-gray-800 shadow-sm transition-colors hover:bg-base-300 lg:inline-flex"
                 >
                   <MapIcon className="h-4 w-4" />
                   {isMapHiddenDesktop ? 'Show map' : 'Hide map'}
@@ -2184,7 +2184,7 @@ export default function DashboardContent({
                         type="button"
                         onClick={handleBulkDelete}
                         aria-label={`Delete ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`}
-                        className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-secondary px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-secondary-content transition-colors hover:bg-secondary/90 sm:h-auto sm:min-h-0 sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
+                        className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-error px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-error-content transition-colors hover:bg-error/90 sm:h-auto sm:min-h-0 sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
                       >
                         <Trash2 className="hidden h-5 w-5 shrink-0 sm:block" />
                         <span className="flex flex-col sm:hidden">
@@ -2207,7 +2207,7 @@ export default function DashboardContent({
                             ? `Uninspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
                             : `Inspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
                         }
-                        className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-primary px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-secondary transition-colors hover:bg-primary-focus sm:h-auto sm:min-h-0 sm:w-auto sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
+                        className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-primary px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-secondary transition-colors hover:bg-primary/90 sm:h-auto sm:min-h-0 sm:w-auto sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
                       >
                         <span className="flex flex-col sm:hidden">
                           <span>{bulkInspectAllSelectedAlreadyInspected ? 'Uninspect' : 'Inspect'}</span>

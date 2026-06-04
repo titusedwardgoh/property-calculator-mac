@@ -1124,7 +1124,7 @@ export default function PropertyDetails() {
               formData.detectedState && formData.selectedState && formData.detectedState !== formData.selectedState
                 ? ''
                 : 'text-gray-500'
-            }`} style={formData.detectedState && formData.selectedState && formData.detectedState !== formData.selectedState ? { color: '#f582ae' } : {}}>
+            }`} style={formData.detectedState && formData.selectedState && formData.detectedState !== formData.selectedState ? { color: 'var(--color-primary)' } : {}}>
               {formData.detectedState && formData.selectedState && formData.detectedState !== formData.selectedState
                 ? `We think the property is in ${formData.detectedState} based on the address you entered`
                 : 'Different states have different stamp duty rates and concessions'}
@@ -1174,7 +1174,7 @@ export default function PropertyDetails() {
                   ? ''
                   : 'text-gray-500'
               }`} style={(formData.detectedWALocation && formData.isWA && formData.detectedWALocation !== formData.isWA) ||
-                (formData.detectedWAMetro && formData.isWAMetro && formData.detectedWAMetro !== formData.isWAMetro) ? { color: '#f582ae' } : {}}>
+                (formData.detectedWAMetro && formData.isWAMetro && formData.detectedWAMetro !== formData.isWAMetro) ? { color: 'var(--color-primary)' } : {}}>
                 {formData.detectedWALocation && formData.isWA && formData.detectedWALocation !== formData.isWA
                   ? `We think the property is ${formData.detectedWALocation} of the 26th parallel based on the address`
                   : formData.detectedWAMetro && formData.isWAMetro && formData.detectedWAMetro !== formData.isWAMetro

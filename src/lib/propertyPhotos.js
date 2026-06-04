@@ -10,10 +10,10 @@ export const PROPWIZ_BRANDED_PLACEHOLDER_URL = encodeSvg(`
     </linearGradient>
   </defs>
   <rect width="960" height="540" fill="url(#bg)"/>
-  <circle cx="812" cy="112" r="158" fill="#f582ae" fill-opacity="0.35"/>
-  <circle cx="126" cy="460" r="220" fill="#f582ae" fill-opacity="0.20"/>
-  <path d="M220 344L356 238L470 320L616 210L740 312V404H220V344Z" fill="#f582ae" fill-opacity="0.35"/>
-  <rect x="220" y="404" width="520" height="12" rx="6" fill="#f582ae" fill-opacity="0.85"/>
+  <circle cx="812" cy="112" r="158" fill="#E29578" fill-opacity="0.35"/>
+  <circle cx="126" cy="460" r="220" fill="#E29578" fill-opacity="0.20"/>
+  <path d="M220 344L356 238L470 320L616 210L740 312V404H220V344Z" fill="#E29578" fill-opacity="0.35"/>
+  <rect x="220" y="404" width="520" height="12" rx="6" fill="#E29578" fill-opacity="0.85"/>
   <text x="480" y="180" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="52" font-weight="700">PropWiz</text>
   <text x="480" y="226" text-anchor="middle" fill="#ffffff" fill-opacity="0.9" font-family="Arial, sans-serif" font-size="24">Property Preview Unavailable</text>
 </svg>
