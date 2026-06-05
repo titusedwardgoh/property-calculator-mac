@@ -49,6 +49,9 @@ function CalculatorPageContent() {
     const [isLoanCardExpanded, setIsLoanCardExpanded] = useState(false);
     const [isUpfrontCostsExpanded, setIsUpfrontCostsExpanded] = useState(false);
     const [isOngoingCostsExpanded, setIsOngoingCostsExpanded] = useState(false);
+    const [isMonthlyOutflowExpanded, setIsMonthlyOutflowExpanded] = useState(false);
+    const [isAnnualizedCostExpanded, setIsAnnualizedCostExpanded] = useState(false);
+    const [isMobileOngoingCosts, setIsMobileOngoingCosts] = useState(false);
     const hasResumedRef = useRef(false);
     const initialWelcomeCheckedRef = useRef(false);
 
@@ -69,6 +72,33 @@ function CalculatorPageContent() {
             isLoadingResume
         }
     );
+
+    useEffect(() => {
+        const mq = window.matchMedia('(max-width: 639px)');
+        const update = () => setIsMobileOngoingCosts(mq.matches);
+        update();
+        mq.addEventListener('change', update);
+        return () => mq.removeEventListener('change', update);
+    }, []);
+
+    const monthlyOutflowExpanded = isMobileOngoingCosts ? isMonthlyOutflowExpanded : isOngoingCostsExpanded;
+    const annualizedCostExpanded = isMobileOngoingCosts ? isAnnualizedCostExpanded : isOngoingCostsExpanded;
+
+    const toggleMonthlyOutflow = () => {
+        if (isMobileOngoingCosts) {
+            setIsMonthlyOutflowExpanded((prev) => !prev);
+        } else {
+            setIsOngoingCostsExpanded((prev) => !prev);
+        }
+    };
+
+    const toggleAnnualizedCost = () => {
+        if (isMobileOngoingCosts) {
+            setIsAnnualizedCostExpanded((prev) => !prev);
+        } else {
+            setIsOngoingCostsExpanded((prev) => !prev);
+        }
+    };
 
     // Resume / view a saved survey from the dashboard
     useEffect(() => {
@@ -1401,20 +1431,20 @@ function CalculatorPageContent() {
                                                                 {/* Monthly Outflow Component */}
                                                                 <div
                                                                     className="bg-base-200 border border-gray-100 rounded-xl p-5 flex flex-col justify-between relative cursor-pointer select-none"
-                                                                    onClick={() => setIsOngoingCostsExpanded(!isOngoingCostsExpanded)}
+                                                                    onClick={toggleMonthlyOutflow}
                                                                 >
                                                                     <div>
                                                                         <div className="flex items-start justify-between gap-2 mb-1">
                                                                             <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Monthly Outflow</span>
                                                                             <div className="p-1 hover:bg-black/5 rounded-full transition-colors shrink-0">
-                                                                                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${isOngoingCostsExpanded ? 'rotate-180' : ''}`} />
+                                                                                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${monthlyOutflowExpanded ? 'rotate-180' : ''}`} />
                                                                             </div>
                                                                         </div>
                                                                         <p className="text-2xl md:text-3xl font-black text-secondary mb-2">
                                                                             {formatCurrency(monthlyCashFlow)}<span className="text-xs font-normal text-gray-400"> /mo</span>
                                                                         </p>
                                                                         <AnimatePresence initial={false}>
-                                                                            {isOngoingCostsExpanded && (
+                                                                            {monthlyOutflowExpanded && (
                                                                                 <motion.div
                                                                                     initial={{ height: 0, opacity: 0 }}
                                                                                     animate={{ height: "auto", opacity: 1 }}
@@ -1461,20 +1491,20 @@ function CalculatorPageContent() {
                                                                 {/* Annual Operating Cost Component */}
                                                                 <div
                                                                     className="bg-base-200 border border-gray-100 rounded-xl p-5 flex flex-col justify-between relative cursor-pointer select-none"
-                                                                    onClick={() => setIsOngoingCostsExpanded(!isOngoingCostsExpanded)}
+                                                                    onClick={toggleAnnualizedCost}
                                                                 >
                                                                     <div>
                                                                         <div className="flex items-start justify-between gap-2 mb-1">
                                                                             <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Annualized Cost</span>
                                                                             <div className="p-1 hover:bg-black/5 rounded-full transition-colors shrink-0">
-                                                                                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${isOngoingCostsExpanded ? 'rotate-180' : ''}`} />
+                                                                                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${annualizedCostExpanded ? 'rotate-180' : ''}`} />
                                                                             </div>
                                                                         </div>
                                                                         <p className="text-2xl md:text-3xl font-black text-secondary mb-2">
                                                                             {formatCurrency(annualOperatingCost)}<span className="text-xs font-normal text-gray-400"> /yr</span>
                                                                         </p>
                                                                         <AnimatePresence initial={false}>
-                                                                            {isOngoingCostsExpanded && (
+                                                                            {annualizedCostExpanded && (
                                                                                 <motion.div
                                                                                     initial={{ height: 0, opacity: 0 }}
                                                                                     animate={{ height: "auto", opacity: 1 }}
