@@ -6,7 +6,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle, Search, ArrowUpDown, Map as MapIcon, List, MoreHorizontal } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { createClient } from '@/lib/supabase/client';
 import { useFormStore } from '@/stores/formStore';
 import { resetSessionAndForm } from '@/lib/sessionManager';
 import {
@@ -26,9 +25,8 @@ function SurveyInspectedToggle({ inspected, onToggle, compact }) {
     <motion.button
       type="button"
       onClick={onToggle}
-      className={`relative inline-flex shrink-0 cursor-pointer items-center rounded-full focus:outline-none active:outline-none ${
-        compact ? 'h-6 w-12' : 'h-6 w-14'
-      }`}
+      className={`relative inline-flex shrink-0 cursor-pointer items-center rounded-full focus:outline-none active:outline-none ${compact ? 'h-6 w-12' : 'h-6 w-14'
+        }`}
       animate={{
         backgroundColor: inspected ? '#10b981' : '#ef4444',
       }}
@@ -42,9 +40,8 @@ function SurveyInspectedToggle({ inspected, onToggle, compact }) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 5 }}
             transition={{ duration: 0.2 }}
-            className={`pointer-events-none absolute right-0 flex h-full items-center font-bold text-white z-10 ${
-              compact ? 'pr-2.5 text-[10px]' : 'pr-3 text-[10px]'
-            }`}
+            className={`pointer-events-none absolute right-0 flex h-full items-center font-bold text-white z-10 ${compact ? 'pr-2.5 text-[10px]' : 'pr-3 text-[10px]'
+              }`}
           >
             No
           </motion.span>
@@ -58,18 +55,16 @@ function SurveyInspectedToggle({ inspected, onToggle, compact }) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -5 }}
             transition={{ duration: 0.2 }}
-            className={`pointer-events-none absolute left-0 flex h-full items-center font-bold text-white z-10 ${
-              compact ? 'pl-2 text-[10px]' : 'pl-2.5 text-[10px]'
-            }`}
+            className={`pointer-events-none absolute left-0 flex h-full items-center font-bold text-white z-10 ${compact ? 'pl-2 text-[10px]' : 'pl-2.5 text-[10px]'
+              }`}
           >
             Yes
           </motion.span>
         )}
       </AnimatePresence>
       <motion.span
-        className={`absolute rounded-full bg-white shadow-md ${
-          compact ? 'h-4 w-4' : 'h-4.5 w-4.5'
-        }`}
+        className={`absolute rounded-full bg-white shadow-md ${compact ? 'h-4 w-4' : 'h-4.5 w-4.5'
+          }`}
         animate={{
           left: inspected ? 'auto' : compact ? '0.15rem' : '0.225rem',
           right: inspected ? (compact ? '0.125rem' : '0.155rem') : 'auto',
@@ -983,7 +978,6 @@ export default function DashboardContent({
   const persistedPhotoKeysRef = useRef(new Set());
   const googleApiKeyRef = useRef('');
   const { user } = useAuth();
-  const supabase = createClient();
   const resetForm = useFormStore(state => state.resetForm);
 
   useEffect(() => {
@@ -1024,6 +1018,7 @@ export default function DashboardContent({
       const target = event.target;
       if (!(target instanceof Node)) return;
       if (openCardMenuRef.current?.contains(target)) return;
+      if (target instanceof Element && target.closest('[data-survey-card-menu]')) return;
       setOpenCardMenuId(null);
     };
 
@@ -1035,7 +1030,7 @@ export default function DashboardContent({
 
   const loadSurveys = async () => {
     if (!user) return;
-    
+
     setLoading(true);
     try {
       const response = await fetch('/api/supabase', {
@@ -1342,35 +1337,51 @@ export default function DashboardContent({
     `/calculator?resume=true&propertyId=${encodeURIComponent(propertyId)}`;
 
   const handleDeleteClick = (propertyId, e) => {
+    e.preventDefault();
     e.stopPropagation();
+    setOpenCardMenuId(null);
     setPropertyToDelete(propertyId);
     setShowDeleteModal(true);
   };
 
   const handleDeleteConfirm = async () => {
-    if (!propertyToDelete) return;
+    if (!propertyToDelete || !user) return;
 
-    setDeletingId(propertyToDelete);
+    const idToDelete = propertyToDelete;
+    const deletedSurvey = surveys.find((s) => s.id === idToDelete);
+
+    setDeletingId(idToDelete);
     setShowDeleteModal(false);
-    
+    setPropertyToDelete(null);
+
+    // Optimistically remove from UI
+    setSurveys((prevSurveys) => prevSurveys.filter((s) => s.id !== idToDelete));
+
     try {
-      // Update user_saved to false instead of deleting
-      const { error } = await supabase
-        .from('properties')
-        .update({ user_saved: false })
-        .eq('id', propertyToDelete)
-        .eq('user_id', user.id);
+      const response = await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'bulkDeleteProperties',
+          propertyIds: [idToDelete],
+        }),
+      });
 
-      if (error) throw error;
+      const result = await response.json();
 
-      // Remove from local state (it won't show on dashboard anymore)
-      setSurveys(surveys.filter(s => s.id !== propertyToDelete));
+      if (!response.ok || result.error) {
+        throw new Error(result.error || 'Failed to delete survey');
+      }
     } catch (error) {
-      console.error('Error updating survey:', error);
-      alert('Failed to update survey. Please try again.');
+      console.error('Error deleting survey:', error);
+      if (deletedSurvey) {
+        setSurveys((prevSurveys) => [...prevSurveys, deletedSurvey]);
+      }
+      alert('Failed to delete survey. Please try again.');
     } finally {
       setDeletingId(null);
-      setPropertyToDelete(null);
     }
   };
 
@@ -1381,13 +1392,13 @@ export default function DashboardContent({
 
   const handleToggleInspected = async (propertyId, currentInspected) => {
     if (!user) return;
-    
+
     const newInspectedStatus = !currentInspected;
-    
+
     // Optimistically update UI immediately
-    setSurveys(prevSurveys => 
-      prevSurveys.map(survey => 
-        survey.id === propertyId 
+    setSurveys(prevSurveys =>
+      prevSurveys.map(survey =>
+        survey.id === propertyId
           ? { ...survey, inspected: newInspectedStatus }
           : survey
       )
@@ -1415,9 +1426,9 @@ export default function DashboardContent({
     } catch (error) {
       console.error('Error updating inspected status:', error);
       // Revert the optimistic update on error
-      setSurveys(prevSurveys => 
-        prevSurveys.map(survey => 
-          survey.id === propertyId 
+      setSurveys(prevSurveys =>
+        prevSurveys.map(survey =>
+          survey.id === propertyId
             ? { ...survey, inspected: currentInspected }
             : survey
         )
@@ -1454,7 +1465,7 @@ export default function DashboardContent({
 
   const handleBulkDelete = () => {
     if (selectedProperties.size === 0 || !user) return;
-    
+
     // Show confirmation modal
     setBulkDeleteCount(selectedProperties.size);
     setShowBulkDeleteModal(true);
@@ -1462,23 +1473,23 @@ export default function DashboardContent({
 
   const handleBulkDeleteConfirm = async () => {
     if (selectedProperties.size === 0 || !user) return;
-    
+
     // Close modal
     setShowBulkDeleteModal(false);
-    
+
     const propertyIds = Array.from(selectedProperties);
-    
+
     // Store deleted surveys for rollback
     const deletedSurveys = surveys.filter(survey => selectedProperties.has(survey.id));
-    
+
     // Optimistically remove from UI immediately
-    setSurveys(prevSurveys => 
+    setSurveys(prevSurveys =>
       prevSurveys.filter(survey => !selectedProperties.has(survey.id))
     );
-    
+
     // Clear selection immediately for instant feedback
     setSelectedProperties(new Set());
-    
+
     // Update database in the background
     try {
       const response = await fetch('/api/supabase', {
@@ -1512,11 +1523,11 @@ export default function DashboardContent({
 
   const handleBulkInspected = async () => {
     if (selectedProperties.size === 0 || !user) return;
-    
+
     const propertyIds = Array.from(selectedProperties);
     const allAlreadyInspected = areAllSelectedSurveysInspected(selectedProperties, surveys);
     const targetInspected = !allAlreadyInspected;
-    
+
     // Store original inspected status for rollback
     const originalInspectedStatus = new globalThis.Map();
     surveys.forEach(survey => {
@@ -1524,19 +1535,19 @@ export default function DashboardContent({
         originalInspectedStatus.set(survey.id, survey.inspected || false);
       }
     });
-    
+
     // Store selected properties for rollback (needed for error handling)
     const selectedPropsForRollback = new Set(selectedProperties);
-    
+
     // Optimistically update UI immediately
-    setSurveys(prevSurveys => 
-      prevSurveys.map(survey => 
+    setSurveys(prevSurveys =>
+      prevSurveys.map(survey =>
         selectedProperties.has(survey.id)
           ? { ...survey, inspected: targetInspected }
           : survey
       )
     );
-    
+
     // Clear selection immediately for instant feedback
     setSelectedProperties(new Set());
 
@@ -1562,8 +1573,8 @@ export default function DashboardContent({
     } catch (error) {
       console.error('Error updating inspected status:', error);
       // Revert the optimistic update on error
-      setSurveys(prevSurveys => 
-        prevSurveys.map(survey => 
+      setSurveys(prevSurveys =>
+        prevSurveys.map(survey =>
           selectedPropsForRollback.has(survey.id)
             ? { ...survey, inspected: originalInspectedStatus.get(survey.id) || false }
             : survey
@@ -1597,7 +1608,7 @@ export default function DashboardContent({
 
   const sortSurveys = (surveysToSort, sortBy) => {
     const sorted = [...surveysToSort];
-    
+
     switch (sortBy) {
       case 'newest':
         return sorted.sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
@@ -1677,9 +1688,9 @@ export default function DashboardContent({
           storedCoordinates:
             survey.latitude != null && survey.longitude != null
               ? {
-                  lat: Number(survey.latitude),
-                  lng: Number(survey.longitude),
-                }
+                lat: Number(survey.latitude),
+                lng: Number(survey.longitude),
+              }
               : null,
           address: survey.property_address || '',
           state: survey.selected_state || '',
@@ -1744,10 +1755,10 @@ export default function DashboardContent({
         prev.map((item) =>
           item.id === survey.id
             ? {
-                ...item,
-                photo_url: PROPWIZ_BRANDED_PLACEHOLDER_URL,
-                photo_source: 'placeholder',
-              }
+              ...item,
+              photo_url: PROPWIZ_BRANDED_PLACEHOLDER_URL,
+              photo_source: 'placeholder',
+            }
             : item
         )
       );
@@ -1774,9 +1785,8 @@ export default function DashboardContent({
         key={survey.id}
         variants={SURVEY_CARD_ITEM_VARIANTS}
         onClick={handleCardClick}
-        className={`h-full min-h-[230px] cursor-pointer rounded-2xl border border-secondary p-4 shadow-sm transition-[box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-xl lg:p-5 xl:p-6 ${
-          openCardMenuId === survey.id ? 'relative z-50 overflow-visible' : ''
-        }`}
+        className={`h-full min-h-[230px] cursor-pointer rounded-2xl border border-secondary p-4 shadow-sm transition-[box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-xl lg:p-5 xl:p-6 ${openCardMenuId === survey.id ? 'relative z-50 overflow-visible' : ''
+          }`}
       >
         <div className="relative -mx-4 -mt-4 mb-4 aspect-[16/9] w-[calc(100%+2rem)] overflow-hidden rounded-t-2xl bg-base-100 lg:-mx-5 lg:-mt-5 lg:w-[calc(100%+2.5rem)] xl:-mx-6 xl:-mt-6 xl:w-[calc(100%+3rem)]">
           {!isPhotoLoaded && (
@@ -1843,6 +1853,7 @@ export default function DashboardContent({
               </h3>
               <div
                 ref={openCardMenuId === survey.id ? openCardMenuRef : null}
+                data-survey-card-menu
                 className="relative -mr-1 shrink-0 sm:-mr-6"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -1858,37 +1869,35 @@ export default function DashboardContent({
                   <MoreHorizontal className="h-6 w-6" aria-hidden />
                 </button>
                 {openCardMenuId === survey.id && (
-                    <div className="absolute right-0 z-[60] mt-2 min-w-[9rem] rounded-xl border border-base-300 bg-white p-1.5 shadow-lg">
-                  <Link
-                    href={getSurveyResumeHref(survey.id)}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleResume(survey.id);
-                    }}
-                    className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-800 transition-colors hover:bg-base-300"
+                  <div
+                    className="absolute right-0 z-[60] mt-2 min-w-[9rem] rounded-xl border border-base-300 bg-white p-1.5 shadow-lg"
+                    onMouseDown={(e) => e.stopPropagation()}
                   >
-                    {isComplete ? <Eye className="h-4 w-4" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />}
-                    {isComplete ? 'View' : 'Resume'}
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleCardClick();
-                      handleDeleteClick(survey.id, e);
-                      setOpenCardMenuId(null);
-                    }}
-                    disabled={deletingId === survey.id}
-                    className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-error transition-colors hover:bg-error/10 disabled:opacity-50"
-                  >
-                    {deletingId === survey.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-4 w-4" />
-                    )}
-                    Delete
-                  </button>
-                    </div>
+                    <Link
+                      href={getSurveyResumeHref(survey.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleResume(survey.id);
+                      }}
+                      className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-gray-800 transition-colors hover:bg-base-300"
+                    >
+                      {isComplete ? <Eye className="h-4 w-4" aria-hidden /> : <Play className="h-4 w-4" aria-hidden />}
+                      {isComplete ? 'View' : 'Resume'}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteClick(survey.id, e)}
+                      disabled={deletingId === survey.id}
+                      className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium text-error transition-colors hover:bg-error/10 disabled:opacity-50"
+                    >
+                      {deletingId === survey.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4" />
+                      )}
+                      Delete
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -1995,20 +2004,41 @@ export default function DashboardContent({
 
         {/* Dashboard Content */}
         <div className="relative flex min-h-0 flex-1 flex-col bg-gray-50">
-        <section className="relative z-10 mx-auto w-full max-w-[1920px] px-4 py-6 pb-24 md:px-6 lg:px-8 lg:py-8">
-          <div className="w-full space-y-5">
-            {/* Saved Surveys — outer wrapper does not fade cards; header + card list animate separately */}
-            <div className="bg-transparent p-0">
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
-                className={`mb-5 flex flex-wrap items-center justify-between gap-2.5 ${
-                  isDesktopMapVisible ? 'lg:max-w-[66.6667%] lg:pr-3 xl:pr-4' : 'lg:max-w-full'
-                } w-full transition-[max-width] duration-300 ease-in-out`}
-              >
-                <div className="flex items-center gap-3">
-                  <h2 className="text-2xl font-bold text-gray-900">Saved Surveys</h2>
+          <section className="relative z-10 mx-auto w-full max-w-[1920px] px-4 py-6 pb-24 md:px-6 lg:px-8 lg:py-8">
+            <div className="w-full space-y-5">
+              {/* Saved Surveys — outer wrapper does not fade cards; header + card list animate separately */}
+              <div className="bg-transparent p-0">
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
+                  className={`mb-5 flex flex-wrap items-center justify-between gap-2.5 ${isDesktopMapVisible ? 'lg:max-w-[66.6667%] lg:pr-3 xl:pr-4' : 'lg:max-w-full'
+                    } w-full transition-[max-width] duration-300 ease-in-out`}
+                >
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-2xl font-bold text-gray-900">Saved Surveys</h2>
+                    <Link
+                      href="/calculator"
+                      onClick={() => {
+                        resetSessionAndForm(resetForm);
+                        if (typeof window !== 'undefined') {
+                          sessionStorage.removeItem('resumePropertyId');
+                        }
+                      }}
+                      className="hidden items-center justify-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-medium text-secondary transition-all duration-200 hover:bg-primary-focus hover:shadow-lg md:inline-flex"
+                    >
+                      <FileText className="h-4 w-4" />
+                      Start New Survey
+                    </Link>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleDesktopMapToggle}
+                    className="hidden cursor-pointer items-center gap-2 rounded-full border border-base-300 bg-white px-4 py-1.5 text-sm font-medium text-gray-800 shadow-sm transition-colors hover:bg-base-300 lg:inline-flex"
+                  >
+                    <MapIcon className="h-4 w-4" />
+                    {isMapHiddenDesktop ? 'Show map' : 'Hide map'}
+                  </button>
                   <Link
                     href="/calculator"
                     onClick={() => {
@@ -2017,225 +2047,274 @@ export default function DashboardContent({
                         sessionStorage.removeItem('resumePropertyId');
                       }
                     }}
-                    className="hidden items-center justify-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-medium text-secondary transition-all duration-200 hover:bg-primary-focus hover:shadow-lg md:inline-flex"
+                    className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-secondary transition-all duration-200 hover:bg-primary-focus hover:shadow-lg md:hidden"
                   >
                     <FileText className="h-4 w-4" />
                     Start New Survey
                   </Link>
-                </div>
-                <button
-                  type="button"
-                  onClick={handleDesktopMapToggle}
-                  className="hidden cursor-pointer items-center gap-2 rounded-full border border-base-300 bg-white px-4 py-1.5 text-sm font-medium text-gray-800 shadow-sm transition-colors hover:bg-base-300 lg:inline-flex"
-                >
-                  <MapIcon className="h-4 w-4" />
-                  {isMapHiddenDesktop ? 'Show map' : 'Hide map'}
-                </button>
-                <Link
-                  href="/calculator"
-                  onClick={() => {
-                    resetSessionAndForm(resetForm);
-                    if (typeof window !== 'undefined') {
-                      sessionStorage.removeItem('resumePropertyId');
-                    }
-                  }}
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-secondary transition-all duration-200 hover:bg-primary-focus hover:shadow-lg md:hidden"
-                >
-                  <FileText className="h-4 w-4" />
-                  Start New Survey
-                </Link>
-              </motion.div>
-              
-              {/* Container with fixed height to prevent layout shift */}
-              <div
-                className={`relative mb-6 h-10 ${
-                  isDesktopMapVisible ? 'lg:max-w-[66.6667%] lg:pr-3 xl:pr-4' : 'lg:max-w-full'
-                } w-full ${showSortMenu ? 'overflow-visible' : 'overflow-hidden'} transition-[max-width] duration-300 ease-in-out`}
-              >
-                {/* Select-all checkbox - fixed position, not part of sliding animation */}
-                {sortedSurveys.length > 0 && (
-                  <label className="absolute right-4 top-0 bottom-0 flex items-center z-10 cursor-pointer select-none shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={sortedSurveys.every(s => selectedProperties.has(s.id))}
-                      onChange={() => handleSelectAllChange(sortedSurveys.map(s => s.id))}
-                      className="w-5 h-5 cursor-pointer text-primary border-gray-300 rounded focus:ring-0 focus:ring-offset-0 focus:outline-none"
-                      aria-label="Select or unselect all properties"
-                    />
-                  </label>
-                )}
-                {/* Search and Sort Bar - Hidden when properties are selected */}
-                <AnimatePresence mode="wait">
-                  {selectedProperties.size === 0 && (
-                    <motion.div
-                      key="search-bar"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 20 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex items-center gap-3"
-                    >
-                      <div className="relative flex-1 h-full">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                        <input
-                          type="text"
-                          placeholder={searchPlaceholder}
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          suppressHydrationWarning
-                          className="w-full h-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                        />
-                      </div>
-                      <div className="relative mr-14">
-                        <button
-                          onClick={() => setShowSortMenu(!showSortMenu)}
-                          className="flex cursor-pointer items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                          aria-label="Sort surveys"
-                        >
-                          <ArrowUpDown className="w-5 h-5 text-gray-600" />
-                        </button>
-                        {/* Sort Dropdown Menu */}
-                        <AnimatePresence>
-                          {showSortMenu && (
-                            <>
-                              <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                onClick={() => setShowSortMenu(false)}
-                                className="fixed inset-0 z-10"
-                              />
-                              <motion.div
-                                initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                                transition={{ duration: 0.2 }}
-                                className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20"
-                              >
-                                <button
-                                  onClick={() => { setSortOption('newest'); setShowSortMenu(false); }}
-                                  className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                                    sortOption === 'newest' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                                  }`}
-                                >
-                                  Newest First
-                                </button>
-                                <button
-                                  onClick={() => { setSortOption('oldest'); setShowSortMenu(false); }}
-                                  className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                                    sortOption === 'oldest' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                                  }`}
-                                >
-                                  Oldest First
-                                </button>
-                                <button
-                                  onClick={() => { setSortOption('address-az'); setShowSortMenu(false); }}
-                                  className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                                    sortOption === 'address-az' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                                  }`}
-                                >
-                                  Address (A-Z)
-                                </button>
-                                <button
-                                  onClick={() => { setSortOption('state'); setShowSortMenu(false); }}
-                                  className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                                    sortOption === 'state' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                                  }`}
-                                >
-                                  By State
-                                </button>
-                                <button
-                                  onClick={() => { setSortOption('completion-asc'); setShowSortMenu(false); }}
-                                  className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                                    sortOption === 'completion-asc' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                                  }`}
-                                >
-                                  Completion % (Low to High)
-                                </button>
-                                <button
-                                  onClick={() => { setSortOption('completion-desc'); setShowSortMenu(false); }}
-                                  className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${
-                                    sortOption === 'completion-desc' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
-                                  }`}
-                                >
-                                  Completion % (High to Low)
-                                </button>
-                              </motion.div>
-                            </>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                </motion.div>
 
-                {/* Bulk Action Buttons - Shown when properties are selected */}
-                <AnimatePresence mode="wait">
-                  {selectedProperties.size > 0 && (
-                    <motion.div
-                      key="bulk-actions"
-                      initial={{ opacity: 0, y: -20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      transition={{ duration: 0.3 }}
-                      className="absolute inset-0 flex items-center gap-3 pr-14"
-                    >
-                      <button
-                        type="button"
-                        onClick={handleBulkDelete}
-                        aria-label={`Delete ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`}
-                        className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-error px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-error-content transition-colors hover:bg-error/90 sm:h-auto sm:min-h-0 sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
-                      >
-                        <Trash2 className="hidden h-5 w-5 shrink-0 sm:block" />
-                        <span className="flex flex-col sm:hidden">
-                          <span>Delete</span>
-                          <span>
-                            {selectedProperties.size}{' '}
-                            {selectedProperties.size === 1 ? 'property' : 'properties'}
-                          </span>
-                        </span>
-                        <span className="hidden sm:inline">
-                          Delete {selectedProperties.size}{' '}
-                          {selectedProperties.size === 1 ? 'property' : 'properties'}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleBulkInspected}
-                        aria-label={
-                          bulkInspectAllSelectedAlreadyInspected
-                            ? `Uninspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
-                            : `Inspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
-                        }
-                        className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-primary px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-secondary transition-colors hover:bg-primary/90 sm:h-auto sm:min-h-0 sm:w-auto sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
-                      >
-                        <span className="flex flex-col sm:hidden">
-                          <span>{bulkInspectAllSelectedAlreadyInspected ? 'Uninspect' : 'Inspect'}</span>
-                          <span>
-                            {selectedProperties.size}{' '}
-                            {selectedProperties.size === 1 ? 'property' : 'properties'}
-                          </span>
-                        </span>
-                        <Eye className="hidden h-5 w-5 shrink-0 sm:block" aria-hidden />
-                        <span className="hidden sm:inline sm:text-base">
-                          {bulkInspectAllSelectedAlreadyInspected ? 'Uninspect' : 'Inspect'}{' '}
-                          {selectedProperties.size}{' '}
-                          {selectedProperties.size === 1 ? 'property' : 'properties'}
-                        </span>
-                      </button>
-                    </motion.div>
+                {/* Container with fixed height to prevent layout shift */}
+                <div
+                  className={`relative mb-6 h-10 ${isDesktopMapVisible ? 'lg:max-w-[66.6667%] lg:pr-3 xl:pr-4' : 'lg:max-w-full'
+                    } w-full ${showSortMenu ? 'overflow-visible' : 'overflow-hidden'} transition-[max-width] duration-300 ease-in-out`}
+                >
+                  {/* Select-all checkbox - fixed position, not part of sliding animation */}
+                  {sortedSurveys.length > 0 && (
+                    <label className="absolute right-4 top-0 bottom-0 flex items-center z-10 cursor-pointer select-none shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={sortedSurveys.every(s => selectedProperties.has(s.id))}
+                        onChange={() => handleSelectAllChange(sortedSurveys.map(s => s.id))}
+                        className="w-5 h-5 cursor-pointer text-primary border-gray-300 rounded focus:ring-0 focus:ring-offset-0 focus:outline-none"
+                        aria-label="Select or unselect all properties"
+                      />
+                    </label>
                   )}
-                </AnimatePresence>
-              </div>
-              
-              {loading ? (
-                <div className="flex items-center justify-center py-12">
-                  <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  {/* Search and Sort Bar - Hidden when properties are selected */}
+                  <AnimatePresence mode="wait">
+                    {selectedProperties.size === 0 && (
+                      <motion.div
+                        key="search-bar"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ duration: 0.3 }}
+                        className="absolute inset-0 flex items-center gap-3"
+                      >
+                        <div className="relative flex-1 h-full">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                          <input
+                            type="text"
+                            placeholder={searchPlaceholder}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            suppressHydrationWarning
+                            className="w-full h-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                          />
+                        </div>
+                        <div className="relative mr-14">
+                          <button
+                            onClick={() => setShowSortMenu(!showSortMenu)}
+                            className="flex cursor-pointer items-center justify-center w-10 h-10 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                            aria-label="Sort surveys"
+                          >
+                            <ArrowUpDown className="w-5 h-5 text-gray-600" />
+                          </button>
+                          {/* Sort Dropdown Menu */}
+                          <AnimatePresence>
+                            {showSortMenu && (
+                              <>
+                                <motion.div
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  exit={{ opacity: 0 }}
+                                  onClick={() => setShowSortMenu(false)}
+                                  className="fixed inset-0 z-10"
+                                />
+                                <motion.div
+                                  initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                                  exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                                  transition={{ duration: 0.2 }}
+                                  className="absolute right-0 top-full mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-20"
+                                >
+                                  <button
+                                    onClick={() => { setSortOption('newest'); setShowSortMenu(false); }}
+                                    className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${sortOption === 'newest' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                                      }`}
+                                  >
+                                    Newest First
+                                  </button>
+                                  <button
+                                    onClick={() => { setSortOption('oldest'); setShowSortMenu(false); }}
+                                    className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${sortOption === 'oldest' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                                      }`}
+                                  >
+                                    Oldest First
+                                  </button>
+                                  <button
+                                    onClick={() => { setSortOption('address-az'); setShowSortMenu(false); }}
+                                    className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${sortOption === 'address-az' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                                      }`}
+                                  >
+                                    Address (A-Z)
+                                  </button>
+                                  <button
+                                    onClick={() => { setSortOption('state'); setShowSortMenu(false); }}
+                                    className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${sortOption === 'state' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                                      }`}
+                                  >
+                                    By State
+                                  </button>
+                                  <button
+                                    onClick={() => { setSortOption('completion-asc'); setShowSortMenu(false); }}
+                                    className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${sortOption === 'completion-asc' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                                      }`}
+                                  >
+                                    Completion % (Low to High)
+                                  </button>
+                                  <button
+                                    onClick={() => { setSortOption('completion-desc'); setShowSortMenu(false); }}
+                                    className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-100 transition-colors ${sortOption === 'completion-desc' ? 'bg-primary/10 text-primary font-medium' : 'text-gray-700'
+                                      }`}
+                                  >
+                                    Completion % (High to Low)
+                                  </button>
+                                </motion.div>
+                              </>
+                            )}
+                          </AnimatePresence>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Bulk Action Buttons - Shown when properties are selected */}
+                  <AnimatePresence mode="wait">
+                    {selectedProperties.size > 0 && (
+                      <motion.div
+                        key="bulk-actions"
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        transition={{ duration: 0.3 }}
+                        className="absolute inset-0 flex items-center gap-3 pr-14"
+                      >
+                        <button
+                          type="button"
+                          onClick={handleBulkDelete}
+                          aria-label={`Delete ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`}
+                          className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-error px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-error-content transition-colors hover:bg-error/90 sm:h-auto sm:min-h-0 sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
+                        >
+                          <Trash2 className="hidden h-5 w-5 shrink-0 sm:block" />
+                          <span className="flex flex-col sm:hidden">
+                            <span>Delete</span>
+                            <span>
+                              {selectedProperties.size}{' '}
+                              {selectedProperties.size === 1 ? 'property' : 'properties'}
+                            </span>
+                          </span>
+                          <span className="hidden sm:inline">
+                            Delete {selectedProperties.size}{' '}
+                            {selectedProperties.size === 1 ? 'property' : 'properties'}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleBulkInspected}
+                          aria-label={
+                            bulkInspectAllSelectedAlreadyInspected
+                              ? `Uninspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
+                              : `Inspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
+                          }
+                          className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-primary px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-secondary transition-colors hover:bg-primary/90 sm:h-auto sm:min-h-0 sm:w-auto sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
+                        >
+                          <span className="flex flex-col sm:hidden">
+                            <span>{bulkInspectAllSelectedAlreadyInspected ? 'Uninspect' : 'Inspect'}</span>
+                            <span>
+                              {selectedProperties.size}{' '}
+                              {selectedProperties.size === 1 ? 'property' : 'properties'}
+                            </span>
+                          </span>
+                          <Eye className="hidden h-5 w-5 shrink-0 sm:block" aria-hidden />
+                          <span className="hidden sm:inline sm:text-base">
+                            {bulkInspectAllSelectedAlreadyInspected ? 'Uninspect' : 'Inspect'}{' '}
+                            {selectedProperties.size}{' '}
+                            {selectedProperties.size === 1 ? 'property' : 'properties'}
+                          </span>
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
-              ) : (
-                <>
-                  <div className="hidden lg:grid lg:grid-cols-12 lg:gap-3 xl:gap-4">
-                    <div className={isDesktopMapVisible ? 'lg:col-span-8' : 'lg:col-span-12'}>
+
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="hidden lg:grid lg:grid-cols-12 lg:gap-3 xl:gap-4">
+                      <div className={isDesktopMapVisible ? 'lg:col-span-8' : 'lg:col-span-12'}>
+                        {surveys.length === 0 ? (
+                          <div className="text-center py-12">
+                            <p className="text-gray-600 mb-4">No saved surveys yet.</p>
+                            <p className="text-sm text-gray-500">
+                              Start a new survey and save it to see it here.
+                            </p>
+                          </div>
+                        ) : sortedSurveys.length === 0 ? (
+                          <div className="text-center py-12">
+                            <p className="text-gray-600 mb-4">Oops, we can&apos;t find any surveys matching your search.</p>
+                            <p className="text-sm text-gray-500">
+                              Try adjusting your search terms or clear the search to see all surveys.
+                            </p>
+                          </div>
+                        ) : (
+                          <motion.div
+                            key={surveyCardListAnimateKey}
+                            variants={SURVEY_CARD_LIST_VARIANTS}
+                            initial="hidden"
+                            animate="show"
+                            className={`grid gap-3 xl:gap-4 ${isDesktopMapVisible ? 'lg:grid-cols-2 2xl:grid-cols-3' : 'lg:grid-cols-3 2xl:grid-cols-4'}`}
+                          >
+                            {surveyCards}
+                          </motion.div>
+                        )}
+                      </div>
+                      <AnimatePresence initial={false}>
+                        {isDesktopMapVisible && (
+                          <motion.div
+                            key="desktop-map-panel"
+                            initial={{ opacity: 0, x: 120, y: 0 }}
+                            animate={isDesktopMapExiting ? { opacity: 0, x: 120, y: 0 } : { opacity: 1, x: 0, y: 0 }}
+                            exit={{ opacity: 0, x: 120, y: 0 }}
+                            transition={{ duration: 0.32, ease: 'easeInOut', type: 'tween' }}
+                            onAnimationComplete={() => {
+                              if (isDesktopMapExiting) {
+                                setIsDesktopMapExiting(false);
+                                setIsMapHiddenDesktop(true);
+                              }
+                            }}
+                            className="lg:col-span-4 lg:-mt-[7.75rem] lg:-mr-3 xl:-mr-4"
+                          >
+                            <div className="sticky top-24 flex h-[calc(100vh-8.5rem)] min-h-[560px] flex-col rounded-2xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
+                              <DashboardGoogleMapPanel
+                                mapPoints={mapPoints}
+                                geocodeCache={geocodeCache}
+                                setGeocodeCache={setGeocodeCache}
+                                focusedPropertyId={focusedPropertyId}
+                                shouldLoadMap={isDesktopMapVisible}
+                              />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                    <div ref={mobileViewContainerRef} className="relative lg:hidden">
+                      <AnimatePresence initial={false}>
+                        {mobileViewMode === 'map' && (
+                          <motion.div
+                            key="mobile-map-panel"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.28, ease: 'easeInOut' }}
+                            className="fixed inset-0 z-40 bg-base-200 px-3 pt-20 pb-0"
+                          >
+                            <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm">
+                              <DashboardGoogleMapPanel
+                                mapPoints={mapPoints}
+                                geocodeCache={geocodeCache}
+                                setGeocodeCache={setGeocodeCache}
+                                focusedPropertyId={focusedPropertyId}
+                                shouldLoadMap={mobileViewMode === 'map'}
+                              />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                       {surveys.length === 0 ? (
                         <div className="text-center py-12">
                           <p className="text-gray-600 mb-4">No saved surveys yet.</p>
@@ -2256,98 +2335,20 @@ export default function DashboardContent({
                           variants={SURVEY_CARD_LIST_VARIANTS}
                           initial="hidden"
                           animate="show"
-                          className={`grid gap-3 xl:gap-4 ${isDesktopMapVisible ? 'lg:grid-cols-2 2xl:grid-cols-3' : 'lg:grid-cols-3 2xl:grid-cols-4'}`}
+                          className="relative space-y-3 sm:space-y-4"
                         >
                           {surveyCards}
                         </motion.div>
                       )}
-                    </div>
-                    <AnimatePresence initial={false}>
-                      {isDesktopMapVisible && (
-                        <motion.div
-                          key="desktop-map-panel"
-                          initial={{ opacity: 0, x: 120, y: 0 }}
-                          animate={isDesktopMapExiting ? { opacity: 0, x: 120, y: 0 } : { opacity: 1, x: 0, y: 0 }}
-                          exit={{ opacity: 0, x: 120, y: 0 }}
-                          transition={{ duration: 0.32, ease: 'easeInOut', type: 'tween' }}
-                          onAnimationComplete={() => {
-                            if (isDesktopMapExiting) {
-                              setIsDesktopMapExiting(false);
-                              setIsMapHiddenDesktop(true);
-                            }
-                          }}
-                          className="lg:col-span-4 lg:-mt-[7.75rem] lg:-mr-3 xl:-mr-4"
-                        >
-                        <div className="sticky top-24 flex h-[calc(100vh-8.5rem)] min-h-[560px] flex-col rounded-2xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
-                          <DashboardGoogleMapPanel
-                            mapPoints={mapPoints}
-                            geocodeCache={geocodeCache}
-                            setGeocodeCache={setGeocodeCache}
-                            focusedPropertyId={focusedPropertyId}
-                            shouldLoadMap={isDesktopMapVisible}
-                          />
-                        </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                  <div ref={mobileViewContainerRef} className="relative lg:hidden">
-                    <AnimatePresence initial={false}>
-                      {mobileViewMode === 'map' && (
-                        <motion.div
-                          key="mobile-map-panel"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.28, ease: 'easeInOut' }}
-                          className="fixed inset-0 z-40 bg-base-200 px-3 pt-20 pb-0"
-                        >
-                          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm">
-                            <DashboardGoogleMapPanel
-                              mapPoints={mapPoints}
-                              geocodeCache={geocodeCache}
-                              setGeocodeCache={setGeocodeCache}
-                              focusedPropertyId={focusedPropertyId}
-                              shouldLoadMap={mobileViewMode === 'map'}
-                            />
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                    {surveys.length === 0 ? (
-                      <div className="text-center py-12">
-                        <p className="text-gray-600 mb-4">No saved surveys yet.</p>
-                        <p className="text-sm text-gray-500">
-                          Start a new survey and save it to see it here.
-                        </p>
+                      <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 lg:hidden">
+                        <MobileMapViewFab mode={mobileViewMode} onClick={handleMobileViewToggle} />
                       </div>
-                    ) : sortedSurveys.length === 0 ? (
-                      <div className="text-center py-12">
-                        <p className="text-gray-600 mb-4">Oops, we can&apos;t find any surveys matching your search.</p>
-                        <p className="text-sm text-gray-500">
-                          Try adjusting your search terms or clear the search to see all surveys.
-                        </p>
-                      </div>
-                    ) : (
-                      <motion.div
-                        key={surveyCardListAnimateKey}
-                        variants={SURVEY_CARD_LIST_VARIANTS}
-                        initial="hidden"
-                        animate="show"
-                        className="relative space-y-3 sm:space-y-4"
-                      >
-                        {surveyCards}
-                      </motion.div>
-                    )}
-                    <div className="pointer-events-none fixed inset-x-0 bottom-6 z-50 flex justify-center px-4 lg:hidden">
-                      <MobileMapViewFab mode={mobileViewMode} onClick={handleMobileViewToggle} />
                     </div>
-                  </div>
-                </>
-              )}
+                  </>
+                )}
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
         </div>
       </main>
 
@@ -2363,7 +2364,7 @@ export default function DashboardContent({
               onClick={handleDeleteCancel}
               className="fixed inset-0 bg-black/50 z-[200]"
             />
-            
+
             {/* Modal */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -2388,27 +2389,27 @@ export default function DashboardContent({
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Content */}
                 <div className="px-8 py-6">
                   <p className="text-gray-600 text-base mb-6">
                     This survey will be removed from your dashboard.
                   </p>
-                
+
                   {/* Action Buttons */}
                   <div className="flex gap-3">
-                  <button
-                    onClick={handleDeleteCancel}
+                    <button
+                      onClick={handleDeleteCancel}
                       className="flex-1 cursor-pointer border-2 border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-6 py-3 rounded-full font-medium transition-all duration-200"
-                  >
+                    >
                       Cancel
-                  </button>
-                  <button
-                    onClick={handleDeleteConfirm}
+                    </button>
+                    <button
+                      onClick={handleDeleteConfirm}
                       className="flex-1 cursor-pointer bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
-                  >
+                    >
                       Delete
-                  </button>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2429,7 +2430,7 @@ export default function DashboardContent({
               onClick={handleBulkDeleteCancel}
               className="fixed inset-0 bg-black/50 z-[200]"
             />
-            
+
             {/* Modal */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -2456,30 +2457,30 @@ export default function DashboardContent({
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Content */}
                 <div className="px-8 py-6">
                   <p className="text-gray-600 text-base mb-6">
-                    {bulkDeleteCount === 1 
+                    {bulkDeleteCount === 1
                       ? 'This survey will be removed from your dashboard.'
                       : 'These surveys will be removed from your dashboard.'
                     }
                   </p>
-                
+
                   {/* Action Buttons */}
                   <div className="flex gap-3">
-                  <button
-                    onClick={handleBulkDeleteCancel}
+                    <button
+                      onClick={handleBulkDeleteCancel}
                       className="flex-1 cursor-pointer border-2 border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-6 py-3 rounded-full font-medium transition-all duration-200"
-                  >
+                    >
                       Cancel
-                  </button>
-                  <button
-                    onClick={handleBulkDeleteConfirm}
+                    </button>
+                    <button
+                      onClick={handleBulkDeleteConfirm}
                       className="flex-1 cursor-pointer bg-red-500 hover:bg-red-600 text-white px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
-                  >
+                    >
                       Delete
-                  </button>
+                    </button>
                   </div>
                 </div>
               </div>

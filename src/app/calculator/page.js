@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Minus, DollarSign, Download, Mail, Edit, Plus, ArrowRight, Loader2, CheckCircle2, ChevronDown, User } from 'lucide-react';
+import { Home, Minus, DollarSign, Download, Mail, Edit, Plus, ArrowRight, Loader2, CheckCircle2, ChevronDown, User, Landmark } from 'lucide-react';
 import UpfrontCosts from '../../components/UpfrontCosts';
 import OngoingCosts from '../../components/OngoingCosts';
 import Summary from '../../components/Summary';
@@ -46,7 +46,9 @@ function CalculatorPageContent() {
     const [emailSuccessData, setEmailSuccessData] = useState(null);
     const [isPropertyCardExpanded, setIsPropertyCardExpanded] = useState(false);
     const [isBuyerCardExpanded, setIsBuyerCardExpanded] = useState(false);
+    const [isLoanCardExpanded, setIsLoanCardExpanded] = useState(false);
     const [isUpfrontCostsExpanded, setIsUpfrontCostsExpanded] = useState(false);
+    const [isOngoingCostsExpanded, setIsOngoingCostsExpanded] = useState(false);
     const hasResumedRef = useRef(false);
     const initialWelcomeCheckedRef = useRef(false);
 
@@ -848,6 +850,8 @@ function CalculatorPageContent() {
                                         'Not specified';
                                 const propertyDisplayPrice = parseInt(formData.propertyPrice) || 0;
                                 const buyerTypeDisplay = formatFieldValue('buyerType', formData.buyerType);
+                                const buyerSavingsAmount = parseInt(formData.savingsAmount) || 0;
+                                const buyerSavingsShortfall = totalPurchaseCost - buyerSavingsAmount;
                                 const buyerDetailRows = [
                                     'isPPR',
                                     'isAustralianResident',
@@ -856,12 +860,39 @@ function CalculatorPageContent() {
                                     'hasPensionCard',
                                     ...(formData.isACT ? ['income', 'dependants'] : []),
                                     'needsLoan',
-                                    'savingsAmount',
                                 ].map((key) => ({
                                     key,
                                     label: fieldLabels[key] || key,
                                     value: formatFieldValue(key, formData[key]),
                                 }));
+
+                                const loanTypeDisplay = formatFieldValue('loanType', formData.loanType);
+                                const loanAmountDisplay = (() => {
+                                    const propertyPrice = parseInt(formData.propertyPrice) || 0;
+                                    const deposit = parseInt(formData.loanDeposit) || 0;
+                                    const lmiCost = formData.loanLMI === 'yes' ? (formData.LMI_COST || 0) : 0;
+                                    const lmiStampDuty = formData.loanLMI === 'yes' ? (formData.LMI_STAMP_DUTY || 0) : 0;
+                                    return propertyPrice + lmiCost + lmiStampDuty - deposit;
+                                })();
+                                const loanDetailRows = [
+                                    'loanDeposit',
+                                    'loanTerm',
+                                    'loanRate',
+                                    'loanLMI',
+                                    'loanSettlementFees',
+                                    'loanEstablishmentFee',
+                                ].map((key) => ({
+                                    key,
+                                    label: fieldLabels[key] || key,
+                                    value: formatFieldValue(key, formData[key]),
+                                }));
+                                if (formData.loanType === 'interest-only' && formData.loanInterestOnlyPeriod) {
+                                    loanDetailRows.push({
+                                        key: 'loanInterestOnlyPeriod',
+                                        label: 'Interest-Only Period',
+                                        value: `${formData.loanInterestOnlyPeriod} years`,
+                                    });
+                                }
                                 
                                 return (
                                         <AnimatePresence mode="wait">
@@ -1013,7 +1044,13 @@ function CalculatorPageContent() {
                                                                             </p>
                                                                         </div>
                                                                     </div>
-                                                                    <div className="flex items-center gap-4 sm:pl-4 shrink-0 justify-end">
+                                                                    <div className="flex items-center gap-4 sm:pl-4 shrink-0 justify-between sm:justify-end">
+                                                                        <div className="sm:text-right">
+                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Available Savings</span>
+                                                                            <p className="text-2xl md:text-3xl font-black text-secondary mt-0.5 tracking-tight">
+                                                                                {formatCurrency(buyerSavingsAmount)}
+                                                                            </p>
+                                                                        </div>
                                                                         <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
                                                                             <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isBuyerCardExpanded ? 'rotate-180' : ''}`} />
                                                                         </div>
@@ -1043,6 +1080,79 @@ function CalculatorPageContent() {
                                                                 </AnimatePresence>
                                                             </div>
                                                         </div>
+
+                                                        {/* Loan summary */}
+                                                        {hasLoan && (
+                                                            <div className="pb-6 border-b border-gray-100">
+                                                                <div
+                                                                    className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm"
+                                                                    onClick={() => setIsLoanCardExpanded(!isLoanCardExpanded)}
+                                                                >
+                                                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                                                        <div className="flex items-center gap-3 min-w-0">
+                                                                            <div className="p-2.5 bg-white rounded-lg border border-[#fef6e4] shadow-sm shrink-0">
+                                                                                <Landmark className="w-5 h-5 text-primary" />
+                                                                            </div>
+                                                                            <div className="min-w-0">
+                                                                                <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Loan Type</span>
+                                                                                <p className="text-base md:text-lg font-bold text-secondary mt-0.5">
+                                                                                    {loanTypeDisplay}
+                                                                                </p>
+                                                                            </div>
+                                                                        </div>
+                                                                        <div className="flex items-center gap-4 sm:pl-4 shrink-0 justify-between sm:justify-end">
+                                                                            <div className="sm:text-right">
+                                                                                <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Loan Amount</span>
+                                                                                <p className="text-2xl md:text-3xl font-black text-secondary mt-0.5 tracking-tight">
+                                                                                    {formatCurrency(loanAmountDisplay)}
+                                                                                </p>
+                                                                            </div>
+                                                                            <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
+                                                                                <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isLoanCardExpanded ? 'rotate-180' : ''}`} />
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <AnimatePresence initial={false}>
+                                                                        {isLoanCardExpanded && (
+                                                                            <motion.div
+                                                                                initial={{ height: 0, opacity: 0 }}
+                                                                                animate={{ height: "auto", opacity: 1 }}
+                                                                                exit={{ height: 0, opacity: 0 }}
+                                                                                transition={{ duration: 0.3, ease: "easeInOut" }}
+                                                                                className="overflow-hidden border-t border-[#fef6e4] pt-4 mt-2"
+                                                                                onClick={(e) => e.stopPropagation()}
+                                                                            >
+                                                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 text-sm text-secondary">
+                                                                                    {loanDetailRows.map(({ key, label, value }) => (
+                                                                                        <div key={key}>
+                                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">{label}</span>
+                                                                                            <p className="font-semibold text-secondary mt-0.5">{value}</p>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                    {formData.loanLMI === 'yes' && (formData.LMI_COST > 0 || formData.LMI_STAMP_DUTY > 0) && (
+                                                                                        <div>
+                                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">LMI Premium</span>
+                                                                                            <p className="font-semibold text-secondary mt-0.5">
+                                                                                                {formatCurrency((formData.LMI_COST || 0) + (formData.LMI_STAMP_DUTY || 0))}
+                                                                                            </p>
+                                                                                        </div>
+                                                                                    )}
+                                                                                    {formData.LVR != null && formData.LVR !== '' && (
+                                                                                        <div>
+                                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">LVR (ex LMI)</span>
+                                                                                            <p className="font-semibold text-secondary mt-0.5">
+                                                                                                {`${(Number(formData.LVR) * 100).toFixed(1)}%`}
+                                                                                            </p>
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                            </motion.div>
+                                                                        )}
+                                                                    </AnimatePresence>
+                                                                </div>
+                                                            </div>
+                                                        )}
 
                                                         {/* Settlement Section */}
                                                         <div className="space-y-6">
@@ -1104,6 +1214,18 @@ function CalculatorPageContent() {
                                                                                             ? (parseInt(formData.loanDeposit) || 0)
                                                                                             : (parseInt(formData.propertyPrice) || 0);
 
+                                                                                        const bankSettlementFee = hasLoan ? (parseInt(formData.loanSettlementFees) || 0) : 0;
+                                                                                        const loanEstablishmentFee = hasLoan ? (parseInt(formData.loanEstablishmentFee) || 0) : 0;
+                                                                                        const bankLoanFeesSubtotal = bankSettlementFee + loanEstablishmentFee;
+
+                                                                                        const landTransferFee = formData.sellerQuestionsComplete ? (parseInt(formData.landTransferFee) || 0) : 0;
+                                                                                        const legalFees = formData.sellerQuestionsComplete ? (parseInt(formData.legalFees) || 0) : 0;
+                                                                                        const buildingAndPestFee = formData.sellerQuestionsComplete ? (parseInt(formData.buildingAndPestInspection) || 0) : 0;
+                                                                                        const firbFee = (formData.buyerDetailsComplete && formData.isAustralianResident === 'no')
+                                                                                            ? (parseInt(formData.FIRBFee) || 0)
+                                                                                            : 0;
+                                                                                        const otherCostsSubtotal = landTransferFee + legalFees + buildingAndPestFee + firbFee;
+
                                                                                         const getConcessionLabel = (type) => {
                                                                                             switch (type) {
                                                                                                 case 'Pensioner': return 'Pensioner Duty Concession';
@@ -1153,51 +1275,63 @@ function CalculatorPageContent() {
                                                                                                     )}
                                                                                                 </div>
 
-                                                                                                {/* 3. Other Fees */}
-                                                                                                {((hasLoan && (parseInt(formData.loanSettlementFees) > 0 || parseInt(formData.loanEstablishmentFee) > 0)) ||
-                                                                                                    (formData.sellerQuestionsComplete && (parseInt(formData.landTransferFee) > 0 || parseInt(formData.legalFees) > 0 || parseInt(formData.buildingAndPestInspection) > 0)) ||
-                                                                                                    (formData.buyerDetailsComplete && formData.isAustralianResident === 'no' && parseInt(formData.FIRBFee) > 0)) && (
-                                                                                                        <div className="py-2 space-y-1">
-                                                                                                            {hasLoan && parseInt(formData.loanSettlementFees) > 0 && (
-                                                                                                                <div className="flex justify-between items-center py-1">
-                                                                                                                    <span className="text-gray-600">Bank Settlement Fee</span>
-                                                                                                                    <span className="font-semibold text-secondary">{formatCurrency(parseInt(formData.loanSettlementFees))}</span>
-                                                                                                                </div>
-                                                                                                            )}
-                                                                                                            {hasLoan && parseInt(formData.loanEstablishmentFee) > 0 && (
-                                                                                                                <div className="flex justify-between items-center py-1">
-                                                                                                                    <span className="text-gray-600">Loan Establishment Fee</span>
-                                                                                                                    <span className="font-semibold text-secondary">{formatCurrency(parseInt(formData.loanEstablishmentFee))}</span>
-                                                                                                                </div>
-                                                                                                            )}
-                                                                                                            {formData.sellerQuestionsComplete && parseInt(formData.landTransferFee) > 0 && (
-                                                                                                                <div className="flex justify-between items-center py-1">
-                                                                                                                    <span className="text-gray-600">Land Transfer Fee</span>
-                                                                                                                    <span className="font-semibold text-secondary">{formatCurrency(parseInt(formData.landTransferFee))}</span>
-                                                                                                                </div>
-                                                                                                            )}
-                                                                                                            {formData.sellerQuestionsComplete && parseInt(formData.legalFees) > 0 && (
-                                                                                                                <div className="flex justify-between items-center py-1">
-                                                                                                                    <span className="text-gray-600">Legal and Conveyancing</span>
-                                                                                                                    <span className="font-semibold text-secondary">{formatCurrency(parseInt(formData.legalFees))}</span>
-                                                                                                                </div>
-                                                                                                            )}
-                                                                                                            {formData.sellerQuestionsComplete && parseInt(formData.buildingAndPestInspection) > 0 && (
-                                                                                                                <div className="flex justify-between items-center py-1">
-                                                                                                                    <span className="text-gray-600">Building and Pest Inspection</span>
-                                                                                                                    <span className="font-semibold text-secondary">{formatCurrency(parseInt(formData.buildingAndPestInspection))}</span>
-                                                                                                                </div>
-                                                                                                            )}
-                                                                                                            {formData.buyerDetailsComplete && formData.isAustralianResident === 'no' && parseInt(formData.FIRBFee) > 0 && (
-                                                                                                                <div className="flex justify-between items-center py-1">
-                                                                                                                    <span className="text-gray-600">FIRB Application Fee</span>
-                                                                                                                    <span className="font-semibold text-secondary">{formatCurrency(parseInt(formData.FIRBFee))}</span>
-                                                                                                                </div>
-                                                                                                            )}
+                                                                                                {/* 3. Bank & Loan Fees */}
+                                                                                                {bankLoanFeesSubtotal > 0 && (
+                                                                                                    <div className="py-2">
+                                                                                                        {bankSettlementFee > 0 && (
+                                                                                                            <div className="flex justify-between items-center py-1">
+                                                                                                                <span className="text-gray-600">Bank Settlement Fee</span>
+                                                                                                                <span className="font-semibold text-secondary">{formatCurrency(bankSettlementFee)}</span>
+                                                                                                            </div>
+                                                                                                        )}
+                                                                                                        {loanEstablishmentFee > 0 && (
+                                                                                                            <div className="flex justify-between items-center py-1">
+                                                                                                                <span className="text-gray-600">Loan Establishment Fee</span>
+                                                                                                                <span className="font-semibold text-secondary">{formatCurrency(loanEstablishmentFee)}</span>
+                                                                                                            </div>
+                                                                                                        )}
+                                                                                                        <div className="flex justify-between items-center py-1 pt-2 border-t border-dashed border-primary/10 font-medium">
+                                                                                                            <span className="text-secondary pl-4">Bank &amp; Loan Fees</span>
+                                                                                                            <span className="text-secondary font-bold">{formatCurrency(bankLoanFeesSubtotal)}</span>
                                                                                                         </div>
-                                                                                                    )}
+                                                                                                    </div>
+                                                                                                )}
 
-                                                                                                {/* 4. Grants and Final Totals */}
+                                                                                                {/* 4. Other Costs (seller questions + FIRB) */}
+                                                                                                {otherCostsSubtotal > 0 && (
+                                                                                                    <div className="py-2">
+                                                                                                        {landTransferFee > 0 && (
+                                                                                                            <div className="flex justify-between items-center py-1">
+                                                                                                                <span className="text-gray-600">Land Transfer Fee</span>
+                                                                                                                <span className="font-semibold text-secondary">{formatCurrency(landTransferFee)}</span>
+                                                                                                            </div>
+                                                                                                        )}
+                                                                                                        {legalFees > 0 && (
+                                                                                                            <div className="flex justify-between items-center py-1">
+                                                                                                                <span className="text-gray-600">Legal and Conveyancing</span>
+                                                                                                                <span className="font-semibold text-secondary">{formatCurrency(legalFees)}</span>
+                                                                                                            </div>
+                                                                                                        )}
+                                                                                                        {buildingAndPestFee > 0 && (
+                                                                                                            <div className="flex justify-between items-center py-1">
+                                                                                                                <span className="text-gray-600">Building and Pest Inspection</span>
+                                                                                                                <span className="font-semibold text-secondary">{formatCurrency(buildingAndPestFee)}</span>
+                                                                                                            </div>
+                                                                                                        )}
+                                                                                                        {firbFee > 0 && (
+                                                                                                            <div className="flex justify-between items-center py-1">
+                                                                                                                <span className="text-gray-600">FIRB Application Fee</span>
+                                                                                                                <span className="font-semibold text-secondary">{formatCurrency(firbFee)}</span>
+                                                                                                            </div>
+                                                                                                        )}
+                                                                                                        <div className="flex justify-between items-center py-1 pt-2 border-t border-dashed border-primary/10 font-medium">
+                                                                                                            <span className="text-secondary pl-4">Other Costs</span>
+                                                                                                            <span className="text-secondary font-bold">{formatCurrency(otherCostsSubtotal)}</span>
+                                                                                                        </div>
+                                                                                                    </div>
+                                                                                                )}
+
+                                                                                                {/* 5. Grants and Final Totals */}
                                                                                                 <div className="pt-2">
                                                                                                     {hasGrants ? (
                                                                                                         <>
@@ -1222,6 +1356,28 @@ function CalculatorPageContent() {
                                                                                                             <span>{formatCurrency(totalPurchaseCost)}</span>
                                                                                                         </div>
                                                                                                     )}
+                                                                                                    <div className="pt-3 mt-2 border-t border-primary/20 space-y-2">
+                                                                                                        <div className="flex justify-between items-center py-1">
+                                                                                                            <span className="text-gray-600">Available Savings</span>
+                                                                                                            <span className="font-semibold text-secondary">{formatCurrency(buyerSavingsAmount)}</span>
+                                                                                                        </div>
+                                                                                                        {buyerSavingsShortfall > 0 ? (
+                                                                                                            <div className="flex justify-between items-center py-1">
+                                                                                                                <span className="text-red-600 font-medium">Shortfall</span>
+                                                                                                                <span className="text-red-600 font-semibold">{formatCurrency(buyerSavingsShortfall)}</span>
+                                                                                                            </div>
+                                                                                                        ) : (
+                                                                                                            <div className="flex justify-between items-center py-1">
+                                                                                                                <span className="text-green-600 font-medium">Remaining After Costs</span>
+                                                                                                                <span className="text-green-600 font-semibold">{formatCurrency(buyerSavingsAmount - totalPurchaseCost)}</span>
+                                                                                                            </div>
+                                                                                                        )}
+                                                                                                        {buyerSavingsAmount > totalPurchaseCost && hasLoan && (
+                                                                                                            <p className="text-xs text-gray-600 italic bg-white/60 rounded-lg px-3 py-2 mt-2 border border-primary/10">
+                                                                                                                You have more savings than required upfront. Consider increasing your deposit to reduce interest payments.
+                                                                                                            </p>
+                                                                                                        )}
+                                                                                                    </div>
                                                                                                 </div>
                                                                                             </div>
                                                                                         );
@@ -1243,12 +1399,59 @@ function CalculatorPageContent() {
 
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                                 {/* Monthly Outflow Component */}
-                                                                <div className="bg-base-200 border border-gray-100 rounded-xl p-5 flex flex-col justify-between relative">
+                                                                <div
+                                                                    className="bg-base-200 border border-gray-100 rounded-xl p-5 flex flex-col justify-between relative cursor-pointer select-none"
+                                                                    onClick={() => setIsOngoingCostsExpanded(!isOngoingCostsExpanded)}
+                                                                >
                                                                     <div>
-                                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Monthly Outflow</span>
+                                                                        <div className="flex items-start justify-between gap-2 mb-1">
+                                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Monthly Outflow</span>
+                                                                            <div className="p-1 hover:bg-black/5 rounded-full transition-colors shrink-0">
+                                                                                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${isOngoingCostsExpanded ? 'rotate-180' : ''}`} />
+                                                                            </div>
+                                                                        </div>
                                                                         <p className="text-2xl md:text-3xl font-black text-secondary mb-2">
                                                                             {formatCurrency(monthlyCashFlow)}<span className="text-xs font-normal text-gray-400"> /mo</span>
                                                                         </p>
+                                                                        <AnimatePresence initial={false}>
+                                                                            {isOngoingCostsExpanded && (
+                                                                                <motion.div
+                                                                                    initial={{ height: 0, opacity: 0 }}
+                                                                                    animate={{ height: "auto", opacity: 1 }}
+                                                                                    exit={{ height: 0, opacity: 0 }}
+                                                                                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                                                                                    className="overflow-hidden mb-2"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                >
+                                                                                    <div className="space-y-1.5 text-sm border-t border-gray-100 pt-3">
+                                                                                        {hasLoan && (formData.MONTHLY_LOAN_REPAYMENT || 0) > 0 && (
+                                                                                            <div className="flex justify-between items-center">
+                                                                                                <span className="text-gray-600 pl-4">Loan Repayment</span>
+                                                                                                <span className="font-semibold text-secondary pr-4">{formatCurrency(formData.MONTHLY_LOAN_REPAYMENT)}</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {formData.sellerQuestionsComplete && (formData.COUNCIL_RATES_MONTHLY || 0) > 0 && (
+                                                                                            <div className="flex justify-between items-center">
+                                                                                                <span className="text-gray-600 pl-4">Council Rates</span>
+                                                                                                <span className="font-semibold text-secondary pr-4">{formatCurrency(formData.COUNCIL_RATES_MONTHLY)}</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {formData.sellerQuestionsComplete && (formData.WATER_RATES_MONTHLY || 0) > 0 && (
+                                                                                            <div className="flex justify-between items-center">
+                                                                                                <span className="text-gray-600 pl-4">Water Rates</span>
+                                                                                                <span className="font-semibold text-secondary pr-4">{formatCurrency(formData.WATER_RATES_MONTHLY)}</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {formData.sellerQuestionsComplete && (formData.BODY_CORP_MONTHLY || 0) > 0 && (
+                                                                                            <div className="flex justify-between items-center">
+                                                                                                <span className="text-gray-600 pl-4">Body Corporate</span>
+                                                                                                <span className="font-semibold text-secondary pr-4">{formatCurrency(formData.BODY_CORP_MONTHLY)}</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </motion.div>
+                                                                            )}
+                                                                        </AnimatePresence>
                                                                     </div>
                                                                     <p className="text-[11px] text-gray-500 italic bg-gray-50/50 p-2 rounded border border-gray-100/30">
                                                                         Includes council rates, water rates, body corporate fees, and loan repayments.
@@ -1256,12 +1459,59 @@ function CalculatorPageContent() {
                                                                 </div>
 
                                                                 {/* Annual Operating Cost Component */}
-                                                                <div className="bg-base-200 border border-gray-100 rounded-xl p-5 flex flex-col justify-between relative">
+                                                                <div
+                                                                    className="bg-base-200 border border-gray-100 rounded-xl p-5 flex flex-col justify-between relative cursor-pointer select-none"
+                                                                    onClick={() => setIsOngoingCostsExpanded(!isOngoingCostsExpanded)}
+                                                                >
                                                                     <div>
-                                                                        <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block mb-1">Annualized Cost</span>
+                                                                        <div className="flex items-start justify-between gap-2 mb-1">
+                                                                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Annualized Cost</span>
+                                                                            <div className="p-1 hover:bg-black/5 rounded-full transition-colors shrink-0">
+                                                                                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${isOngoingCostsExpanded ? 'rotate-180' : ''}`} />
+                                                                            </div>
+                                                                        </div>
                                                                         <p className="text-2xl md:text-3xl font-black text-secondary mb-2">
                                                                             {formatCurrency(annualOperatingCost)}<span className="text-xs font-normal text-gray-400"> /yr</span>
                                                                         </p>
+                                                                        <AnimatePresence initial={false}>
+                                                                            {isOngoingCostsExpanded && (
+                                                                                <motion.div
+                                                                                    initial={{ height: 0, opacity: 0 }}
+                                                                                    animate={{ height: "auto", opacity: 1 }}
+                                                                                    exit={{ height: 0, opacity: 0 }}
+                                                                                    transition={{ duration: 0.3, ease: "easeInOut" }}
+                                                                                    className="overflow-hidden mb-2"
+                                                                                    onClick={(e) => e.stopPropagation()}
+                                                                                >
+                                                                                    <div className="space-y-1.5 text-sm border-t border-gray-100 pt-3">
+                                                                                        {hasLoan && (formData.ANNUAL_LOAN_REPAYMENT || 0) > 0 && (
+                                                                                            <div className="flex justify-between items-center">
+                                                                                                <span className="text-gray-600 pl-4">Loan Repayment</span>
+                                                                                                <span className="font-semibold text-secondary pr-4">{formatCurrency(formData.ANNUAL_LOAN_REPAYMENT)}</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {formData.sellerQuestionsComplete && (parseInt(formData.councilRates) || 0) > 0 && (
+                                                                                            <div className="flex justify-between items-center">
+                                                                                                <span className="text-gray-600 pl-4">Council Rates</span>
+                                                                                                <span className="font-semibold text-secondary pr-4">{formatCurrency(parseInt(formData.councilRates))}</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {formData.sellerQuestionsComplete && (parseInt(formData.waterRates) || 0) > 0 && (
+                                                                                            <div className="flex justify-between items-center">
+                                                                                                <span className="text-gray-600 pl-4">Water Rates</span>
+                                                                                                <span className="font-semibold text-secondary pr-4">{formatCurrency(parseInt(formData.waterRates))}</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                        {formData.sellerQuestionsComplete && (parseInt(formData.bodyCorp) || 0) > 0 && (
+                                                                                            <div className="flex justify-between items-center">
+                                                                                                <span className="text-gray-600 pl-4">Body Corporate</span>
+                                                                                                <span className="font-semibold text-secondary pr-4">{formatCurrency(parseInt(formData.bodyCorp))}</span>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </div>
+                                                                                </motion.div>
+                                                                            )}
+                                                                        </AnimatePresence>
                                                                     </div>
                                                                     <p className="text-[11px] text-gray-500 italic bg-gray-50/50 p-2 rounded border border-gray-100/30">
                                                                         Annualised council rates, water rates, body corporate fees, and loan repayments.
