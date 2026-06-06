@@ -64,7 +64,7 @@ export default function LoggedInHeaderOverlay() {
     // Define public pages where normal header should show instead
     const publicPages = ['/', '/about', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup', '/reset-password', '/forgot-password'];
     const isPublicPage = publicPages.includes(pathname);
-    
+
     // Only show overlay when user is logged in AND on protected pages (not public pages, not calculator)
     if (loading || !user || pathname === '/calculator' || isPublicPage) {
         return null;
@@ -141,17 +141,15 @@ export default function LoggedInHeaderOverlay() {
                                     <Link
                                         href="/dashboard"
                                         onClick={() => setIsNavigatingToDashboard(true)}
-                                        className={`hover:text-primary transition-colors ${
-                                            pathname === '/dashboard' ? 'underline underline-offset-6 decoration-2' : ''
-                                        }`}
+                                        className={`hover:text-primary transition-colors ${pathname === '/dashboard' ? 'underline underline-offset-6 decoration-2' : ''
+                                            }`}
                                     >
                                         Dashboard
                                     </Link>
                                     <Link
                                         href="/settings/account"
-                                        className={`hover:text-primary transition-colors ${
-                                            pathname.startsWith('/settings') ? 'underline underline-offset-6 decoration-2' : ''
-                                        }`}
+                                        className={`hover:text-primary transition-colors ${pathname.startsWith('/settings') ? 'underline underline-offset-6 decoration-2' : ''
+                                            }`}
                                     >
                                         Settings
                                     </Link>
@@ -186,7 +184,7 @@ export default function LoggedInHeaderOverlay() {
                             onClick={closeMenu}
                             className={`fixed ${MOBILE_HEADER_MENU_TOP_CLASS} left-0 right-0 bottom-0 bg-black bg-opacity-50 z-[200] md:hidden`}
                         />
-                        
+
                         {/* Menu drawer */}
                         <motion.div
                             initial={{ x: '100%' }}

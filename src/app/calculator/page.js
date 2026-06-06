@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Minus, DollarSign, Download, Mail, Edit, Plus, ArrowRight, Loader2, CheckCircle2, ChevronDown, User, Landmark } from 'lucide-react';
+import { Home, Minus, DollarSign, Download, Mail, Edit, Plus, ArrowRight, Loader2, CheckCircle2, ChevronDown, User, Landmark, Award, Info } from 'lucide-react';
 import UpfrontCosts from '../../components/UpfrontCosts';
 import OngoingCosts from '../../components/OngoingCosts';
 import Summary from '../../components/Summary';
@@ -52,6 +52,7 @@ function CalculatorPageContent() {
     const [isMonthlyOutflowExpanded, setIsMonthlyOutflowExpanded] = useState(false);
     const [isAnnualizedCostExpanded, setIsAnnualizedCostExpanded] = useState(false);
     const [isMobileOngoingCosts, setIsMobileOngoingCosts] = useState(false);
+    const [isGrantsCardExpanded, setIsGrantsCardExpanded] = useState(false);
     const hasResumedRef = useRef(false);
     const initialWelcomeCheckedRef = useRef(false);
 
@@ -736,6 +737,33 @@ function CalculatorPageContent() {
                                 if (buyerDetailsComplete && !showLoanDetails && !showSellerQuestions && !formData.buyerDetailsCurrentStep) return <BuyerDetails />;
                                 if (formData.buyerDetailsCurrentStep) return <BuyerDetails />;
                                 if (allFormsComplete) return (() => {
+                                    // Define buyerData and propertyData once in outer scope
+                                    const buyerData = {
+                                        selectedState: formData.selectedState,
+                                        buyerType: formData.buyerType,
+                                        isPPR: formData.isPPR,
+                                        isAustralianResident: formData.isAustralianResident,
+                                        isFirstHomeBuyer: formData.isFirstHomeBuyer,
+                                        ownedPropertyLast5Years: formData.ownedPropertyLast5Years,
+                                        hasPensionCard: formData.hasPensionCard,
+                                        needsLoan: formData.needsLoan,
+                                        savingsAmount: formData.savingsAmount,
+                                        income: formData.income,
+                                        dependants: formData.dependants,
+                                        dutiableValue: formData.dutiableValue,
+                                        constructionStarted: formData.constructionStarted,
+                                        sellerQuestionsComplete: formData.sellerQuestionsComplete
+                                    };
+
+                                    const propertyData = {
+                                        propertyPrice: formData.propertyPrice,
+                                        propertyType: formData.propertyType,
+                                        propertyCategory: formData.propertyCategory,
+                                        isWA: formData.isWA,
+                                        isWAMetro: formData.isWAMetro,
+                                        isACT: formData.isACT
+                                    };
+
                                     // Calculate stamp duty
                                     const calculateStampDuty = () => {
                                         if (!stateFunctions || !formData.propertyPrice || !formData.selectedState || !formData.propertyType) {
@@ -761,32 +789,6 @@ function CalculatorPageContent() {
                                                 totalUpfrontCosts: stampDutyAmount + depositAmount + settlementFee + establishmentFee
                                             };
                                         }
-
-                                        const buyerData = {
-                                            selectedState: formData.selectedState,
-                                            buyerType: formData.buyerType,
-                                            isPPR: formData.isPPR,
-                                            isAustralianResident: formData.isAustralianResident,
-                                            isFirstHomeBuyer: formData.isFirstHomeBuyer,
-                                            ownedPropertyLast5Years: formData.ownedPropertyLast5Years,
-                                            hasPensionCard: formData.hasPensionCard,
-                                            needsLoan: formData.needsLoan,
-                                            savingsAmount: formData.savingsAmount,
-                                            income: formData.income,
-                                            dependants: formData.dependants,
-                                            dutiableValue: formData.dutiableValue,
-                                            constructionStarted: formData.constructionStarted,
-                                            sellerQuestionsComplete: formData.sellerQuestionsComplete
-                                        };
-
-                                        const propertyData = {
-                                            propertyPrice: formData.propertyPrice,
-                                            propertyType: formData.propertyType,
-                                            propertyCategory: formData.propertyCategory,
-                                            isWA: formData.isWA,
-                                            isWAMetro: formData.isWAMetro,
-                                            isACT: formData.isACT
-                                        };
 
                                         const upfrontCostsResult = stateFunctions.calculateUpfrontCosts(buyerData, propertyData, formData.selectedState);
 
@@ -855,6 +857,74 @@ function CalculatorPageContent() {
                                         ? (parseInt(formData.loanDeposit) || 0)
                                         : (parseInt(formData.propertyPrice) || 0);
                                     const grossStampDutyAmount = upfrontCosts?.stampDuty?.amount ?? stampDuty;
+
+                                     const getGrantsAndConcessionsList = () => {
+                                         if (!stateFunctions || !formData.selectedState) return [];
+
+                                         const list = [];
+                                         const state = formData.selectedState;
+
+                                         const addItem = (name, type, calcFn, takesDuty = false) => {
+                                             if (!calcFn) return;
+                                             try {
+                                                 const result = takesDuty
+                                                     ? calcFn(buyerData, propertyData, state, grossStampDutyAmount, formData.dutiableValue, formData.sellerQuestionsComplete)
+                                                     : calcFn(buyerData, propertyData, state);
+                                                 
+                                                 const isEligible = result.eligible || false;
+                                                 const amt = result.amount ?? result.concessionAmount ?? 0;
+                                                 const reason = result.reason || '';
+
+                                                 list.push({
+                                                     name,
+                                                     type,
+                                                     eligible: isEligible,
+                                                     amount: amt,
+                                                     reason: reason
+                                                 });
+                                             } catch (e) {
+                                                 console.error(`Error calculating ${name}:`, e);
+                                             }
+                                         };
+
+                                         if (state === 'NSW') {
+                                             addItem('NSW First Home Owners Grant', 'grant', stateFunctions.calculateNSWFirstHomeOwnersGrant);
+                                             addItem('NSW First Home Buyers Assistance Scheme', 'concession', stateFunctions.calculateNSWFirstHomeBuyersAssistance, true);
+                                         } else if (state === 'VIC') {
+                                             addItem('VIC First Home Owners Grant', 'grant', stateFunctions.calculateVICFirstHomeOwnersGrant);
+                                             addItem('VIC First Home Buyer Duty Concession', 'concession', stateFunctions.calculateVICFirstHomeBuyerDutyConcession, true);
+                                             addItem('VIC PPR Duty Concession', 'concession', stateFunctions.calculateVICPPRConcession, true);
+                                             addItem('VIC Pensioner Duty Concession', 'concession', stateFunctions.calculateVICPensionConcession, true);
+                                             addItem('VIC Temp Off-The-Plan Concession', 'concession', stateFunctions.calculateVICTempOffThePlanConcession, true);
+                                         } else if (state === 'QLD') {
+                                             addItem('QLD First Home Owners Grant', 'grant', stateFunctions.calculateQLDFirstHomeOwnersGrant);
+                                             addItem('QLD Home Concession', 'concession', stateFunctions.calculateQLDHomeConcession, true);
+                                             addItem('QLD First Home Concession', 'concession', stateFunctions.calculateQLDFirstHomeConcession, true);
+                                             addItem('QLD First Home New Concession', 'concession', stateFunctions.calculateQLDFirstHomeNewConcession, true);
+                                             addItem('QLD First Home Vacant Land Concession', 'concession', stateFunctions.calculateQLDFirstHomeVacantLandConcession, true);
+                                         } else if (state === 'SA') {
+                                             addItem('SA First Home Owners Grant', 'grant', stateFunctions.calculateSAFirstHomeOwnersGrant);
+                                             addItem('SA First Home Buyer Concession', 'concession', stateFunctions.calculateSAFirstHomeBuyerConcession, true);
+                                         } else if (state === 'WA') {
+                                             addItem('WA First Home Owners Grant', 'grant', stateFunctions.calculateWAFirstHomeOwnersGrant);
+                                             addItem('WA First Home Owner Concession', 'concession', stateFunctions.calculateWAFirstHomeOwnerConcession, true);
+                                             addItem('WA Off-The-Plan Concession', 'concession', stateFunctions.calculateWAOffThePlanConcession, true);
+                                         } else if (state === 'TAS') {
+                                             addItem('TAS First Home Owners Grant', 'grant', stateFunctions.calculateTASFirstHomeOwnersGrant);
+                                             addItem('TAS First Home Duty Relief', 'concession', stateFunctions.calculateTASFirstHomeDutyRelief, true);
+                                         } else if (state === 'ACT') {
+                                             addItem('ACT Off-The-Plan Exemption', 'concession', stateFunctions.calculateACTOffThePlanExemption, true);
+                                             addItem('ACT Pensioner Concession', 'concession', stateFunctions.calculateACTPensionerConcession, true);
+                                             addItem('ACT Owner Occupier Concession', 'concession', stateFunctions.calculateACTOwnerOccupierConcession, true);
+                                         } else if (state === 'NT') {
+                                             addItem('NT Home-Grown Territory Grant', 'grant', stateFunctions.calculateNTHomeGrownTerritoryGrant);
+                                             addItem('NT Fresh Start Grant', 'grant', stateFunctions.calculateNTFreshStartGrant);
+                                             addItem('NT House and Land Concession', 'concession', stateFunctions.calculateNTHouseAndLandConcession, true);
+                                         }
+
+                                         return list;
+                                     };
+
                                     let otherCostsAmount = 0;
                                     if (hasLoan) {
                                         otherCostsAmount += parseInt(formData.loanSettlementFees) || 0;
@@ -1579,6 +1649,106 @@ function CalculatorPageContent() {
                                                                         Annualised council rates, water rates, body corporate fees, and loan repayments.
                                                                     </p>
                                                                 </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Grants and Concessions collapsible card */}
+                                                        <div className="pb-6 md:pb-4 border-b border-gray-100 pt-6 md:pt-4 border-t border-gray-100">
+                                                            <div
+                                                                className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm"
+                                                                onClick={() => setIsGrantsCardExpanded(!isGrantsCardExpanded)}
+                                                            >
+                                                                {/* Card Header Row */}
+                                                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                                                    <div className="flex items-center gap-3 min-w-0">
+                                                                        <div className="p-2.5 bg-white rounded-lg border border-[#fef6e4] shadow-sm shrink-0">
+                                                                            <Award className="w-5 h-5 text-primary" />
+                                                                        </div>
+                                                                        <div className="min-w-0">
+                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Grants and Concessions</span>
+                                                                            <p className="text-base md:text-lg font-bold text-secondary mt-0.5 break-words">
+                                                                                {(() => {
+                                                                                    const list = getGrantsAndConcessionsList();
+                                                                                    const eligibleCount = list.filter(x => x.eligible).length;
+                                                                                    return eligibleCount > 0 
+                                                                                        ? `Eligible for ${eligibleCount} benefit${eligibleCount > 1 ? 's' : ''}` 
+                                                                                        : 'No eligible benefits';
+                                                                                })()}
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-4 sm:pl-4 shrink-0 justify-between sm:justify-end">
+                                                                        <div className="sm:text-right">
+                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Total Saved</span>
+                                                                            <p className="text-2xl md:text-3xl font-black text-secondary mt-0.5 tracking-tight">
+                                                                                {formatCurrency(grantsConcessionsTotal)}
+                                                                            </p>
+                                                                        </div>
+                                                                        <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
+                                                                            <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isGrantsCardExpanded ? 'rotate-180' : ''}`} />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Expanded Details Row */}
+                                                                <AnimatePresence initial={false}>
+                                                                    {isGrantsCardExpanded && (
+                                                                        <motion.div
+                                                                            initial={{ height: 0, opacity: 0 }}
+                                                                            animate={{ height: "auto", opacity: 1 }}
+                                                                            exit={{ height: 0, opacity: 0 }}
+                                                                            transition={{ duration: 0.3, ease: "easeInOut" }}
+                                                                            className="overflow-hidden border-t border-[#fef6e4] pt-4 mt-2"
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                        >
+                                                                            <div className="space-y-3 pt-2">
+                                                                                <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Grants &amp; Concessions Breakdown</span>
+                                                                                {(() => {
+                                                                                    const list = getGrantsAndConcessionsList();
+                                                                                    const eligibleConcessions = list.filter(x => x.eligible && x.type === 'concession');
+                                                                                    if (eligibleConcessions.length > 1) {
+                                                                                        return (
+                                                                                            <div className="flex gap-2.5 p-3.5 mb-3 rounded-lg border border-amber-200 bg-amber-500/5 text-xs text-amber-900 leading-normal">
+                                                                                                <Info className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                                                                                <div>
+                                                                                                    <span className="font-semibold">Note on concessions:</span> You are eligible for multiple stamp duty concessions. However, state rules dictate that only one concession can be applied per property transaction (typically the one yielding the highest benefit). This has been automatically applied to your total savings calculation.
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        );
+                                                                                    }
+                                                                                    return null;
+                                                                                })()}
+                                                                                <div className="grid grid-cols-1 gap-3">
+                                                                                    {getGrantsAndConcessionsList().map((item, idx) => (
+                                                                                        <div key={idx} className="flex flex-col gap-1.5 p-3 rounded-lg border border-[#fef6e4] bg-white/40">
+                                                                                            <div className="flex items-center justify-between gap-4">
+                                                                                                <span className="font-semibold text-secondary text-sm md:text-base">{item.name}</span>
+                                                                                                {item.eligible ? (
+                                                                                                    <span className="text-green-600 font-bold text-sm md:text-base">
+                                                                                                        -{formatCurrency(item.amount)}
+                                                                                                    </span>
+                                                                                                ) : (
+                                                                                                    <span className="text-gray-400 font-medium text-xs md:text-sm">
+                                                                                                        Ineligible
+                                                                                                    </span>
+                                                                                                )}
+                                                                                            </div>
+                                                                                            <div className="flex items-center gap-2">
+                                                                                                <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded font-bold ${item.eligible ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-gray-100 text-gray-500 border border-gray-200'}`}>
+                                                                                                    {item.eligible ? 'Eligible' : 'Ineligible'}
+                                                                                                </span>
+                                                                                                <span className="text-xs text-gray-500">{item.reason}</span>
+                                                                                            </div>
+                                                                                        </div>
+                                                                                    ))}
+                                                                                    {getGrantsAndConcessionsList().length === 0 && (
+                                                                                        <p className="text-sm text-gray-500 italic text-center py-4">No grants or concessions available for this state.</p>
+                                                                                    )}
+                                                                                </div>
+                                                                            </div>
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
                                                             </div>
                                                         </div>
 

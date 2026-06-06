@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
-import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle, Search, ArrowUpDown, Map as MapIcon, List, MoreHorizontal } from 'lucide-react';
+import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle, Search, ArrowUpDown, Map as MapIcon, List, MoreHorizontal, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFormStore } from '@/stores/formStore';
 import { resetSessionAndForm } from '@/lib/sessionManager';
@@ -926,7 +926,6 @@ function MobileMapViewFab({ mode, onClick }) {
 export default function DashboardContent({
   userEmail,
   userName,
-  profilePictureUrl,
   handleLogout,
 }) {
   const [surveys, setSurveys] = useState([]);
@@ -941,6 +940,12 @@ export default function DashboardContent({
   const [searchQuery, setSearchQuery] = useState('');
   const [searchPlaceholder, setSearchPlaceholder] = useState('Search by property address...');
   const [selectedProperties, setSelectedProperties] = useState(new Set());
+  const [metricFilter, setMetricFilter] = useState('all'); // 'all', 'completed', 'inspected'
+
+  const handleMetricFilterChange = (filter) => {
+    setMetricFilter(filter);
+    setSelectedProperties(new Set()); // Clear selection when filter changes to prevent accidental bulk actions on hidden cards
+  };
   const [openCardMenuId, setOpenCardMenuId] = useState(null);
   const openCardMenuRef = useRef(null);
   const mobileViewContainerRef = useRef(null);
@@ -948,6 +953,18 @@ export default function DashboardContent({
   const [isDesktopMapExiting, setIsDesktopMapExiting] = useState(false);
   const [focusedPropertyId, setFocusedPropertyId] = useState(null);
   const [mobileViewMode, setMobileViewMode] = useState('list');
+  const [greeting, setGreeting] = useState('Welcome back');
+
+  useEffect(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) {
+      setGreeting('Good morning');
+    } else if (hour < 18) {
+      setGreeting('Good afternoon');
+    } else {
+      setGreeting('Good evening');
+    }
+  }, []);
   const [geocodeCache, setGeocodeCache] = useState(() => {
     if (typeof window === 'undefined') return {};
     try {
@@ -1651,16 +1668,47 @@ export default function DashboardContent({
     }
   };
 
-  // Filter surveys based on search query (memoized so list-only updates do not churn map props)
+  // Filter surveys based on search query and metric card filters (memoized so list-only updates do not churn map props)
   const filteredSurveys = useMemo(() => {
     return surveys.filter(survey => {
+      // Metric filter
+      if (metricFilter === 'completed' && survey.completion_status !== 'complete') return false;
+      if (metricFilter === 'inspected' && !survey.inspected) return false;
+
+      // Search query
       if (!searchQuery.trim()) return true;
       const address = (survey.property_address || '').toLowerCase();
       const state = (survey.selected_state || '').toLowerCase();
       const query = searchQuery.toLowerCase();
       return address.includes(query) || state.includes(query);
     });
-  }, [surveys, searchQuery]);
+  }, [surveys, searchQuery, metricFilter]);
+
+  // Dynamic empty state message based on active filter / search
+  const emptyStateMessage = useMemo(() => {
+    if (searchQuery.trim()) {
+      return {
+        title: "Oops, we can't find any surveys matching your search.",
+        description: "Try adjusting your search terms or clear the search to see all surveys."
+      };
+    }
+    if (metricFilter === 'completed') {
+      return {
+        title: "No completed surveys found.",
+        description: "Surveys marked as 'Survey Complete' will appear here. Click the 'Total Properties' card or clear active filters to see all surveys."
+      };
+    }
+    if (metricFilter === 'inspected') {
+      return {
+        title: "No inspected surveys found.",
+        description: "Click the 'Total Properties' card above or clear active filters to see all surveys."
+      };
+    }
+    return {
+      title: "Oops, we can't find any surveys matching your criteria.",
+      description: "Try clearing your search or choosing another filter."
+    };
+  }, [searchQuery, metricFilter]);
 
   // Sort the filtered surveys for cards and list UI only
   const sortedSurveys = useMemo(
@@ -1953,51 +2001,115 @@ export default function DashboardContent({
       <main className="flex flex-1 flex-col">
         {/* Hero Section */}
         <section
-          className={`mx-auto w-full max-w-[1920px] shrink-0 bg-base-content px-4 py-5 ${LOGGED_IN_HEADER_CLEARANCE_MARGIN_CLASS} md:px-6 lg:px-8 lg:py-6`}
+          className={`mx-auto w-full max-w-[1920px] shrink-0 bg-transparent border-b border-gray-200/60 px-4 py-5 ${LOGGED_IN_HEADER_CLEARANCE_MARGIN_CLASS} md:px-6 lg:px-8 lg:py-6`}
         >
           <div className="w-full text-left">
-            <div className="flex items-center gap-4 md:gap-5">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-5">
+              {/* Profile and Greeting info */}
+              <div className="flex items-center gap-4 md:gap-5">
+                <div className="min-w-0 flex flex-col justify-center">
+                  <motion.h1
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+                    className="mb-1 text-3xl font-bold leading-tight text-gray-900 md:text-4xl lg:text-5xl"
+                  >
+                    Dashboard
+                  </motion.h1>
+                  <motion.p
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+                    className="mb-0 text-base text-gray-500 md:text-lg lg:text-xl"
+                  >
+                    {greeting}, {userName || userEmail}
+                  </motion.p>
+                </div>
+              </div>
+
+              {/* Dynamic Metrics */}
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                className="shrink-0"
+                transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
+                className="grid grid-cols-3 gap-2 sm:gap-4 w-full md:w-auto shrink-0"
               >
-                {/* Fixed sizes (not h-full/w-auto): large photo intrinsic width was blowing up aspect-square */}
-                <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-primary ring-2 ring-base-100/20 sm:h-[4.25rem] sm:w-[4.25rem] md:h-20 md:w-20 lg:h-[5.25rem] lg:w-[5.25rem]">
-                  {profilePictureUrl ? (
-                    <img
-                      src={profilePictureUrl}
-                      alt={
-                        userName || userEmail
-                          ? `Profile photo of ${userName || userEmail}`
-                          : 'Profile photo'
-                      }
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <User className="h-[40%] w-[40%]" aria-hidden />
-                  )}
-                </div>
+                {/* Surveys Metric (Total) */}
+                <button
+                  type="button"
+                  onClick={() => handleMetricFilterChange('all')}
+                  className={`cursor-pointer rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all duration-200 text-left border ${
+                    metricFilter === 'all'
+                      ? 'bg-white border-primary shadow-sm ring-1 ring-primary/25'
+                      : 'bg-white/40 border-gray-200/50 hover:bg-white/80 hover:shadow-xs hover:border-gray-300'
+                  }`}
+                >
+                  <div className={`p-1.5 sm:p-2 rounded-xl transition-colors ${
+                    metricFilter === 'all' ? 'bg-primary text-secondary' : 'bg-primary/10 text-primary'
+                  }`}>
+                    <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wider truncate">
+                      <span className="hidden sm:inline">Total Properties</span>
+                      <span className="sm:hidden">Total</span>
+                    </div>
+                    <div className="text-base sm:text-lg font-bold text-gray-950 leading-none mt-0.5">{surveys.length}</div>
+                  </div>
+                </button>
+
+                {/* Completed Metric */}
+                <button
+                  type="button"
+                  onClick={() => handleMetricFilterChange('completed')}
+                  className={`cursor-pointer rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all duration-200 text-left border ${
+                    metricFilter === 'completed'
+                      ? 'bg-white border-amber-500 shadow-sm ring-1 ring-amber-500/25'
+                      : 'bg-white/40 border-gray-200/50 hover:bg-white/80 hover:shadow-xs hover:border-gray-300'
+                  }`}
+                >
+                  <div className={`p-1.5 sm:p-2 rounded-xl transition-colors ${
+                    metricFilter === 'completed' ? 'bg-amber-500 text-white' : 'bg-amber-500/10 text-amber-600'
+                  }`}>
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wider truncate">
+                      <span className="hidden sm:inline">Surveys Completed</span>
+                      <span className="sm:hidden">Completed</span>
+                    </div>
+                    <div className="text-base sm:text-lg font-bold text-gray-950 leading-none mt-0.5">
+                      {surveys.filter(s => s.completion_status === 'complete').length}
+                    </div>
+                  </div>
+                </button>
+
+                {/* Inspected Metric */}
+                <button
+                  type="button"
+                  onClick={() => handleMetricFilterChange('inspected')}
+                  className={`cursor-pointer rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all duration-200 text-left border ${
+                    metricFilter === 'inspected'
+                      ? 'bg-white border-emerald-500 shadow-sm ring-1 ring-emerald-500/25'
+                      : 'bg-white/40 border-gray-200/50 hover:bg-white/80 hover:shadow-xs hover:border-gray-300'
+                  }`}
+                >
+                  <div className={`p-1.5 sm:p-2 rounded-xl transition-colors ${
+                    metricFilter === 'inspected' ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-600'
+                  }`}>
+                    <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wider truncate">
+                      <span className="hidden sm:inline">Properties Inspected</span>
+                      <span className="sm:hidden">Inspected</span>
+                    </div>
+                    <div className="text-base sm:text-lg font-bold text-gray-950 leading-none mt-0.5">
+                      {surveys.filter(s => s.inspected).length}
+                    </div>
+                  </div>
+                </button>
               </motion.div>
-              <div className="min-w-0 flex flex-col justify-center">
-                <motion.h1
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                  className="mb-1 text-3xl font-bold leading-tight text-white md:text-4xl lg:text-5xl"
-                >
-                  Dashboard
-                </motion.h1>
-                <motion.p
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-                  className="mb-0 text-base text-white md:text-lg lg:text-xl"
-                >
-                  Welcome back, {userName || userEmail}
-                </motion.p>
-              </div>
             </div>
           </div>
         </section>
@@ -2246,9 +2358,9 @@ export default function DashboardContent({
                           </div>
                         ) : sortedSurveys.length === 0 ? (
                           <div className="text-center py-12">
-                            <p className="text-gray-600 mb-4">Oops, we can&apos;t find any surveys matching your search.</p>
+                            <p className="text-gray-600 mb-4">{emptyStateMessage.title}</p>
                             <p className="text-sm text-gray-500">
-                              Try adjusting your search terms or clear the search to see all surveys.
+                              {emptyStateMessage.description}
                             </p>
                           </div>
                         ) : (
@@ -2324,9 +2436,9 @@ export default function DashboardContent({
                         </div>
                       ) : sortedSurveys.length === 0 ? (
                         <div className="text-center py-12">
-                          <p className="text-gray-600 mb-4">Oops, we can&apos;t find any surveys matching your search.</p>
+                          <p className="text-gray-600 mb-4">{emptyStateMessage.title}</p>
                           <p className="text-sm text-gray-500">
-                            Try adjusting your search terms or clear the search to see all surveys.
+                            {emptyStateMessage.description}
                           </p>
                         </div>
                       ) : (
