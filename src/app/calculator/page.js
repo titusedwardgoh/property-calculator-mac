@@ -952,10 +952,10 @@ function CalculatorPageContent() {
                                                         initial={{ opacity: 0, y: 20 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-                                                        className="bg-base-200 border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm space-y-8"
+                                                        className="bg-base-200 border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm space-y-8 md:space-y-4"
                                                     >
                                                         {/* Property summary */}
-                                                        <div className="pb-6 border-b border-gray-100">
+                                                        <div className="pb-6 md:pb-4 border-b border-gray-100">
                                                             <div
                                                                 className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm"
                                                                 onClick={() => setIsPropertyCardExpanded(!isPropertyCardExpanded)}
@@ -1057,7 +1057,7 @@ function CalculatorPageContent() {
                                                         </div>
 
                                                         {/* Buyer summary */}
-                                                        <div className="pb-6 border-b border-gray-100">
+                                                        <div className="pb-6 md:pb-4 border-b border-gray-100">
                                                             <div
                                                                 className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm"
                                                                 onClick={() => setIsBuyerCardExpanded(!isBuyerCardExpanded)}
@@ -1113,7 +1113,7 @@ function CalculatorPageContent() {
 
                                                         {/* Loan summary */}
                                                         {hasLoan && (
-                                                            <div className="pb-6 border-b border-gray-100">
+                                                            <div className="pb-6 md:pb-4 border-b border-gray-100">
                                                                 <div
                                                                     className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm"
                                                                     onClick={() => setIsLoanCardExpanded(!isLoanCardExpanded)}
@@ -1280,86 +1280,109 @@ function CalculatorPageContent() {
                                                                                         return (
                                                                                             <div className="divide-y divide-primary/10">
                                                                                                 {/* 1. Deposit or Property Price */}
-                                                                                                <div className="flex justify-between items-center py-2">
-                                                                                                    <span className="text-gray-600">{hasLoan ? 'Deposit' : 'Property Price'}</span>
-                                                                                                    <span className="font-semibold text-secondary">{formatCurrency(depositVal)}</span>
+                                                                                                <div className="flex justify-between items-center py-2 text-secondary font-medium">
+                                                                                                    <span>{hasLoan ? 'Deposit' : 'Property Price'}</span>
+                                                                                                    <span className="font-bold">{formatCurrency(depositVal)}</span>
                                                                                                 </div>
 
                                                                                                 {/* 2. Stamp Duty (Gross) & Concessions & Net State Duty */}
-                                                                                                <div className="py-2">
-                                                                                                    <div className="flex justify-between items-center py-1">
-                                                                                                        <span className="text-gray-600">Stamp Duty (Gross)</span>
-                                                                                                        <span className="font-semibold text-secondary">{formatCurrency(grossStampDutyAmount)}</span>
+                                                                                                {hasConcessions ? (
+                                                                                                    <div className="py-2 space-y-1">
+                                                                                                        <div className="flex justify-between items-center text-sm text-gray-500 pl-4">
+                                                                                                            <span>Stamp Duty (Gross)</span>
+                                                                                                            <span className="font-medium pr-12">{formatCurrency(grossStampDutyAmount)}</span>
+                                                                                                        </div>
+                                                                                                        {activeConcessions.map((c, i) => (
+                                                                                                            <div key={i} className="flex justify-between items-center text-sm pl-4">
+                                                                                                                <span className="text-gray-500">{getConcessionLabel(c.type)}</span>
+                                                                                                                <span className="font-semibold text-green-600 pr-12">-{formatCurrency(c.amount)}</span>
+                                                                                                            </div>
+                                                                                                        ))}
+                                                                                                        <div className="flex justify-between items-center py-1 pt-1.5 border-t border-dashed border-primary/10 font-semibold text-secondary">
+                                                                                                            <span>Net State Duty</span>
+                                                                                                            <span className="font-bold">{formatCurrency(netStampDutyVal)}</span>
+                                                                                                        </div>
                                                                                                     </div>
-                                                                                                    {activeConcessions.map((c, i) => (
-                                                                                                        <div key={i} className="flex justify-between items-center py-1 text-sm">
-                                                                                                            <span className="text-gray-500 pl-4">{getConcessionLabel(c.type)}</span>
-                                                                                                            <span className="font-semibold text-green-600">-{formatCurrency(c.amount)}</span>
-                                                                                                        </div>
-                                                                                                    ))}
-                                                                                                    {hasConcessions && (
-                                                                                                        <div className="flex justify-between items-center py-1 pt-2 border-t border-dashed border-primary/10 font-medium">
-                                                                                                            <span className="text-secondary pl-4">Net State Duty</span>
-                                                                                                            <span className="text-secondary font-bold">{formatCurrency(netStampDutyVal)}</span>
-                                                                                                        </div>
-                                                                                                    )}
-                                                                                                </div>
+                                                                                                ) : (
+                                                                                                    <div className="flex justify-between items-center py-2 text-secondary font-medium">
+                                                                                                        <span>Stamp Duty</span>
+                                                                                                        <span className="font-bold">{formatCurrency(grossStampDutyAmount)}</span>
+                                                                                                    </div>
+                                                                                                )}
 
                                                                                                 {/* 3. Bank & Loan Fees */}
-                                                                                                {bankLoanFeesSubtotal > 0 && (
-                                                                                                    <div className="py-2">
-                                                                                                        {bankSettlementFee > 0 && (
-                                                                                                            <div className="flex justify-between items-center py-1">
-                                                                                                                <span className="text-gray-600">Bank Settlement Fee</span>
-                                                                                                                <span className="font-semibold text-secondary">{formatCurrency(bankSettlementFee)}</span>
+                                                                                                {(() => {
+                                                                                                    const hasSettlement = bankSettlementFee > 0;
+                                                                                                    const hasEstablishment = loanEstablishmentFee > 0;
+                                                                                                    if (hasSettlement && hasEstablishment) {
+                                                                                                        return (
+                                                                                                            <div className="py-2 space-y-1">
+                                                                                                                <div className="flex justify-between items-center text-sm text-gray-500 pl-4">
+                                                                                                                    <span>Bank Settlement Fee</span>
+                                                                                                                    <span className="font-medium pr-12">{formatCurrency(bankSettlementFee)}</span>
+                                                                                                                </div>
+                                                                                                                <div className="flex justify-between items-center text-sm text-gray-500 pl-4">
+                                                                                                                    <span>Loan Establishment Fee</span>
+                                                                                                                    <span className="font-medium pr-12">{formatCurrency(loanEstablishmentFee)}</span>
+                                                                                                                </div>
+                                                                                                                <div className="flex justify-between items-center py-1 pt-1.5 border-t border-dashed border-primary/10 font-semibold text-secondary">
+                                                                                                                    <span>Bank &amp; Loan Fees</span>
+                                                                                                                    <span className="font-bold">{formatCurrency(bankLoanFeesSubtotal)}</span>
+                                                                                                                </div>
                                                                                                             </div>
-                                                                                                        )}
-                                                                                                        {loanEstablishmentFee > 0 && (
-                                                                                                            <div className="flex justify-between items-center py-1">
-                                                                                                                <span className="text-gray-600">Loan Establishment Fee</span>
-                                                                                                                <span className="font-semibold text-secondary">{formatCurrency(loanEstablishmentFee)}</span>
+                                                                                                        );
+                                                                                                    } else if (hasSettlement) {
+                                                                                                        return (
+                                                                                                            <div className="flex justify-between items-center py-2 text-secondary font-medium">
+                                                                                                                <span>Bank Settlement Fee</span>
+                                                                                                                <span className="font-bold">{formatCurrency(bankSettlementFee)}</span>
                                                                                                             </div>
-                                                                                                        )}
-                                                                                                        <div className="flex justify-between items-center py-1 pt-2 border-t border-dashed border-primary/10 font-medium">
-                                                                                                            <span className="text-secondary pl-4">Bank &amp; Loan Fees</span>
-                                                                                                            <span className="text-secondary font-bold">{formatCurrency(bankLoanFeesSubtotal)}</span>
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                )}
+                                                                                                        );
+                                                                                                    } else if (hasEstablishment) {
+                                                                                                        return (
+                                                                                                            <div className="flex justify-between items-center py-2 text-secondary font-medium">
+                                                                                                                <span>Loan Establishment Fee</span>
+                                                                                                                <span className="font-bold">{formatCurrency(loanEstablishmentFee)}</span>
+                                                                                                            </div>
+                                                                                                        );
+                                                                                                    }
+                                                                                                    return null;
+                                                                                                })()}
 
                                                                                                 {/* 4. Other Costs (seller questions + FIRB) */}
-                                                                                                {otherCostsSubtotal > 0 && (
-                                                                                                    <div className="py-2">
-                                                                                                        {landTransferFee > 0 && (
-                                                                                                            <div className="flex justify-between items-center py-1">
-                                                                                                                <span className="text-gray-600">Land Transfer Fee</span>
-                                                                                                                <span className="font-semibold text-secondary">{formatCurrency(landTransferFee)}</span>
+                                                                                                {(() => {
+                                                                                                    const activeOtherCosts = [
+                                                                                                        { label: 'Land Transfer Fee', amount: landTransferFee },
+                                                                                                        { label: 'Legal and Conveyancing', amount: legalFees },
+                                                                                                        { label: 'Building and Pest Inspection', amount: buildingAndPestFee },
+                                                                                                        { label: 'FIRB Application Fee', amount: firbFee },
+                                                                                                    ].filter(item => item.amount > 0);
+
+                                                                                                    if (activeOtherCosts.length > 1) {
+                                                                                                        return (
+                                                                                                            <div className="py-2 space-y-1">
+                                                                                                                {activeOtherCosts.map((item, idx) => (
+                                                                                                                    <div key={idx} className="flex justify-between items-center text-sm text-gray-500 pl-4">
+                                                                                                                        <span>{item.label}</span>
+                                                                                                                        <span className="font-medium pr-12">{formatCurrency(item.amount)}</span>
+                                                                                                                    </div>
+                                                                                                                ))}
+                                                                                                                <div className="flex justify-between items-center py-1 pt-1.5 border-t border-dashed border-primary/10 font-semibold text-secondary">
+                                                                                                                    <span>Other Costs</span>
+                                                                                                                    <span className="font-bold">{formatCurrency(otherCostsSubtotal)}</span>
+                                                                                                                </div>
                                                                                                             </div>
-                                                                                                        )}
-                                                                                                        {legalFees > 0 && (
-                                                                                                            <div className="flex justify-between items-center py-1">
-                                                                                                                <span className="text-gray-600">Legal and Conveyancing</span>
-                                                                                                                <span className="font-semibold text-secondary">{formatCurrency(legalFees)}</span>
+                                                                                                        );
+                                                                                                    } else if (activeOtherCosts.length === 1) {
+                                                                                                        return (
+                                                                                                            <div className="flex justify-between items-center py-2 text-secondary font-medium">
+                                                                                                                <span>{activeOtherCosts[0].label}</span>
+                                                                                                                <span className="font-bold">{formatCurrency(activeOtherCosts[0].amount)}</span>
                                                                                                             </div>
-                                                                                                        )}
-                                                                                                        {buildingAndPestFee > 0 && (
-                                                                                                            <div className="flex justify-between items-center py-1">
-                                                                                                                <span className="text-gray-600">Building and Pest Inspection</span>
-                                                                                                                <span className="font-semibold text-secondary">{formatCurrency(buildingAndPestFee)}</span>
-                                                                                                            </div>
-                                                                                                        )}
-                                                                                                        {firbFee > 0 && (
-                                                                                                            <div className="flex justify-between items-center py-1">
-                                                                                                                <span className="text-gray-600">FIRB Application Fee</span>
-                                                                                                                <span className="font-semibold text-secondary">{formatCurrency(firbFee)}</span>
-                                                                                                            </div>
-                                                                                                        )}
-                                                                                                        <div className="flex justify-between items-center py-1 pt-2 border-t border-dashed border-primary/10 font-medium">
-                                                                                                            <span className="text-secondary pl-4">Other Costs</span>
-                                                                                                            <span className="text-secondary font-bold">{formatCurrency(otherCostsSubtotal)}</span>
-                                                                                                        </div>
-                                                                                                    </div>
-                                                                                                )}
+                                                                                                        );
+                                                                                                    }
+                                                                                                    return null;
+                                                                                                })()}
 
                                                                                                 {/* 5. Grants and Final Totals */}
                                                                                                 <div className="pt-2">
@@ -1370,9 +1393,9 @@ function CalculatorPageContent() {
                                                                                                                 <span>{formatCurrency(totalBeforeGrants)}</span>
                                                                                                             </div>
                                                                                                             {activeGrants.map((g, i) => (
-                                                                                                                <div key={i} className="flex justify-between items-center py-1 text-sm">
-                                                                                                                    <span className="text-gray-500 pl-4">{g.label || 'First Home Owners Grant'}</span>
-                                                                                                                    <span className="font-semibold text-green-600">-{formatCurrency(g.amount)}</span>
+                                                                                                                <div key={i} className="flex justify-between items-center py-1 text-sm pl-4">
+                                                                                                                    <span className="text-gray-500">{g.label || 'First Home Owners Grant'}</span>
+                                                                                                                    <span className="font-semibold text-green-600 pr-12">-{formatCurrency(g.amount)}</span>
                                                                                                                 </div>
                                                                                                             ))}
                                                                                                             <div className="flex justify-between items-center py-2 pt-3 border-t border-primary/20 font-black text-lg text-secondary">
@@ -1407,6 +1430,15 @@ function CalculatorPageContent() {
                                                                                                                 You have more savings than required upfront. Consider increasing your deposit to reduce interest payments.
                                                                                                             </p>
                                                                                                         )}
+                                                                                                        {buyerSavingsShortfall > 0 && (
+                                                                                                            <p className="text-xs text-red-600 italic bg-red-50/50 rounded-lg px-3 py-2 mt-2 border border-red-200/60">
+                                                                                                                {hasLoan ? (
+                                                                                                                    "You have a savings shortfall. Consider reducing your deposit to lower upfront cash required, or look for a lower-priced property."
+                                                                                                                ) : (
+                                                                                                                    "You have a savings shortfall. Consider obtaining a home loan to cover the gap, or look for a lower-priced property."
+                                                                                                                )}
+                                                                                                            </p>
+                                                                                                        )}
                                                                                                     </div>
                                                                                                 </div>
                                                                                             </div>
@@ -1421,7 +1453,7 @@ function CalculatorPageContent() {
                                                         </div>
 
                                                         {/* Ongoing Ownership Section */}
-                                                        <div className="space-y-6 pt-6 border-t border-gray-100">
+                                                        <div className="space-y-6 pt-6 md:pt-4 border-t border-gray-100">
                                                             <div>
                                                                 <h3 className="text-[10px] uppercase tracking-widest font-bold text-gray-400 mb-0.5">Post-Settlement</h3>
                                                                 <h4 className="text-xl font-bold text-secondary">Ongoing Costs</h4>
