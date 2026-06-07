@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -458,6 +458,28 @@ function DashboardGoogleMapPanel({
   const lastFocusedPropertyIdRef = useRef(null);
   const activeInfoWindowPropertyIdRef = useRef(null);
 
+  const centerAndOffsetMap = useCallback((map, position) => {
+    if (!map) return;
+    map.setCenter(position);
+    if (!mapContainerRef.current || typeof window === 'undefined') return;
+    if (window.innerWidth < 1024) return; // Desktop only
+
+    const rect = mapContainerRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const visibleTop = Math.max(0, rect.top);
+    const visibleBottom = Math.min(viewportHeight, rect.bottom);
+
+    if (visibleBottom <= visibleTop || rect.height <= 0) return;
+
+    const centerY = rect.height / 2;
+    const visibleCenterY = (visibleTop - rect.top) + (visibleBottom - visibleTop) / 2;
+    const dy = centerY - visibleCenterY;
+
+    if (Math.abs(dy) > 1) {
+      map.panBy(0, dy);
+    }
+  }, []);
+
   useEffect(() => {
     if (!shouldLoadMap || scriptReady) return;
 
@@ -562,7 +584,7 @@ function DashboardGoogleMapPanel({
           initialFitDoneRef.current = true;
           const focusedEntry = markersRef.current.find(entry => entry.propertyId === focusedPropertyId);
           if (focusedEntry?.marker?.getPosition) {
-            map.setCenter(focusedEntry.marker.getPosition());
+            centerAndOffsetMap(map, focusedEntry.marker.getPosition());
             map.setZoom(CARD_FOCUS_MAX_ZOOM);
           }
           focusedEntry?.focusMarker({ toggleIfAlreadyOpen: false, zoomMode: 'card' });
@@ -602,12 +624,14 @@ function DashboardGoogleMapPanel({
             activeInfoWindowPropertyIdRef.current = null;
             return;
           }
-          map.setCenter(marker.getPosition());
+          centerAndOffsetMap(map, marker.getPosition());
           setTimeout(
-            () =>
+            () => {
               map.setZoom(
                 zoomMode === 'card' ? getCardFocusZoom() : MARKER_FOCUS_ZOOM
-              ),
+              );
+              centerAndOffsetMap(map, marker.getPosition());
+            },
             50
           );
           if (!infoWindowRef.current) {
@@ -854,6 +878,49 @@ function DashboardGoogleMapPanel({
     };
   }, []);
 
+  // Track viewport scroll and adjust map center to keep focused marker in visible part
+  useEffect(() => {
+    if (!shouldLoadMap || !mapReady || !mapRef.current || !focusedPropertyId) return;
+
+    const map = mapRef.current;
+    const focusedEntry = markersRef.current.find(entry => entry.propertyId === focusedPropertyId);
+    if (!focusedEntry?.marker) return;
+
+    const markerPosition = focusedEntry.marker.getPosition();
+    if (!markerPosition) return;
+
+    let ticked = false;
+    const handleScrollAndResize = () => {
+      if (!ticked) {
+        window.requestAnimationFrame(() => {
+          if (!mapContainerRef.current || !mapRef.current) {
+            ticked = false;
+            return;
+          }
+          centerAndOffsetMap(mapRef.current, markerPosition);
+          ticked = false;
+        });
+        ticked = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScrollAndResize, { passive: true });
+    window.addEventListener('resize', handleScrollAndResize, { passive: true });
+
+    handleScrollAndResize();
+    const t1 = setTimeout(handleScrollAndResize, 50);
+    const t2 = setTimeout(handleScrollAndResize, 150);
+    const t3 = setTimeout(handleScrollAndResize, 300);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      window.removeEventListener('scroll', handleScrollAndResize);
+      window.removeEventListener('resize', handleScrollAndResize);
+    };
+  }, [focusedPropertyId, mapReady, shouldLoadMap, centerAndOffsetMap, mappedCount]);
+
   const showNoResults = !isLoadingMap && !isGeocoding && !mapError && mapPoints.length > 0 && mappedCount === 0;
   const showNoAddresses = !isLoadingMap && !isGeocoding && !mapError && mapPoints.length === 0;
 
@@ -954,6 +1021,18 @@ export default function DashboardContent({
   const [focusedPropertyId, setFocusedPropertyId] = useState(null);
   const [mobileViewMode, setMobileViewMode] = useState('list');
   const [greeting, setGreeting] = useState('Welcome back');
+
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleResize = () => {
+      setIsDesktop(window.innerWidth >= 1024);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     const hour = new Date().getHours();
@@ -1753,6 +1832,7 @@ export default function DashboardContent({
       .filter(Boolean);
   }, [filteredSurveys]);
   const isDesktopMapVisible = !isMapHiddenDesktop || isDesktopMapExiting;
+  const isMapActiveDesktop = !isMapHiddenDesktop && !isDesktopMapExiting;
 
   const handleDesktopMapToggle = () => {
     if (isDesktopMapExiting) return;
@@ -1829,6 +1909,7 @@ export default function DashboardContent({
 
     return (
       <motion.div
+        layout
         key={survey.id}
         variants={SURVEY_CARD_ITEM_VARIANTS}
         onClick={handleCardClick}
@@ -1838,9 +1919,16 @@ export default function DashboardContent({
           borderColor: 'rgba(226, 149, 120, 0.6)',
         }}
         transition={{
-          type: 'spring',
-          stiffness: 260,
-          damping: 23,
+          layout: {
+            type: 'tween',
+            ease: 'easeInOut',
+            duration: 0.3,
+          },
+          default: {
+            type: 'spring',
+            stiffness: 260,
+            damping: 23,
+          },
         }}
         className={`group h-full min-h-[230px] cursor-pointer rounded-2xl border border-secondary p-4 shadow-sm lg:p-5 xl:p-6 ${openCardMenuId === survey.id ? 'relative z-50 overflow-visible' : ''
           }`}
@@ -1874,8 +1962,8 @@ export default function DashboardContent({
             {status.text}
           </span>
           <div className={`absolute right-3 top-3 z-10 transition-opacity duration-200 ${selectedProperties.has(survey.id) || selectedProperties.size > 0
-              ? 'opacity-100 pointer-events-auto'
-              : 'opacity-100 pointer-events-auto [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-hover:pointer-events-auto'
+            ? 'opacity-100 pointer-events-auto'
+            : 'opacity-100 pointer-events-auto [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:pointer-events-none [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-hover:pointer-events-auto'
             }`}>
             <input
               type="checkbox"
@@ -2051,8 +2139,8 @@ export default function DashboardContent({
                   type="button"
                   onClick={() => handleMetricFilterChange('all')}
                   className={`cursor-pointer rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all duration-200 text-left border ${metricFilter === 'all'
-                      ? 'bg-white border-primary shadow-sm ring-1 ring-primary/25'
-                      : 'bg-white/40 border-gray-200/50 hover:bg-white/80 hover:shadow-xs hover:border-gray-300'
+                    ? 'bg-white border-primary shadow-sm ring-1 ring-primary/25'
+                    : 'bg-white/40 border-gray-200/50 hover:bg-white/80 hover:shadow-xs hover:border-gray-300'
                     }`}
                 >
                   <div className={`p-1.5 sm:p-2 rounded-xl transition-colors ${metricFilter === 'all' ? 'bg-primary text-secondary' : 'bg-primary/10 text-primary'
@@ -2073,8 +2161,8 @@ export default function DashboardContent({
                   type="button"
                   onClick={() => handleMetricFilterChange('completed')}
                   className={`cursor-pointer rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all duration-200 text-left border ${metricFilter === 'completed'
-                      ? 'bg-white border-amber-500 shadow-sm ring-1 ring-amber-500/25'
-                      : 'bg-white/40 border-gray-200/50 hover:bg-white/80 hover:shadow-xs hover:border-gray-300'
+                    ? 'bg-white border-amber-500 shadow-sm ring-1 ring-amber-500/25'
+                    : 'bg-white/40 border-gray-200/50 hover:bg-white/80 hover:shadow-xs hover:border-gray-300'
                     }`}
                 >
                   <div className={`p-1.5 sm:p-2 rounded-xl transition-colors ${metricFilter === 'completed' ? 'bg-amber-500 text-white' : 'bg-amber-500/10 text-amber-600'
@@ -2097,8 +2185,8 @@ export default function DashboardContent({
                   type="button"
                   onClick={() => handleMetricFilterChange('inspected')}
                   className={`cursor-pointer rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all duration-200 text-left border ${metricFilter === 'inspected'
-                      ? 'bg-white border-emerald-500 shadow-sm ring-1 ring-emerald-500/25'
-                      : 'bg-white/40 border-gray-200/50 hover:bg-white/80 hover:shadow-xs hover:border-gray-300'
+                    ? 'bg-white border-emerald-500 shadow-sm ring-1 ring-emerald-500/25'
+                    : 'bg-white/40 border-gray-200/50 hover:bg-white/80 hover:shadow-xs hover:border-gray-300'
                     }`}
                 >
                   <div className={`p-1.5 sm:p-2 rounded-xl transition-colors ${metricFilter === 'inspected' ? 'bg-emerald-500 text-white' : 'bg-emerald-500/10 text-emerald-600'
@@ -2125,10 +2213,16 @@ export default function DashboardContent({
           <section className="relative z-10 mx-auto w-full max-w-[1920px] px-4 py-6 pb-24 md:px-6 lg:px-8 lg:py-8">
             <div className="w-full space-y-5">
               {/* Saved Surveys — outer wrapper does not fade cards; header + card list animate separately */}
-              {/* Saved Surveys — outer wrapper does not fade cards; header + card list animate separately */}
-              <div className="bg-transparent p-0 lg:grid lg:grid-cols-12 lg:gap-3 xl:gap-4">
+              <div className="bg-transparent p-0 lg:flex lg:flex-row">
                 {/* Left Column (Headers, Bulk Actions, Card Grid/List) */}
-                <div className={isDesktopMapVisible ? 'lg:col-span-8' : 'lg:col-span-12'}>
+                <motion.div
+                  layout
+                  className="w-full shrink-0 min-w-0"
+                  animate={{
+                    width: isDesktop ? (isMapActiveDesktop ? '66.6667%' : '100%') : '100%',
+                  }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                >
                   <motion.div
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -2251,17 +2345,27 @@ export default function DashboardContent({
                       </button>
 
                       {/* Select-all checkbox - Visible only when at least one card is selected */}
-                      {sortedSurveys.length > 0 && selectedProperties.size > 0 && (
-                        <label className="flex items-center cursor-pointer select-none shrink-0 ml-1 h-10">
-                          <input
-                            type="checkbox"
-                            checked={sortedSurveys.every(s => selectedProperties.has(s.id))}
-                            onChange={() => handleSelectAllChange(sortedSurveys.map(s => s.id))}
-                            className="w-5 h-5 cursor-pointer text-primary border-gray-300 rounded focus:ring-0 focus:ring-offset-0 focus:outline-none bg-white"
-                            aria-label="Select or unselect all properties"
-                          />
-                        </label>
-                      )}
+                      <AnimatePresence>
+                        {sortedSurveys.length > 0 && selectedProperties.size > 0 && (
+                          <motion.div
+                            initial={{ width: 0, opacity: 0, marginLeft: 0 }}
+                            animate={{ width: 24, opacity: 1, marginLeft: 4 }}
+                            exit={{ width: 0, opacity: 0, marginLeft: 0 }}
+                            transition={{ duration: 0.22, ease: "easeInOut" }}
+                            className="flex items-center justify-center overflow-hidden shrink-0 h-10"
+                          >
+                            <label className="flex items-center cursor-pointer select-none">
+                              <input
+                                type="checkbox"
+                                checked={sortedSurveys.every(s => selectedProperties.has(s.id))}
+                                onChange={() => handleSelectAllChange(sortedSurveys.map(s => s.id))}
+                                className="w-5 h-5 cursor-pointer text-primary border-gray-300 rounded focus:ring-0 focus:ring-offset-0 focus:outline-none bg-white"
+                                aria-label="Select or unselect all properties"
+                              />
+                            </label>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
 
                     <Link
@@ -2279,19 +2383,17 @@ export default function DashboardContent({
                     </Link>
                   </motion.div>
 
-                  {/* Container with fixed height to prevent layout shift - Visible only when cards are selected */}
-                  {selectedProperties.size > 0 && (
-                    <div className="relative mb-6 h-10 w-full">
-                      {/* Bulk Action Buttons - Shown when properties are selected */}
-                      <AnimatePresence mode="wait">
-                        <motion.div
-                          key="bulk-actions"
-                          initial={{ opacity: 0, y: -20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
-                          transition={{ duration: 0.3 }}
-                          className="absolute inset-0 flex items-center gap-3"
-                        >
+                  {/* Container with height animation to prevent layout shift - Visible only when cards are selected */}
+                  <AnimatePresence>
+                    {selectedProperties.size > 0 && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0, marginBottom: 0 }}
+                        animate={{ height: 40, opacity: 1, marginBottom: 24 }}
+                        exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+                        transition={{ duration: 0.22, ease: "easeInOut" }}
+                        className="relative w-full overflow-hidden"
+                      >
+                        <div className="flex h-10 items-center gap-3 w-full">
                           <button
                             type="button"
                             onClick={handleBulkDelete}
@@ -2335,10 +2437,10 @@ export default function DashboardContent({
                               {selectedProperties.size === 1 ? 'property' : 'properties'}
                             </span>
                           </button>
-                        </motion.div>
-                      </AnimatePresence>
-                    </div>
-                  )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {loading ? (
                     <div className="flex items-center justify-center py-12">
@@ -2364,11 +2466,19 @@ export default function DashboardContent({
                           </div>
                         ) : (
                           <motion.div
+                            layout
                             key={surveyCardListAnimateKey}
                             variants={SURVEY_CARD_LIST_VARIANTS}
                             initial="hidden"
                             animate="show"
-                            className={`grid gap-3 xl:gap-4 ${isDesktopMapVisible ? 'lg:grid-cols-2 2xl:grid-cols-3' : 'lg:grid-cols-3 2xl:grid-cols-4'}`}
+                            transition={{
+                              layout: {
+                                type: 'tween',
+                                ease: 'easeInOut',
+                                duration: 0.3,
+                              }
+                            }}
+                            className={`grid gap-3 xl:gap-4 ${isMapActiveDesktop ? 'lg:grid-cols-2 2xl:grid-cols-3' : 'lg:grid-cols-3 2xl:grid-cols-4'}`}
                           >
                             {surveyCards}
                           </motion.div>
@@ -2430,26 +2540,30 @@ export default function DashboardContent({
                       </div>
                     </>
                   )}
-                </div>
+                </motion.div>
 
                 {/* Right Column (Desktop Map Panel) */}
                 <AnimatePresence initial={false}>
                   {isDesktopMapVisible && (
                     <motion.div
                       key="desktop-map-panel"
-                      initial={{ opacity: 0, x: 120, y: 0 }}
-                      animate={isDesktopMapExiting ? { opacity: 0, x: 120, y: 0 } : { opacity: 1, x: 0, y: 0 }}
-                      exit={{ opacity: 0, x: 120, y: 0 }}
-                      transition={{ duration: 0.32, ease: 'easeInOut', type: 'tween' }}
+                      initial={{ opacity: 0, width: 0, paddingLeft: 0 }}
+                      animate={
+                        isDesktopMapExiting
+                          ? { opacity: 0, width: 0, paddingLeft: 0 }
+                          : { opacity: 1, width: "33.3333%", paddingLeft: 32 }
+                      }
+                      exit={{ opacity: 0, width: 0, paddingLeft: 0 }}
+                      transition={{ duration: 0.3, ease: 'easeInOut' }}
                       onAnimationComplete={() => {
                         if (isDesktopMapExiting) {
                           setIsDesktopMapExiting(false);
                           setIsMapHiddenDesktop(true);
                         }
                       }}
-                      className="hidden lg:block lg:col-span-4 lg:-mr-3 xl:-mr-4"
+                      className="hidden lg:block shrink-0 min-w-0 overflow-hidden"
                     >
-                      <div className="sticky top-24 flex h-[calc(100vh-8.5rem)] min-h-[560px] flex-col rounded-2xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
+                      <div className="sticky top-24 flex h-full min-h-[500px] flex-col rounded-2xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
                         <DashboardGoogleMapPanel
                           mapPoints={mapPoints}
                           geocodeCache={geocodeCache}
