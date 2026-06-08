@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
-import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle, Search, ArrowUpDown, Map as MapIcon, List, MoreHorizontal, CheckCircle } from 'lucide-react';
+import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle, Search, ArrowUpDown, Map as MapIcon, List, MoreHorizontal, CheckCircle, MapPin } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useFormStore } from '@/stores/formStore';
 import { resetSessionAndForm } from '@/lib/sessionManager';
@@ -1008,10 +1008,20 @@ export default function DashboardContent({
   const [searchPlaceholder, setSearchPlaceholder] = useState('Search by property address...');
   const [selectedProperties, setSelectedProperties] = useState(new Set());
   const [metricFilter, setMetricFilter] = useState('all'); // 'all', 'completed', 'inspected'
+  const [stateFilter, setStateFilter] = useState('all');
+  const [showStateMenu, setShowStateMenu] = useState(false);
 
   const handleMetricFilterChange = (filter) => {
     setMetricFilter(filter);
+    if (filter === 'all') {
+      setStateFilter('all');
+    }
     setSelectedProperties(new Set()); // Clear selection when filter changes to prevent accidental bulk actions on hidden cards
+  };
+
+  const handleStateFilterChange = (state) => {
+    setStateFilter(state);
+    setSelectedProperties(new Set()); // Clear selection when filter changes
   };
   const [openCardMenuId, setOpenCardMenuId] = useState(null);
   const openCardMenuRef = useRef(null);
@@ -1747,12 +1757,27 @@ export default function DashboardContent({
     }
   };
 
-  // Filter surveys based on search query and metric card filters (memoized so list-only updates do not churn map props)
+  // Compute unique states from all surveys
+  const uniqueStates = useMemo(() => {
+    const statesSet = new Set();
+    surveys.forEach(s => {
+      const st = (s.selected_state || '').trim().toUpperCase();
+      if (st) {
+        statesSet.add(st);
+      }
+    });
+    return Array.from(statesSet).sort();
+  }, [surveys]);
+
+  // Filter surveys based on search query, state filter, and metric card filters (memoized so list-only updates do not churn map props)
   const filteredSurveys = useMemo(() => {
     return surveys.filter(survey => {
       // Metric filter
       if (metricFilter === 'completed' && survey.completion_status !== 'complete') return false;
       if (metricFilter === 'inspected' && !survey.inspected) return false;
+
+      // State filter
+      if (stateFilter !== 'all' && (survey.selected_state || '').trim().toUpperCase() !== stateFilter) return false;
 
       // Search query
       if (!searchQuery.trim()) return true;
@@ -1761,7 +1786,7 @@ export default function DashboardContent({
       const query = searchQuery.toLowerCase();
       return address.includes(query) || state.includes(query);
     });
-  }, [surveys, searchQuery, metricFilter]);
+  }, [surveys, searchQuery, metricFilter, stateFilter]);
 
   // Dynamic empty state message based on active filter / search
   const emptyStateMessage = useMemo(() => {
@@ -1769,6 +1794,19 @@ export default function DashboardContent({
       return {
         title: "Oops, we can't find any surveys matching your search.",
         description: "Try adjusting your search terms or clear the search to see all surveys."
+      };
+    }
+    if (stateFilter !== 'all' && metricFilter !== 'all') {
+      const metricLabel = metricFilter === 'completed' ? 'completed' : 'inspected';
+      return {
+        title: `No ${metricLabel} surveys found in ${stateFilter}.`,
+        description: `Try clearing the state filter or choosing another metric card above.`
+      };
+    }
+    if (stateFilter !== 'all') {
+      return {
+        title: `No surveys found in ${stateFilter}.`,
+        description: `Choose "Show all" in the States filter above or clear active filters to see all surveys.`
       };
     }
     if (metricFilter === 'completed') {
@@ -1787,7 +1825,7 @@ export default function DashboardContent({
       title: "Oops, we can't find any surveys matching your criteria.",
       description: "Try clearing your search or choosing another filter."
     };
-  }, [searchQuery, metricFilter]);
+  }, [searchQuery, metricFilter, stateFilter]);
 
   // Sort the filtered surveys for cards and list UI only
   const sortedSurveys = useMemo(
@@ -2132,19 +2170,21 @@ export default function DashboardContent({
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
-                className="grid grid-cols-3 gap-2 sm:gap-4 w-full md:w-auto shrink-0"
+                className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 w-full md:w-auto shrink-0"
               >
                 {/* Surveys Metric (Total) */}
                 <button
                   type="button"
                   onClick={() => handleMetricFilterChange('all')}
-                  className={`cursor-pointer rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all duration-200 text-left border ${metricFilter === 'all'
-                    ? 'bg-white border-primary shadow-sm ring-1 ring-primary/25'
-                    : 'bg-white/40 border-gray-200/50 hover:bg-white/80 hover:shadow-xs hover:border-gray-300'
-                    }`}
+                  className={`cursor-pointer rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all duration-200 text-left border ${
+                    metricFilter === 'all' && stateFilter === 'all'
+                      ? 'bg-white border-primary shadow-sm ring-1 ring-primary/25'
+                      : 'bg-white/40 border-gray-200/50 hover:bg-white/80 hover:shadow-xs hover:border-gray-300'
+                  }`}
                 >
-                  <div className={`p-1.5 sm:p-2 rounded-xl transition-colors ${metricFilter === 'all' ? 'bg-primary text-secondary' : 'bg-primary/10 text-primary'
-                    }`}>
+                  <div className={`p-1.5 sm:p-2 rounded-xl transition-colors ${
+                    metricFilter === 'all' && stateFilter === 'all' ? 'bg-primary text-secondary' : 'bg-primary/10 text-primary'
+                  }`}>
                     <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div className="min-w-0">
@@ -2155,6 +2195,84 @@ export default function DashboardContent({
                     <div className="text-base sm:text-lg font-bold text-gray-950 leading-none mt-0.5">{surveys.length}</div>
                   </div>
                 </button>
+
+                {/* States Metric & Dropdown */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowStateMenu(!showStateMenu)}
+                    className={`w-full h-full cursor-pointer rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all duration-200 text-left border ${stateFilter !== 'all'
+                      ? 'bg-white border-indigo-500 shadow-sm ring-1 ring-indigo-500/25'
+                      : 'bg-white/40 border-gray-200/50 hover:bg-white/80 hover:shadow-xs hover:border-gray-300'
+                      }`}
+                  >
+                    <div className={`p-1.5 sm:p-2 rounded-xl transition-colors ${stateFilter !== 'all' ? 'bg-indigo-500 text-white' : 'bg-indigo-500/10 text-indigo-600'
+                      }`}>
+                      <MapPin className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-[10px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wider truncate">
+                        <span className="hidden sm:inline">Saved States</span>
+                        <span className="sm:hidden">States</span>
+                      </div>
+                      <div className="text-base sm:text-lg font-bold text-gray-950 leading-none mt-0.5">
+                        {stateFilter === 'all' ? uniqueStates.length : stateFilter}
+                      </div>
+                    </div>
+                  </button>
+
+                  <AnimatePresence>
+                    {showStateMenu && (
+                      <>
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          onClick={() => setShowStateMenu(false)}
+                          className="fixed inset-0 z-40"
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1.5 z-50 overflow-hidden"
+                        >
+                          <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                            Filter by State
+                          </div>
+                          <div className="max-h-60 overflow-y-auto">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleStateFilterChange('all');
+                                setShowStateMenu(false);
+                              }}
+                              className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${stateFilter === 'all' ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-gray-700'
+                                }`}
+                            >
+                              Show all
+                            </button>
+                            {uniqueStates.map((st) => (
+                              <button
+                                key={st}
+                                type="button"
+                                onClick={() => {
+                                  handleStateFilterChange(st);
+                                  setShowStateMenu(false);
+                                }}
+                                className={`w-full cursor-pointer text-left px-4 py-2 text-sm hover:bg-gray-50 transition-colors ${stateFilter === st ? 'bg-indigo-50 text-indigo-600 font-medium' : 'text-gray-700'
+                                  }`}
+                              >
+                                {st}
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
 
                 {/* Completed Metric */}
                 <button
@@ -2216,7 +2334,6 @@ export default function DashboardContent({
               <div className="bg-transparent p-0 lg:flex lg:flex-row">
                 {/* Left Column (Headers, Bulk Actions, Card Grid/List) */}
                 <motion.div
-                  layout
                   className="w-full shrink-0 min-w-0"
                   animate={{
                     width: isDesktop ? (isMapActiveDesktop ? '66.6667%' : '100%') : '100%',
@@ -2239,7 +2356,7 @@ export default function DashboardContent({
                             sessionStorage.removeItem('resumePropertyId');
                           }
                         }}
-                        className="hidden items-center justify-center gap-2 rounded-full bg-primary px-5 py-2 text-sm font-medium text-secondary transition-all duration-200 hover:bg-primary-focus hover:shadow-lg md:inline-flex"
+                        className="hidden items-center justify-center gap-2 rounded-full border border-base-300 bg-white px-5 py-2 text-sm font-medium text-gray-800 shadow-sm transition-all duration-200 hover:bg-primary hover:border-primary hover:text-secondary md:inline-flex"
                       >
                         <FileText className="h-4 w-4" />
                         Start New Survey
@@ -2376,7 +2493,7 @@ export default function DashboardContent({
                           sessionStorage.removeItem('resumePropertyId');
                         }
                       }}
-                      className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-secondary transition-all duration-200 hover:bg-primary-focus hover:shadow-lg md:hidden"
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-base-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm transition-all duration-200 hover:bg-primary hover:border-primary hover:text-secondary md:hidden"
                     >
                       <FileText className="h-4 w-4" />
                       Start New Survey
@@ -2563,7 +2680,7 @@ export default function DashboardContent({
                       }}
                       className="hidden lg:block shrink-0 min-w-0 overflow-hidden"
                     >
-                      <div className="sticky top-24 flex h-full min-h-[500px] flex-col rounded-2xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
+                      <div className="sticky top-24 flex h-[calc(100vh-130px)] min-h-[500px] flex-col rounded-2xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
                         <DashboardGoogleMapPanel
                           mapPoints={mapPoints}
                           geocodeCache={geocodeCache}
