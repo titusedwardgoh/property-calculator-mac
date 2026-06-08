@@ -1012,9 +1012,16 @@ export default function DashboardContent({
   const [showStateMenu, setShowStateMenu] = useState(false);
 
   const handleMetricFilterChange = (filter) => {
-    setMetricFilter(filter);
-    if (filter === 'all') {
-      setStateFilter('all');
+    if (metricFilter === filter) {
+      setMetricFilter('all');
+      if (filter === 'all') {
+        setStateFilter('all');
+      }
+    } else {
+      setMetricFilter(filter);
+      if (filter === 'all') {
+        setStateFilter('all');
+      }
     }
     setSelectedProperties(new Set()); // Clear selection when filter changes to prevent accidental bulk actions on hidden cards
   };
@@ -1968,10 +1975,10 @@ export default function DashboardContent({
             damping: 23,
           },
         }}
-        className={`group h-full min-h-[230px] cursor-pointer rounded-2xl border border-secondary p-4 shadow-sm lg:p-5 xl:p-6 ${openCardMenuId === survey.id ? 'relative z-50 overflow-visible' : ''
+        className={`group h-full min-h-[230px] cursor-pointer rounded-3xl border border-secondary p-4 shadow-sm lg:p-5 xl:p-6 ${openCardMenuId === survey.id ? 'relative z-50 overflow-visible' : ''
           }`}
       >
-        <div className="relative -mx-4 -mt-4 mb-4 aspect-[16/9] w-[calc(100%+2rem)] overflow-hidden rounded-t-2xl bg-base-100 lg:-mx-5 lg:-mt-5 lg:w-[calc(100%+2.5rem)] xl:-mx-6 xl:-mt-6 xl:w-[calc(100%+3rem)]">
+        <div className="relative -mx-4 -mt-4 mb-4 aspect-[16/9] w-[calc(100%+2rem)] overflow-hidden rounded-t-3xl bg-base-100 lg:-mx-5 lg:-mt-5 lg:w-[calc(100%+2.5rem)] xl:-mx-6 xl:-mt-6 xl:w-[calc(100%+3rem)]">
           {!isPhotoLoaded && (
             <div className="absolute inset-0 animate-pulse bg-base-300/60" aria-hidden />
           )}
@@ -2331,7 +2338,7 @@ export default function DashboardContent({
           <section className="relative z-10 mx-auto w-full max-w-[1920px] px-4 py-6 pb-24 md:px-6 lg:px-8 lg:py-8">
             <div className="w-full space-y-5">
               {/* Saved Surveys — outer wrapper does not fade cards; header + card list animate separately */}
-              <div className="bg-transparent p-0 lg:flex lg:flex-row">
+              <div className="bg-transparent p-0 lg:flex lg:flex-row lg:items-stretch">
                 {/* Left Column (Headers, Bulk Actions, Card Grid/List) */}
                 <motion.div
                   className="w-full shrink-0 min-w-0"
@@ -2340,14 +2347,18 @@ export default function DashboardContent({
                   }}
                   transition={{ duration: 0.3, ease: 'easeInOut' }}
                 >
-                  <motion.div
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
-                    className="mb-5 flex flex-wrap items-center justify-between gap-2.5 w-full"
-                  >
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
+                  className="mb-5 flex flex-wrap items-center justify-between gap-2.5 w-full"
+                >
                     <div className="flex items-center gap-3">
                       <h2 className="text-2xl font-bold text-gray-900">Saved Surveys</h2>
+                    </div>
+
+                    {/* Search, Sort, Map, and Select Group */}
+                    <div className="w-full md:w-auto md:flex-1 md:max-w-none md:ml-4 md:mr-0 order-3 md:order-none flex items-center gap-3">
                       <Link
                         href="/calculator"
                         onClick={() => {
@@ -2356,15 +2367,12 @@ export default function DashboardContent({
                             sessionStorage.removeItem('resumePropertyId');
                           }
                         }}
-                        className="hidden items-center justify-center gap-2 rounded-full border border-base-300 bg-white px-5 py-2 text-sm font-medium text-gray-800 shadow-sm transition-all duration-200 hover:bg-primary hover:border-primary hover:text-secondary md:inline-flex"
+                        className="hidden items-center justify-center gap-2 rounded-full border border-base-300 bg-white px-5 py-2 text-sm font-medium text-gray-800 shadow-sm transition-all duration-200 hover:bg-primary hover:border-primary hover:text-secondary md:inline-flex h-10 shrink-0"
                       >
                         <FileText className="h-4 w-4" />
                         Start New Survey
                       </Link>
-                    </div>
 
-                    {/* Search, Sort, Map, and Select Group */}
-                    <div className="w-full md:w-auto md:flex-1 md:max-w-none md:ml-4 md:mr-0 order-3 md:order-none flex items-center gap-2">
                       <div className="relative flex-1 h-10">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <input
@@ -2373,14 +2381,14 @@ export default function DashboardContent({
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           suppressHydrationWarning
-                          className="w-full h-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
+                          className="w-full h-full pl-10 pr-4 py-2 border border-gray-300 rounded-full bg-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm"
                         />
                       </div>
                       {/* Sort Button */}
                       <div className="relative shrink-0">
                         <button
                           onClick={() => setShowSortMenu(!showSortMenu)}
-                          className="flex cursor-pointer items-center justify-center w-10 h-10 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors"
+                          className="flex cursor-pointer items-center justify-center w-10 h-10 border border-gray-300 rounded-full bg-white hover:bg-gray-50 transition-colors"
                           aria-label="Sort surveys"
                         >
                           <ArrowUpDown className="w-5 h-5 text-gray-600" />
@@ -2505,41 +2513,41 @@ export default function DashboardContent({
                     {selectedProperties.size > 0 && (
                       <motion.div
                         initial={{ height: 0, opacity: 0, marginBottom: 0 }}
-                        animate={{ height: 40, opacity: 1, marginBottom: 24 }}
+                        animate={{ height: 48, opacity: 1, marginBottom: 20 }}
                         exit={{ height: 0, opacity: 0, marginBottom: 0 }}
                         transition={{ duration: 0.22, ease: "easeInOut" }}
-                        className="relative w-full overflow-hidden"
+                        className="relative w-full overflow-hidden py-1"
                       >
                         <div className="flex h-10 items-center gap-3 w-full">
                           <button
-                            type="button"
-                            onClick={handleBulkDelete}
-                            aria-label={`Delete ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`}
-                            className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-error px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-error-content transition-colors hover:bg-error/90 sm:h-auto sm:min-h-0 sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
-                          >
-                            <Trash2 className="hidden h-5 w-5 shrink-0 sm:block" />
-                            <span className="flex flex-col sm:hidden">
-                              <span>Delete</span>
-                              <span>
-                                {selectedProperties.size}{' '}
-                                {selectedProperties.size === 1 ? 'property' : 'properties'}
-                              </span>
-                            </span>
-                            <span className="hidden sm:inline">
-                              Delete {selectedProperties.size}{' '}
-                              {selectedProperties.size === 1 ? 'property' : 'properties'}
-                            </span>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleBulkInspected}
-                            aria-label={
-                              bulkInspectAllSelectedAlreadyInspected
-                                ? `Uninspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
-                                : `Inspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
-                            }
-                            className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-lg bg-primary px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-secondary transition-colors hover:bg-primary/90 sm:h-auto sm:min-h-0 sm:w-auto sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:py-2 sm:text-base sm:leading-normal"
-                          >
+                             type="button"
+                             onClick={handleBulkDelete}
+                             aria-label={`Delete ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`}
+                             className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-full border border-error bg-white px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-error transition-all duration-200 hover:bg-error hover:text-error-content sm:h-10 sm:min-h-0 sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:text-sm sm:leading-normal shadow-sm"
+                           >
+                             <Trash2 className="hidden h-5 w-5 shrink-0 sm:block" />
+                             <span className="flex flex-col sm:hidden">
+                               <span>Delete</span>
+                               <span>
+                                 {selectedProperties.size}{' '}
+                                 {selectedProperties.size === 1 ? 'property' : 'properties'}
+                               </span>
+                             </span>
+                             <span className="hidden sm:inline">
+                               Delete {selectedProperties.size}{' '}
+                               {selectedProperties.size === 1 ? 'property' : 'properties'}
+                             </span>
+                           </button>
+                           <button
+                             type="button"
+                             onClick={handleBulkInspected}
+                             aria-label={
+                               bulkInspectAllSelectedAlreadyInspected
+                                 ? `Uninspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
+                                 : `Inspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
+                             }
+                             className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-full border border-primary bg-white px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-primary transition-all duration-200 hover:bg-primary hover:text-secondary sm:h-10 sm:min-h-0 sm:w-auto sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:text-sm sm:leading-normal shadow-sm"
+                           >
                             <span className="flex flex-col sm:hidden">
                               <span>{bulkInspectAllSelectedAlreadyInspected ? 'Uninspect' : 'Inspect'}</span>
                               <span>
@@ -2548,12 +2556,31 @@ export default function DashboardContent({
                               </span>
                             </span>
                             <Eye className="hidden h-5 w-5 shrink-0 sm:block" aria-hidden />
-                            <span className="hidden sm:inline sm:text-base">
+                            <span className="hidden sm:inline">
                               {bulkInspectAllSelectedAlreadyInspected ? 'Uninspect' : 'Inspect'}{' '}
                               {selectedProperties.size}{' '}
                               {selectedProperties.size === 1 ? 'property' : 'properties'}
                             </span>
                           </button>
+                           <button
+                             type="button"
+                             onClick={() => setSelectedProperties(new Set())}
+                             aria-label={`Deselect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`}
+                             className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-full border border-base-300 bg-white px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-gray-800 transition-colors hover:bg-base-300 sm:h-10 sm:min-h-0 sm:w-auto sm:flex-initial sm:flex-row sm:gap-2 sm:px-4 sm:text-sm sm:leading-normal shadow-sm"
+                           >
+                             <X className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden />
+                             <span className="flex flex-col sm:hidden">
+                               <span>Deselect</span>
+                               <span>
+                                 {selectedProperties.size}{' '}
+                                 {selectedProperties.size === 1 ? 'property' : 'properties'}
+                               </span>
+                             </span>
+                             <span className="hidden sm:inline">
+                               Deselect {selectedProperties.size}{' '}
+                               {selectedProperties.size === 1 ? 'property' : 'properties'}
+                             </span>
+                           </button>
                         </div>
                       </motion.div>
                     )}
@@ -2614,7 +2641,7 @@ export default function DashboardContent({
                               transition={{ duration: 0.28, ease: 'easeInOut' }}
                               className="fixed inset-0 z-40 bg-base-200 px-3 pt-20 pb-0"
                             >
-                              <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm">
+                              <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-3xl border border-base-300 bg-base-100 shadow-sm">
                                 <DashboardGoogleMapPanel
                                   mapPoints={mapPoints}
                                   geocodeCache={geocodeCache}
@@ -2661,7 +2688,7 @@ export default function DashboardContent({
 
                 {/* Right Column (Desktop Map Panel) */}
                 <AnimatePresence initial={false}>
-                  {isDesktopMapVisible && (
+                  {!loading && isDesktopMapVisible && (
                     <motion.div
                       key="desktop-map-panel"
                       initial={{ opacity: 0, width: 0, paddingLeft: 0 }}
@@ -2680,7 +2707,7 @@ export default function DashboardContent({
                       }}
                       className="hidden lg:block shrink-0 min-w-0 overflow-hidden"
                     >
-                      <div className="sticky top-24 flex h-[calc(100vh-130px)] min-h-[500px] flex-col rounded-2xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
+                      <div className="flex h-full min-h-[450px] lg:min-h-[calc(100vh-300px)] flex-col rounded-3xl border border-base-300 bg-base-100 shadow-sm overflow-hidden">
                         <DashboardGoogleMapPanel
                           mapPoints={mapPoints}
                           geocodeCache={geocodeCache}

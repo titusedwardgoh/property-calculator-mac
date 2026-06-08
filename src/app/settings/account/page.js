@@ -140,7 +140,7 @@ export default function AccountSettingsPage() {
                 if (event === 'USER_UPDATED' && session?.user) {
                     // Check if email was verified
                     const currentUser = session.user;
-                    
+
                     // If user has a new email and it's confirmed, update profiles
                     if (currentUser.email && currentUser.email_confirmed_at && pendingEmailVerification) {
                         // Check if the verified email matches the pending one
@@ -165,14 +165,14 @@ export default function AccountSettingsPage() {
                                     console.error('Error updating profile email:', updateError);
                                     throw updateError;
                                 }
-                                
+
                                 // Update local state
                                 setEmail(currentUser.email);
                                 setPendingEmailVerification(null);
-                                
+
                                 // Reload user data to ensure everything is in sync
                                 await loadUserData();
-                                
+
                                 // Show success message
                                 setNotification({
                                     isOpen: true,
@@ -256,21 +256,21 @@ export default function AccountSettingsPage() {
                 // Fetch script URL from backend API
                 const response = await fetch('/api/google-maps-config');
                 const data = await response.json();
-                
+
                 if (data.scriptUrl) {
                     // Create and load script
                     const script = document.createElement('script');
                     script.src = data.scriptUrl;
                     script.async = true;
                     script.defer = true;
-                    
+
                     // Add load event listener
                     script.onload = () => {
                         scriptLoadedRef.current = true;
                         scriptLoadingRef.current = false;
                         window.__googleMapsLoading = false;
                         window.__googleMapsLoaded = true;
-                        
+
                         // Trigger autocomplete initialization if editing address
                         if (isEditingAddress && !hasValidAddress && autocompleteInputRef.current) {
                             // Add a small delay for mobile devices
@@ -279,13 +279,13 @@ export default function AccountSettingsPage() {
                             }, 200);
                         }
                     };
-                    
+
                     script.onerror = () => {
                         scriptLoadingRef.current = false;
                         window.__googleMapsLoading = false;
                         console.error('Failed to load Google Maps script');
                     };
-                    
+
                     document.head.appendChild(script);
                 } else {
                     scriptLoadingRef.current = false;
@@ -306,8 +306,8 @@ export default function AccountSettingsPage() {
         if (isEditingAddress && !hasValidAddress && !isManualEntry) {
             // Wait for Google Maps API to load AND for the input to be rendered
             const checkGoogleMaps = () => {
-                if (typeof window !== 'undefined' && 
-                    (window.__googleMapsLoaded || (window.google && window.google.maps && window.google.maps.places)) && 
+                if (typeof window !== 'undefined' &&
+                    (window.__googleMapsLoaded || (window.google && window.google.maps && window.google.maps.places)) &&
                     autocompleteInputRef.current) {
                     initializeAutocomplete();
                 } else {
@@ -316,7 +316,7 @@ export default function AccountSettingsPage() {
                     setTimeout(checkGoogleMaps, timeout);
                 }
             };
-            
+
             // Add initial delay for mobile devices to ensure proper rendering
             const initialDelay = window.innerWidth < 768 ? 300 : 100;
             setTimeout(checkGoogleMaps, initialDelay);
@@ -329,19 +329,19 @@ export default function AccountSettingsPage() {
             // Longer delay for mobile devices to ensure proper rendering
             const delay = window.innerWidth < 768 ? 300 : 100;
             const timer = setTimeout(() => {
-                if (typeof window !== 'undefined' && 
+                if (typeof window !== 'undefined' &&
                     (window.__googleMapsLoaded || (window.google && window.google.maps && window.google.maps.places))) {
                     initializeAutocomplete();
                 }
             }, delay);
-            
+
             return () => clearTimeout(timer);
         }
     }, [isManualEntry, isEditingAddress]);
 
     const loadUserData = async () => {
         if (!user) return;
-        
+
         setIsDataLoading(true);
         try {
             // Load from profiles table
@@ -369,14 +369,14 @@ export default function AccountSettingsPage() {
                     isFirstHomeBuyer: profile.first_home_buyer || profile.is_first_home_buyer || '',
                     hasPensionCard: profile.pensioner || profile.has_pension_card || ''
                 });
-                
+
                 // Load use_info_populate toggle (default to true if not set)
                 if (profile.use_info_populate !== undefined) {
                     setUseBuyerInfoForSurvey(profile.use_info_populate);
                 } else {
                     setUseBuyerInfoForSurvey(true);
                 }
-                
+
                 // Set name data for editing
                 setNameData({
                     firstName: profile.first_name || '',
@@ -395,7 +395,7 @@ export default function AccountSettingsPage() {
                 // Load phone and address if stored
                 if (profile.phone_number) setPhoneNumber(profile.phone_number);
                 if (profile.address) setAddress(profile.address);
-                
+
                 // Load profile picture URL if stored
                 if (profile.profile_picture_url) {
                     setProfilePictureUrl(profile.profile_picture_url);
@@ -425,9 +425,9 @@ export default function AccountSettingsPage() {
 
     const handleProfilePictureUpload = async (file) => {
         if (!user || !file) return;
-        
+
         setIsUploadingPicture(true);
-        
+
         try {
             // Validate file type
             const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
@@ -441,7 +441,7 @@ export default function AccountSettingsPage() {
                 setIsUploadingPicture(false);
                 return;
             }
-            
+
             // Validate file size (max 5MB)
             const maxSize = 5 * 1024 * 1024; // 5MB
             if (file.size > maxSize) {
@@ -454,12 +454,12 @@ export default function AccountSettingsPage() {
                 setIsUploadingPicture(false);
                 return;
             }
-            
+
             // Generate unique filename: user-id-timestamp.extension
             const fileExt = file.name.split('.').pop();
             const fileName = `${user.id}-${Date.now()}.${fileExt}`;
             const filePath = `${fileName}`;
-            
+
             // Delete old profile picture if it exists
             if (profilePictureUrl) {
                 try {
@@ -473,7 +473,7 @@ export default function AccountSettingsPage() {
                     // Continue with upload even if deletion fails
                 }
             }
-            
+
             // Upload new file to Supabase Storage
             const { data: uploadData, error: uploadError } = await supabase.storage
                 .from('profile-pictures')
@@ -481,7 +481,7 @@ export default function AccountSettingsPage() {
                     cacheControl: '3600',
                     upsert: false
                 });
-            
+
             if (uploadError) {
                 if (isRefreshTokenError(uploadError)) {
                     console.error('Invalid refresh token detected, redirecting to login...');
@@ -490,14 +490,14 @@ export default function AccountSettingsPage() {
                 }
                 throw uploadError;
             }
-            
+
             // Get public URL
             const { data: urlData } = supabase.storage
                 .from('profile-pictures')
                 .getPublicUrl(filePath);
-            
+
             const publicUrl = urlData.publicUrl;
-            
+
             // Save URL to profiles table
             const { error: updateError } = await supabase
                 .from('profiles')
@@ -506,7 +506,7 @@ export default function AccountSettingsPage() {
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', user.id);
-            
+
             if (updateError) {
                 if (isRefreshTokenError(updateError)) {
                     console.error('Invalid refresh token detected, redirecting to login...');
@@ -515,11 +515,11 @@ export default function AccountSettingsPage() {
                 }
                 throw updateError;
             }
-            
+
             // Update state
             setProfilePictureUrl(publicUrl);
             setIsProfilePictureModalOpen(false);
-            
+
             setNotification({
                 isOpen: true,
                 type: 'success',
@@ -563,19 +563,19 @@ export default function AccountSettingsPage() {
 
     const handleDeleteProfilePicture = async () => {
         if (!user || !profilePictureUrl) return;
-        
+
         setIsDeletingPicture(true);
-        
+
         try {
             // Extract filename from URL
             const urlParts = profilePictureUrl.split('/');
             const fileName = urlParts[urlParts.length - 1].split('?')[0];
-            
+
             // Delete file from storage
             const { error: deleteError } = await supabase.storage
                 .from('profile-pictures')
                 .remove([fileName]);
-            
+
             if (deleteError) {
                 if (isRefreshTokenError(deleteError)) {
                     console.error('Invalid refresh token detected, redirecting to login...');
@@ -584,7 +584,7 @@ export default function AccountSettingsPage() {
                 }
                 throw deleteError;
             }
-            
+
             // Remove URL from profiles table
             const { error: updateError } = await supabase
                 .from('profiles')
@@ -593,7 +593,7 @@ export default function AccountSettingsPage() {
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', user.id);
-            
+
             if (updateError) {
                 if (isRefreshTokenError(updateError)) {
                     console.error('Invalid refresh token detected, redirecting to login...');
@@ -602,11 +602,11 @@ export default function AccountSettingsPage() {
                 }
                 throw updateError;
             }
-            
+
             // Update state
             setProfilePictureUrl(null);
             setIsProfilePictureModalOpen(false);
-            
+
             setNotification({
                 isOpen: true,
                 type: 'success',
@@ -665,7 +665,7 @@ export default function AccountSettingsPage() {
                 }
                 throw error;
             }
-            
+
             setNotification({
                 isOpen: true,
                 type: 'success',
@@ -737,10 +737,10 @@ export default function AccountSettingsPage() {
 
             // Store pending verification email
             setPendingEmailVerification(newEmail);
-            
+
             // Note: profiles.email will be updated automatically when email is verified
             // via the onAuthStateChange listener above
-            
+
             // The modal will show success message
             return Promise.resolve();
         } catch (error) {
@@ -991,7 +991,7 @@ export default function AccountSettingsPage() {
 
     const handleToggleUseInfoPopulate = async (newValue) => {
         if (!user) return;
-        
+
         setUseBuyerInfoForSurvey(newValue);
 
         try {
@@ -1150,7 +1150,7 @@ export default function AccountSettingsPage() {
     // Get state from postcode based on Australian postcode ranges
     const getStateFromPostcode = (postcode) => {
         const code = parseInt(postcode);
-        
+
         // NSW: 2000-2599, 2619-2899, 2921-2999
         if ((code >= 2000 && code <= 2599) || (code >= 2619 && code <= 2899) || (code >= 2921 && code <= 2999)) {
             return 'NSW';
@@ -1183,7 +1183,7 @@ export default function AccountSettingsPage() {
         if ((code >= 800 && code <= 899) || (code >= 900 && code <= 999)) {
             return 'NT';
         }
-        
+
         // Default to NSW if no match
         return 'NSW';
     };
@@ -1194,7 +1194,7 @@ export default function AccountSettingsPage() {
         try {
             const response = await fetch(`/api/validate-suburb?postcode=${postcode}`);
             const data = await response.json();
-            
+
             if (response.ok && data.suburbs && data.suburbs.length > 0) {
                 setAvailableSuburbs(data.suburbs);
                 // Auto-select state if all suburbs are in the same state
@@ -1222,23 +1222,23 @@ export default function AccountSettingsPage() {
     // Validate manual address
     const validateManualAddress = () => {
         const { address, suburb, state, postcode } = manualAddress;
-        return address.trim() !== '' && 
-               suburb.trim() !== '' && 
-               state.trim() !== '' && 
-               postcode.trim() !== '' && 
-               /^\d{4}$/.test(postcode.trim());
+        return address.trim() !== '' &&
+            suburb.trim() !== '' &&
+            state.trim() !== '' &&
+            postcode.trim() !== '' &&
+            /^\d{4}$/.test(postcode.trim());
     };
 
     // Save manual address
     const saveManualAddress = () => {
         if (validateManualAddress()) {
             const { address, suburb, state, postcode } = manualAddress;
-            
+
             // Format the display to match Google API format
             const streetAddress = address.trim();
             const suburbPostcode = `${suburb}, ${state} ${postcode}`.trim();
             const fullAddress = `${streetAddress}, ${suburbPostcode}`;
-            
+
             setAddressData(fullAddress);
             setHasValidAddress(true);
         }
@@ -1251,7 +1251,7 @@ export default function AccountSettingsPage() {
             // Remove any non-numeric characters
             value = value.replace(/[^\d]/g, '');
         }
-        
+
         setManualAddress(prev => ({
             ...prev,
             [field]: value
@@ -1275,7 +1275,7 @@ export default function AccountSettingsPage() {
                 window.google.maps.event.clearInstanceListeners(autocompleteRef.current);
                 autocompleteRef.current = null;
             }
-            
+
             // Ensure the input is visible and properly rendered
             const input = autocompleteInputRef.current;
             if (!input.offsetParent) {
@@ -1287,7 +1287,7 @@ export default function AccountSettingsPage() {
                 }, 100);
                 return;
             }
-            
+
             autocompleteRef.current = new window.google.maps.places.Autocomplete(input, {
                 types: ['address'],
                 componentRestrictions: { country: 'au' }, // Restrict to Australia
@@ -1326,694 +1326,689 @@ export default function AccountSettingsPage() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Left Column: Profile + Email + Phone + Address */}
-                    <div className="space-y-6">
-                        {/* Profile Section */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 24 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                            className="bg-white rounded-lg shadow-md overflow-hidden relative"
-                        >
-                            {/* Top Half - Different Background Color (from midpoint of profile pic upwards) */}
-                            <div className="bg-primary/30 px-6 pt-6 pb-12">
-                                <h2 className="text-gray-900 font-bold text-xl mb-4">Profile</h2>
-                            </div>
-                            
-                            {/* Profile Picture - Positioned on top of background */}
-                            <div className="flex flex-col items-center -mt-12 relative z-10">
-                                <div className="relative">
-                                    {profilePictureUrl ? (
-                                        <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-md">
-                                            <img 
-                                                src={profilePictureUrl} 
-                                                alt="Profile" 
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                    ) : (
-                                        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                                            <User className="w-10 h-10 text-primary" />
-                                        </div>
-                                    )}
-                                    <button 
-                                        onClick={handleEditProfilePicture}
-                                        disabled={isUploadingPicture}
-                                        className="absolute cursor-pointer bottom-0 right-0 p-2 bg-primary rounded-full text-secondary hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {isUploadingPicture ? (
-                                            <Clock className="w-4 h-4 animate-spin" />
-                                        ) : (
-                                            <Edit2 className="w-4 h-4 " />
-                                        )}
-                                    </button>
+                        {/* Left Column: Profile + Email + Phone + Address */}
+                        <div className="space-y-6">
+                            {/* Profile Section */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 24 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+                                className="bg-white rounded-lg shadow-md overflow-hidden relative"
+                            >
+                                {/* Top Half - Different Background Color (from midpoint of profile pic upwards) */}
+                                <div className="bg-primary/30 px-6 pt-6 pb-12">
+                                    <h2 className="text-gray-900 font-bold text-xl mb-4">Profile</h2>
                                 </div>
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
-                                    onChange={handleFileInputChange}
-                                    className="hidden"
-                                />
-                            </div>
-                            
-                            {/* Bottom Half - Name Section */}
-                            <div className="px-6 pb-6 pt-4">
-                            {!isEditingName ? (
-                                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                        <User className="w-5 h-5 text-gray-400" />
-                                        <span className="text-gray-900">{getDisplayName()}</span>
-                                    </div>
-                                    <button 
-                                        onClick={handleStartEditName}
-                                        className="text-primary hover:text-primary-focus text-sm font-medium cursor-pointer"
-                                    >
-                                        Edit
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="w-full space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                First Name
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={nameData.firstName}
-                                                onChange={(e) => setNameData(prev => ({ ...prev, firstName: e.target.value }))}
-                                                placeholder="First name"
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                disabled={isSavingName}
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Last Name
-                                            </label>
-                                            <input
-                                                type="text"
-                                                value={nameData.lastName}
-                                                onChange={(e) => setNameData(prev => ({ ...prev, lastName: e.target.value }))}
-                                                placeholder="Last name"
-                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                disabled={isSavingName}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-3 justify-end">
-                                        <button
-                                            onClick={handleCancelEditName}
-                                            disabled={isSavingName}
-                                            className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={handleSaveName}
-                                            disabled={isSavingName || !nameData.firstName || !nameData.lastName}
-                                            className="px-4 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                                        >
-                                            {isSavingName ? 'Saving...' : 'Save'}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                            </div>
-                        </motion.div>
 
-                        {/* Email Section */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 24 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-                            className="bg-white rounded-lg shadow-md p-6"
-                        >
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-gray-900 font-bold text-xl">Email</h2>
-                            </div>
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                    <div className="flex items-center gap-3">
-                                        <Mail className="w-5 h-5 text-gray-400" />
-                                        <span className="text-gray-900">{getCurrentEmail()}</span>
-                                        {pendingEmailVerification && pendingEmailVerification === getCurrentEmail() && (
-                                            <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-700 rounded flex items-center gap-1">
-                                                <Clock className="w-3 h-3" />
-                                                Pending Verification
-                                            </span>
-                                        )}
-                                    </div>
-                                    <button 
-                                        onClick={() => setIsEmailModalOpen(true)}
-                                        disabled={!!pendingEmailVerification}
-                                        className="text-primary hover:text-primary-focus text-sm font-medium disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer"
-                                    >
-                                        Edit
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-
-                        {/* Phone Section */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 24 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
-                            className="bg-white rounded-lg shadow-md p-6"
-                        >
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-gray-900 font-bold text-xl">Phone number</h2>
-                            </div>
-                            {isEditingPhone ? (
-                                <div className="space-y-4">
-                                    <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all">
-                                        <PhoneInput
-                                            international
-                                            defaultCountry="AU"
-                                            value={phoneData}
-                                            onChange={(value) => setPhoneData(value || '')}
-                                            placeholder="Enter phone number"
-                                            disabled={isSavingPhone}
-                                            className="[&_.PhoneInputCountry]:px-3 [&_.PhoneInputCountry]:py-2 [&_.PhoneInputCountry]:border-r [&_.PhoneInputCountry]:border-gray-300 [&_.PhoneInputCountry]:flex [&_.PhoneInputCountry]:items-center [&_.PhoneInputCountry]:gap-2 [&_.PhoneInputInput]:flex-1 [&_.PhoneInputInput]:px-4 [&_.PhoneInputInput]:py-2 [&_.PhoneInputInput]:border-0 [&_.PhoneInputInput]:focus:ring-0 [&_.PhoneInputInput]:focus:outline-none [&_.PhoneInputInput]:disabled:opacity-50 [&_.PhoneInputInput]:disabled:cursor-not-allowed"
-                                        />
-                                    </div>
-                                    <div className="flex gap-3 justify-end">
-                                        <button
-                                            onClick={handleCancelEditPhone}
-                                            disabled={isSavingPhone}
-                                            className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={handleSavePhone}
-                                            disabled={isSavingPhone || !phoneData}
-                                            className="px-4 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                                        >
-                                            {isSavingPhone ? 'Saving...' : 'Save'}
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {(() => {
-                                        const currentPhone = getCurrentPhoneNumber();
-                                        return currentPhone ? (
-                                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                                <div className="flex items-center gap-3">
-                                                    <Phone className="w-5 h-5 text-gray-400" />
-                                                    <span className="text-gray-900">{currentPhone}</span>
-                                                </div>
-                                                <button 
-                                                    onClick={handleStartEditPhone}
-                                                    className="text-primary hover:text-primary-focus text-sm font-medium cursor-pointer"
-                                                >
-                                                    Edit
-                                                </button>
+                                {/* Profile Picture - Positioned on top of background */}
+                                <div className="flex flex-col items-center -mt-12 relative z-10">
+                                    <div className="relative">
+                                        {profilePictureUrl ? (
+                                            <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white shadow-md">
+                                                <img
+                                                    src={profilePictureUrl}
+                                                    alt="Profile"
+                                                    className="w-full h-full object-cover"
+                                                />
                                             </div>
                                         ) : (
-                                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                                <div className="flex items-center gap-3">
-                                                    <Phone className="w-5 h-5 text-gray-400" />
-                                                    <span className="text-gray-500">No phone number</span>
-                                                </div>
-                                                <button 
-                                                    onClick={handleStartEditPhone}
-                                                    className="text-primary hover:text-primary-focus text-sm font-medium cursor-pointer"
-                                                >
-                                                    Edit
-                                                </button>
+                                            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
+                                                <User className="w-10 h-10 text-primary" />
                                             </div>
-                                        );
-                                    })()}
-                                </div>
-                            )}
-                        </motion.div>
-
-                        {/* Address Section */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 24 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
-                            className="bg-white rounded-lg shadow-md p-6"
-                        >
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-gray-900 font-bold text-xl">Address</h2>
-                            </div>
-                            {isEditingAddress ? (
-                                <div className="space-y-4">
-                                    {!hasValidAddress ? (
-                                        <div>
-                                            {!isManualEntry ? (
-                                                <>
-                                                    <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all">
-                                                        <input
-                                                            ref={autocompleteInputRef}
-                                                            type="text"
-                                                            placeholder="Enter street address"
-                                                            value={addressData}
-                                                            onChange={(e) => {
-                                                                setAddressData(e.target.value);
-                                                                setHasValidAddress(false);
-                                                                
-                                                                // Clear existing timeout
-                                                                if (typingTimeout) {
-                                                                    clearTimeout(typingTimeout);
-                                                                }
-                                                                
-                                                                // Hide manual entry button immediately when typing
-                                                                setShowManualEntryButton(false);
-                                                                
-                                                                // Show manual entry button after user stops typing for 1 second
-                                                                const newTimeout = setTimeout(() => {
-                                                                    setShowManualEntryButton(true);
-                                                                }, 1000);
-                                                                
-                                                                setTypingTimeout(newTimeout);
-                                                            }}
-                                                            onFocus={(e) => {
-                                                                // Only scroll on mobile devices
-                                                                if (window.innerWidth < 768) {
-                                                                    setTimeout(() => {
-                                                                        e.target.scrollIntoView({ 
-                                                                            behavior: 'smooth', 
-                                                                            block: 'center' 
-                                                                        });
-                                                                    }, 300);
-                                                                }
-                                                                
-                                                                // Ensure autocomplete is initialized on mobile focus
-                                                                if (window.innerWidth < 768 && !autocompleteRef.current && 
-                                                                    typeof window !== 'undefined' && 
-                                                                    (window.__googleMapsLoaded || (window.google && window.google.maps && window.google.maps.places))) {
-                                                                    setTimeout(() => {
-                                                                        initializeAutocomplete();
-                                                                    }, 100);
-                                                                }
-                                                            }}
-                                                            className="w-full px-4 py-2 border-0 focus:ring-0 focus:outline-none"
-                                                            disabled={isSavingAddress}
-                                                        />
-                                                    </div>
-                                                    {addressData && !hasValidAddress && showManualEntryButton && (
-                                                        <button
-                                                            onClick={() => setIsManualEntry(true)}
-                                                            className="mt-2 text-sm text-primary hover:underline cursor-pointer"
-                                                        >
-                                                            Can&apos;t find address?
-                                                        </button>
-                                                    )}
-                                                </>
+                                        )}
+                                        <button
+                                            onClick={handleEditProfilePicture}
+                                            disabled={isUploadingPicture}
+                                            className="absolute cursor-pointer bottom-0 right-0 p-2 bg-primary rounded-full text-secondary hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isUploadingPicture ? (
+                                                <Clock className="w-4 h-4 animate-spin" />
                                             ) : (
-                                                <div className="space-y-4">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Address (123 Main Street)"
-                                                        value={manualAddress.address}
-                                                        onChange={(e) => handleManualAddressChange('address', e.target.value)}
-                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                        disabled={isSavingAddress}
-                                                    />
-                                                    <div className="flex flex-col md:flex-row gap-2 md:gap-4">
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Postcode"
-                                                            value={manualAddress.postcode}
-                                                            onChange={(e) => handleManualAddressChange('postcode', e.target.value)}
-                                                            maxLength={4}
-                                                            className="w-full md:w-36 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                                                            disabled={isSavingAddress}
-                                                        />
-                                                        <div className="flex-1">
-                                                            {availableSuburbs.length > 0 ? (
-                                                                <select
-                                                                    value={manualAddress.suburb}
-                                                                    onChange={(e) => handleManualAddressChange('suburb', e.target.value)}
-                                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
-                                                                    disabled={isSavingAddress}
-                                                                >
-                                                                    <option value="">Select Suburb</option>
-                                                                    {availableSuburbs.map((suburb, index) => (
-                                                                        <option key={index} value={suburb.name}>
-                                                                            {suburb.name}
-                                                                        </option>
-                                                                    ))}
-                                                                </select>
-                                                            ) : (
-                                                                <input
-                                                                    type="text"
-                                                                    placeholder={isLoadingSuburbs ? "Loading suburbs..." : "Suburb"}
-                                                                    value={manualAddress.suburb}
-                                                                    onChange={(e) => handleManualAddressChange('suburb', e.target.value)}
-                                                                    disabled={isLoadingSuburbs || isSavingAddress}
-                                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                                                                />
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex gap-3">
-                                                        <button
-                                                            onClick={saveManualAddress}
-                                                            disabled={!validateManualAddress() || isSavingAddress}
-                                                            className="px-4 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                                                        >
-                                                            Use This Address
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setIsManualEntry(false)}
-                                                            disabled={isSavingAddress}
-                                                            className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                                                        >
-                                                            Back
-                                                        </button>
-                                                    </div>
-                                                </div>
+                                                <Edit2 className="w-4 h-4 " />
                                             )}
-                                        </div>
-                                    ) : (
-                                        <div className="p-3 border border-gray-200 rounded-lg">
-                                            <div className="text-gray-900">{addressData}</div>
+                                        </button>
+                                    </div>
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml"
+                                        onChange={handleFileInputChange}
+                                        className="hidden"
+                                    />
+                                </div>
+
+                                {/* Bottom Half - Name Section */}
+                                <div className="px-6 pb-6 pt-4">
+                                    {!isEditingName ? (
+                                        <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                            <div className="flex items-center gap-3">
+                                                <User className="w-5 h-5 text-gray-400" />
+                                                <span className="text-gray-900">{getDisplayName()}</span>
+                                            </div>
                                             <button
-                                                onClick={() => {
-                                                    setAddressData('');
-                                                    setHasValidAddress(false);
-                                                    setIsManualEntry(false);
-                                                    setManualAddress({
-                                                        address: '',
-                                                        suburb: '',
-                                                        state: '',
-                                                        postcode: ''
-                                                    });
-                                                    setAvailableSuburbs([]);
-                                                }}
-                                                className="text-sm text-gray-500 hover:text-gray-700 mt-2 underline"
+                                                onClick={handleStartEditName}
+                                                className="text-primary hover:text-primary-focus text-sm font-medium cursor-pointer"
                                             >
-                                                Change address
+                                                Edit
                                             </button>
                                         </div>
+                                    ) : (
+                                        <div className="w-full space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                        First Name
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={nameData.firstName}
+                                                        onChange={(e) => setNameData(prev => ({ ...prev, firstName: e.target.value }))}
+                                                        placeholder="First name"
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                        disabled={isSavingName}
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                        Last Name
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={nameData.lastName}
+                                                        onChange={(e) => setNameData(prev => ({ ...prev, lastName: e.target.value }))}
+                                                        placeholder="Last name"
+                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                        disabled={isSavingName}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="flex gap-3 justify-end">
+                                                <button
+                                                    onClick={handleCancelEditName}
+                                                    disabled={isSavingName}
+                                                    className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                                >
+                                                    Cancel
+                                                </button>
+                                                <button
+                                                    onClick={handleSaveName}
+                                                    disabled={isSavingName || !nameData.firstName || !nameData.lastName}
+                                                    className="px-4 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                                >
+                                                    {isSavingName ? 'Saving...' : 'Save'}
+                                                </button>
+                                            </div>
+                                        </div>
                                     )}
-                                    <div className="flex gap-3 justify-end">
+                                </div>
+                            </motion.div>
+
+                            {/* Email Section */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 24 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+                                className="bg-white rounded-lg shadow-md p-6"
+                            >
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-gray-900 font-bold text-xl">Email</h2>
+                                </div>
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            <Mail className="w-5 h-5 text-gray-400" />
+                                            <span className="text-gray-900">{getCurrentEmail()}</span>
+                                            {pendingEmailVerification && pendingEmailVerification === getCurrentEmail() && (
+                                                <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-700 rounded flex items-center gap-1">
+                                                    <Clock className="w-3 h-3" />
+                                                    Pending Verification
+                                                </span>
+                                            )}
+                                        </div>
                                         <button
-                                            onClick={handleCancelEditAddress}
-                                            disabled={isSavingAddress}
-                                            className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                            onClick={() => setIsEmailModalOpen(true)}
+                                            disabled={!!pendingEmailVerification}
+                                            className="text-primary hover:text-primary-focus text-sm font-medium disabled:text-gray-400 disabled:cursor-not-allowed cursor-pointer"
                                         >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={handleSaveAddress}
-                                            disabled={isSavingAddress || !hasValidAddress}
-                                            className="px-4 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                                        >
-                                            {isSavingAddress ? 'Saving...' : 'Save'}
+                                            Edit
                                         </button>
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    {(() => {
-                                        const currentAddress = getCurrentAddress();
-                                        return currentAddress ? (
-                                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                                <div className="flex items-center gap-3">
-                                                    <MapPin className="w-5 h-5 text-gray-400" />
-                                                    <span className="text-gray-900">{currentAddress}</span>
+                            </motion.div>
+
+                            {/* Phone Section */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 24 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
+                                className="bg-white rounded-lg shadow-md p-6"
+                            >
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-gray-900 font-bold text-xl">Phone number</h2>
+                                </div>
+                                {isEditingPhone ? (
+                                    <div className="space-y-4">
+                                        <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all">
+                                            <PhoneInput
+                                                international
+                                                defaultCountry="AU"
+                                                value={phoneData}
+                                                onChange={(value) => setPhoneData(value || '')}
+                                                placeholder="Enter phone number"
+                                                disabled={isSavingPhone}
+                                                className="[&_.PhoneInputCountry]:px-3 [&_.PhoneInputCountry]:py-2 [&_.PhoneInputCountry]:border-r [&_.PhoneInputCountry]:border-gray-300 [&_.PhoneInputCountry]:flex [&_.PhoneInputCountry]:items-center [&_.PhoneInputCountry]:gap-2 [&_.PhoneInputInput]:flex-1 [&_.PhoneInputInput]:px-4 [&_.PhoneInputInput]:py-2 [&_.PhoneInputInput]:border-0 [&_.PhoneInputInput]:focus:ring-0 [&_.PhoneInputInput]:focus:outline-none [&_.PhoneInputInput]:disabled:opacity-50 [&_.PhoneInputInput]:disabled:cursor-not-allowed"
+                                            />
+                                        </div>
+                                        <div className="flex gap-3 justify-end">
+                                            <button
+                                                onClick={handleCancelEditPhone}
+                                                disabled={isSavingPhone}
+                                                className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleSavePhone}
+                                                disabled={isSavingPhone || !phoneData}
+                                                className="px-4 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                            >
+                                                {isSavingPhone ? 'Saving...' : 'Save'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {(() => {
+                                            const currentPhone = getCurrentPhoneNumber();
+                                            return currentPhone ? (
+                                                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                                    <div className="flex items-center gap-3">
+                                                        <Phone className="w-5 h-5 text-gray-400" />
+                                                        <span className="text-gray-900">{currentPhone}</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={handleStartEditPhone}
+                                                        className="text-primary hover:text-primary-focus text-sm font-medium cursor-pointer"
+                                                    >
+                                                        Edit
+                                                    </button>
                                                 </div>
-                                                <button 
-                                                    onClick={handleStartEditAddress}
-                                                    className="text-primary hover:text-primary-focus text-sm font-medium cursor-pointer"
-                                                >
-                                                    Edit
-                                                </button>
+                                            ) : (
+                                                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                                    <div className="flex items-center gap-3">
+                                                        <Phone className="w-5 h-5 text-gray-400" />
+                                                        <span className="text-gray-500">No phone number</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={handleStartEditPhone}
+                                                        className="text-primary hover:text-primary-focus text-sm font-medium cursor-pointer"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
+                            </motion.div>
+
+                            {/* Address Section */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 24 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
+                                className="bg-white rounded-lg shadow-md p-6"
+                            >
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-gray-900 font-bold text-xl">Address</h2>
+                                </div>
+                                {isEditingAddress ? (
+                                    <div className="space-y-4">
+                                        {!hasValidAddress ? (
+                                            <div>
+                                                {!isManualEntry ? (
+                                                    <>
+                                                        <div className="border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all">
+                                                            <input
+                                                                ref={autocompleteInputRef}
+                                                                type="text"
+                                                                placeholder="Enter street address"
+                                                                value={addressData}
+                                                                onChange={(e) => {
+                                                                    setAddressData(e.target.value);
+                                                                    setHasValidAddress(false);
+
+                                                                    // Clear existing timeout
+                                                                    if (typingTimeout) {
+                                                                        clearTimeout(typingTimeout);
+                                                                    }
+
+                                                                    // Hide manual entry button immediately when typing
+                                                                    setShowManualEntryButton(false);
+
+                                                                    // Show manual entry button after user stops typing for 1 second
+                                                                    const newTimeout = setTimeout(() => {
+                                                                        setShowManualEntryButton(true);
+                                                                    }, 1000);
+
+                                                                    setTypingTimeout(newTimeout);
+                                                                }}
+                                                                onFocus={(e) => {
+                                                                    // Only scroll on mobile devices
+                                                                    if (window.innerWidth < 768) {
+                                                                        setTimeout(() => {
+                                                                            e.target.scrollIntoView({
+                                                                                behavior: 'smooth',
+                                                                                block: 'center'
+                                                                            });
+                                                                        }, 300);
+                                                                    }
+
+                                                                    // Ensure autocomplete is initialized on mobile focus
+                                                                    if (window.innerWidth < 768 && !autocompleteRef.current &&
+                                                                        typeof window !== 'undefined' &&
+                                                                        (window.__googleMapsLoaded || (window.google && window.google.maps && window.google.maps.places))) {
+                                                                        setTimeout(() => {
+                                                                            initializeAutocomplete();
+                                                                        }, 100);
+                                                                    }
+                                                                }}
+                                                                className="w-full px-4 py-2 border-0 focus:ring-0 focus:outline-none"
+                                                                disabled={isSavingAddress}
+                                                            />
+                                                        </div>
+                                                        {addressData && !hasValidAddress && showManualEntryButton && (
+                                                            <button
+                                                                onClick={() => setIsManualEntry(true)}
+                                                                className="mt-2 text-sm text-primary hover:underline cursor-pointer"
+                                                            >
+                                                                Can&apos;t find address?
+                                                            </button>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <div className="space-y-4">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Address (123 Main Street)"
+                                                            value={manualAddress.address}
+                                                            onChange={(e) => handleManualAddressChange('address', e.target.value)}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                            disabled={isSavingAddress}
+                                                        />
+                                                        <div className="flex flex-col md:flex-row gap-2 md:gap-4">
+                                                            <input
+                                                                type="text"
+                                                                placeholder="Postcode"
+                                                                value={manualAddress.postcode}
+                                                                onChange={(e) => handleManualAddressChange('postcode', e.target.value)}
+                                                                maxLength={4}
+                                                                className="w-full md:w-36 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                                                                disabled={isSavingAddress}
+                                                            />
+                                                            <div className="flex-1">
+                                                                {availableSuburbs.length > 0 ? (
+                                                                    <select
+                                                                        value={manualAddress.suburb}
+                                                                        onChange={(e) => handleManualAddressChange('suburb', e.target.value)}
+                                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent bg-white"
+                                                                        disabled={isSavingAddress}
+                                                                    >
+                                                                        <option value="">Select Suburb</option>
+                                                                        {availableSuburbs.map((suburb, index) => (
+                                                                            <option key={index} value={suburb.name}>
+                                                                                {suburb.name}
+                                                                            </option>
+                                                                        ))}
+                                                                    </select>
+                                                                ) : (
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder={isLoadingSuburbs ? "Loading suburbs..." : "Suburb"}
+                                                                        value={manualAddress.suburb}
+                                                                        onChange={(e) => handleManualAddressChange('suburb', e.target.value)}
+                                                                        disabled={isLoadingSuburbs || isSavingAddress}
+                                                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                                                                    />
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-3">
+                                                            <button
+                                                                onClick={saveManualAddress}
+                                                                disabled={!validateManualAddress() || isSavingAddress}
+                                                                className="px-4 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                                            >
+                                                                Use This Address
+                                                            </button>
+                                                            <button
+                                                                onClick={() => setIsManualEntry(false)}
+                                                                disabled={isSavingAddress}
+                                                                className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                                            >
+                                                                Back
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         ) : (
-                                            <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
-                                                <div className="flex items-center gap-3">
-                                                    <MapPin className="w-5 h-5 text-gray-400" />
-                                                    <span className="text-gray-500">No address</span>
-                                                </div>
-                                                <button 
-                                                    onClick={handleStartEditAddress}
-                                                    className="text-primary hover:text-primary-focus text-sm font-medium cursor-pointer"
+                                            <div className="p-3 border border-gray-200 rounded-lg">
+                                                <div className="text-gray-900">{addressData}</div>
+                                                <button
+                                                    onClick={() => {
+                                                        setAddressData('');
+                                                        setHasValidAddress(false);
+                                                        setIsManualEntry(false);
+                                                        setManualAddress({
+                                                            address: '',
+                                                            suburb: '',
+                                                            state: '',
+                                                            postcode: ''
+                                                        });
+                                                        setAvailableSuburbs([]);
+                                                    }}
+                                                    className="text-sm text-gray-500 hover:text-gray-700 mt-2 underline"
                                                 >
-                                                    Edit
+                                                    Change address
                                                 </button>
                                             </div>
-                                        );
-                                    })()}
-                                </div>
-                            )}
-                        </motion.div>
-                    </div>
-
-                    {/* Right Column: Buyer Information */}
-                    <div className="space-y-6">
-                        {/* Buyer Questions Section */}
-                        <motion.div
-                            initial={{ opacity: 0, y: 24 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
-                            className="bg-white rounded-lg border border-gray-200 shadow-md p-6"
-                        >
-                            <div className="flex justify-between items-center mb-4">
-                                <h2 className="text-gray-900 font-bold text-xl">Buyer Information</h2>
-                                {!isEditingBuyerInfo && (
-                                    <button 
-                                        onClick={handleStartEditBuyerInfo}
-                                        className="text-primary hover:text-primary-focus text-sm font-medium cursor-pointer"
-                                    >
-                                        Edit
-                                    </button>
+                                        )}
+                                        <div className="flex gap-3 justify-end">
+                                            <button
+                                                onClick={handleCancelEditAddress}
+                                                disabled={isSavingAddress}
+                                                className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleSaveAddress}
+                                                disabled={isSavingAddress || !hasValidAddress}
+                                                className="px-4 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                            >
+                                                {isSavingAddress ? 'Saving...' : 'Save'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-3">
+                                        {(() => {
+                                            const currentAddress = getCurrentAddress();
+                                            return currentAddress ? (
+                                                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                                    <div className="flex items-center gap-3">
+                                                        <MapPin className="w-5 h-5 text-gray-400" />
+                                                        <span className="text-gray-900">{currentAddress}</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={handleStartEditAddress}
+                                                        className="text-primary hover:text-primary-focus text-sm font-medium cursor-pointer"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                                    <div className="flex items-center gap-3">
+                                                        <MapPin className="w-5 h-5 text-gray-400" />
+                                                        <span className="text-gray-500">No address</span>
+                                                    </div>
+                                                    <button
+                                                        onClick={handleStartEditAddress}
+                                                        className="text-primary hover:text-primary-focus text-sm font-medium cursor-pointer"
+                                                    >
+                                                        Edit
+                                                    </button>
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
                                 )}
-                            </div>
-                            {isEditingBuyerInfo ? (
-                                <div className="space-y-6">
-                                    {/* Owner/Investor */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-3">
-                                            Are you an Owner or Investor?
-                                        </label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {[
-                                                { value: 'owner-occupier', label: 'Owner-Occupier', description: 'I will live in this property' },
-                                                { value: 'investor', label: 'Investor', description: 'I will rent this property out' }
-                                            ].map((option) => (
-                                                <button
-                                                    key={option.value}
-                                                    onClick={() => updateFormData('buyerType', option.value)}
-                                                    className={`py-3 px-4 cursor-pointer rounded-lg border-2 text-left transition-colors ${
-                                                        formData.buyerType === option.value
-                                                            ? 'border-primary bg-primary/10 text-primary'
-                                                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                                    }`}
-                                                >
-                                                    <div className="font-medium mb-1">{option.label}</div>
-                                                    <div className="text-xs text-gray-500">{option.description}</div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
+                            </motion.div>
+                        </div>
 
-                                    {/* Citizen */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-3">
-                                            Australian citizen or permanent resident?
-                                        </label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {[
-                                                { value: 'yes', label: 'Yes', description: 'Australian citizen or permanent resident' },
-                                                { value: 'no', label: 'No', description: 'Foreign buyer' }
-                                            ].map((option) => (
-                                                <button
-                                                    key={option.value}
-                                                    onClick={() => updateFormData('isAustralianResident', option.value)}
-                                                    className={`py-3 px-4 cursor-pointer rounded-lg border-2 text-left transition-colors ${
-                                                        formData.isAustralianResident === option.value
-                                                            ? 'border-primary bg-primary/10 text-primary'
-                                                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                                    }`}
-                                                >
-                                                    <div className="font-medium mb-1">{option.label}</div>
-                                                    <div className="text-xs text-gray-500">{option.description}</div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* First Home Buyer */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-3">
-                                            First home buyer?
-                                        </label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {[
-                                                { value: 'yes', label: 'Yes', description: 'This is my first home purchase' },
-                                                { value: 'no', label: 'No', description: 'I have owned property before' }
-                                            ].map((option) => (
-                                                <button
-                                                    key={option.value}
-                                                    onClick={() => updateFormData('isFirstHomeBuyer', option.value)}
-                                                    className={`py-3 px-4 cursor-pointer rounded-lg border-2 text-left transition-colors ${
-                                                        formData.isFirstHomeBuyer === option.value
-                                                            ? 'border-primary bg-primary/10 text-primary'
-                                                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                                    }`}
-                                                >
-                                                    <div className="font-medium mb-1">{option.label}</div>
-                                                    <div className="text-xs text-gray-500">{option.description}</div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
-
-                                    {/* Pensioner */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-3">
-                                            Do you have a pensioner concession card?
-                                        </label>
-                                        <div className="grid grid-cols-2 gap-3">
-                                            {[
-                                                { value: 'yes', label: 'Yes', description: 'I have a pensioner concession card' },
-                                                { value: 'no', label: 'No', description: 'I do not have a pensioner concession card' }
-                                            ].map((option) => {
-                                                const isDisabled = formData.isAustralianResident === 'no' && option.value === 'yes';
-                                                return (
+                        {/* Right Column: Buyer Information */}
+                        <div className="space-y-6">
+                            {/* Buyer Questions Section */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 24 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.6, delay: 0.5, ease: "easeOut" }}
+                                className="bg-white rounded-lg border border-gray-200 shadow-md p-6"
+                            >
+                                <div className="flex justify-between items-center mb-4">
+                                    <h2 className="text-gray-900 font-bold text-xl">Buyer Information</h2>
+                                    {!isEditingBuyerInfo && (
+                                        <button
+                                            onClick={handleStartEditBuyerInfo}
+                                            className="text-primary hover:text-primary-focus text-sm font-medium cursor-pointer"
+                                        >
+                                            Edit
+                                        </button>
+                                    )}
+                                </div>
+                                {isEditingBuyerInfo ? (
+                                    <div className="space-y-6">
+                                        {/* Owner/Investor */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-3">
+                                                Are you an Owner or Investor?
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {[
+                                                    { value: 'owner-occupier', label: 'Owner-Occupier', description: 'I will live in this property' },
+                                                    { value: 'investor', label: 'Investor', description: 'I will rent this property out' }
+                                                ].map((option) => (
                                                     <button
                                                         key={option.value}
-                                                        onClick={() => !isDisabled && updateFormData('hasPensionCard', option.value)}
-                                                        disabled={isDisabled}
-                                                        className={`py-3 px-4 cursor-pointer rounded-lg border-2 text-left transition-colors ${
-                                                            isDisabled
-                                                                ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
-                                                                : formData.hasPensionCard === option.value
-                                                                    ? 'border-primary bg-primary/10 text-primary'
-                                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                                                        }`}
+                                                        onClick={() => updateFormData('buyerType', option.value)}
+                                                        className={`py-3 px-4 cursor-pointer rounded-lg border-2 text-left transition-colors ${formData.buyerType === option.value
+                                                            ? 'border-primary bg-primary/10 text-primary'
+                                                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                            }`}
                                                     >
                                                         <div className="font-medium mb-1">{option.label}</div>
                                                         <div className="text-xs text-gray-500">{option.description}</div>
                                                     </button>
-                                                );
-                                            })}
+                                                ))}
+                                            </div>
                                         </div>
-                                    </div>
 
-                                    <div className="flex gap-3 justify-end pt-4">
-                                        <button
-                                            onClick={handleCancelEditBuyerInfo}
-                                            disabled={isSavingBuyerInfo}
-                                            className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            onClick={handleSaveBuyerInfo}
-                                            disabled={isSavingBuyerInfo}
-                                            className="px-4 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                                        >
-                                            {isSavingBuyerInfo ? 'Saving...' : 'Save'}
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-3">
-                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm text-gray-500">Owner or Investor</span>
-                                            <span className={`text-gray-900 ${getBuyerTypeDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
-                                                {getBuyerTypeDisplay()}
-                                            </span>
+                                        {/* Citizen */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-3">
+                                                Australian citizen or permanent resident?
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {[
+                                                    { value: 'yes', label: 'Yes', description: 'Australian citizen or permanent resident' },
+                                                    { value: 'no', label: 'No', description: 'Foreign buyer' }
+                                                ].map((option) => (
+                                                    <button
+                                                        key={option.value}
+                                                        onClick={() => updateFormData('isAustralianResident', option.value)}
+                                                        className={`py-3 px-4 cursor-pointer rounded-lg border-2 text-left transition-colors ${formData.isAustralianResident === option.value
+                                                            ? 'border-primary bg-primary/10 text-primary'
+                                                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                            }`}
+                                                    >
+                                                        <div className="font-medium mb-1">{option.label}</div>
+                                                        <div className="text-xs text-gray-500">{option.description}</div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* First Home Buyer */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-3">
+                                                First home buyer?
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {[
+                                                    { value: 'yes', label: 'Yes', description: 'This is my first home purchase' },
+                                                    { value: 'no', label: 'No', description: 'I have owned property before' }
+                                                ].map((option) => (
+                                                    <button
+                                                        key={option.value}
+                                                        onClick={() => updateFormData('isFirstHomeBuyer', option.value)}
+                                                        className={`py-3 px-4 cursor-pointer rounded-lg border-2 text-left transition-colors ${formData.isFirstHomeBuyer === option.value
+                                                            ? 'border-primary bg-primary/10 text-primary'
+                                                            : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                            }`}
+                                                    >
+                                                        <div className="font-medium mb-1">{option.label}</div>
+                                                        <div className="text-xs text-gray-500">{option.description}</div>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Pensioner */}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-3">
+                                                Do you have a pensioner concession card?
+                                            </label>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {[
+                                                    { value: 'yes', label: 'Yes', description: 'I have a pensioner concession card' },
+                                                    { value: 'no', label: 'No', description: 'I do not have a pensioner concession card' }
+                                                ].map((option) => {
+                                                    const isDisabled = formData.isAustralianResident === 'no' && option.value === 'yes';
+                                                    return (
+                                                        <button
+                                                            key={option.value}
+                                                            onClick={() => !isDisabled && updateFormData('hasPensionCard', option.value)}
+                                                            disabled={isDisabled}
+                                                            className={`py-3 px-4 cursor-pointer rounded-lg border-2 text-left transition-colors ${isDisabled
+                                                                ? 'border-gray-200 text-gray-400 bg-gray-100 cursor-not-allowed'
+                                                                : formData.hasPensionCard === option.value
+                                                                    ? 'border-primary bg-primary/10 text-primary'
+                                                                    : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                                                                }`}
+                                                        >
+                                                            <div className="font-medium mb-1">{option.label}</div>
+                                                            <div className="text-xs text-gray-500">{option.description}</div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-3 justify-end pt-4">
+                                            <button
+                                                onClick={handleCancelEditBuyerInfo}
+                                                disabled={isSavingBuyerInfo}
+                                                className="px-4 py-2 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button
+                                                onClick={handleSaveBuyerInfo}
+                                                disabled={isSavingBuyerInfo}
+                                                className="px-4 py-2 bg-primary text-secondary rounded-lg hover:bg-primary-focus transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                                            >
+                                                {isSavingBuyerInfo ? 'Saving...' : 'Save'}
+                                            </button>
                                         </div>
                                     </div>
-                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm text-gray-500">Australian citizen or permanent resident?</span>
-                                            <span className={`text-gray-900 ${getAustralianResidentDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
-                                                {getAustralianResidentDisplay()}
-                                            </span>
+                                ) : (
+                                    <div className="space-y-3">
+                                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm text-gray-500">Owner or Investor</span>
+                                                <span className={`text-gray-900 ${getBuyerTypeDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
+                                                    {getBuyerTypeDisplay()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm text-gray-500">Australian citizen or permanent resident?</span>
+                                                <span className={`text-gray-900 ${getAustralianResidentDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
+                                                    {getAustralianResidentDisplay()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm text-gray-500">First home buyer?</span>
+                                                <span className={`text-gray-900 ${getFirstHomeBuyerDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
+                                                    {getFirstHomeBuyerDisplay()}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                                            <div className="flex flex-col">
+                                                <span className="text-sm text-gray-500">Pensioner concession card?</span>
+                                                <span className={`text-gray-900 ${getPensionCardDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
+                                                    {getPensionCardDisplay()}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm text-gray-500">First home buyer?</span>
-                                            <span className={`text-gray-900 ${getFirstHomeBuyerDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
-                                                {getFirstHomeBuyerDisplay()}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
-                                        <div className="flex flex-col">
-                                            <span className="text-sm text-gray-500">Pensioner concession card?</span>
-                                            <span className={`text-gray-900 ${getPensionCardDisplay() === 'Not set' ? 'text-gray-500' : ''}`}>
-                                                {getPensionCardDisplay()}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {/* Toggle for using buyer info in survey - always visible */}
-                            <div className="pt-4 mt-4 border-t border-gray-200">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-gray-700">Use this information to prepopulate survey</span>
-                                    <motion.button
-                                        onClick={() => handleToggleUseInfoPopulate(!useBuyerInfoForSurvey)}
-                                        className={`relative inline-flex items-center h-6 cursor-pointer rounded-full w-14 focus:outline-none active:outline-none ${
-                                            useBuyerInfoForSurvey 
-                                                ? 'bg-green-500' 
+                                )}
+
+                                {/* Toggle for using buyer info in survey - always visible */}
+                                <div className="pt-4 mt-4 border-t border-gray-200">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm font-medium text-gray-700">Use this information to prepopulate survey</span>
+                                        <motion.button
+                                            onClick={() => handleToggleUseInfoPopulate(!useBuyerInfoForSurvey)}
+                                            className={`relative inline-flex items-center h-6 cursor-pointer rounded-full w-14 focus:outline-none active:outline-none ${useBuyerInfoForSurvey
+                                                ? 'bg-green-500'
                                                 : 'bg-red-500'
-                                        }`}
-                                        animate={{
-                                            backgroundColor: useBuyerInfoForSurvey ? '#10b981' : '#ef4444'
-                                        }}
-                                        transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                    >
-                                                {/* NO text - shows on right when handle is on left (off state) */}
-                                                <AnimatePresence>
-                                                    {!useBuyerInfoForSurvey && (
-                                                        <motion.span
-                                                            key="no"
-                                                            initial={{ opacity: 0, x: -5 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            exit={{ opacity: 0, x: 5 }}
-                                                            transition={{ duration: 0.2 }}
-                                                            className="absolute right-0 pr-3 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
-                                                        >
-                                                            No
-                                                        </motion.span>
-                                                    )}
-                                                </AnimatePresence>
-                                                {/* YES text - shows on left when handle is on right (on state) */}
-                                                <AnimatePresence>
-                                                    {useBuyerInfoForSurvey && (
-                                                        <motion.span
-                                                            key="yes"
-                                                            initial={{ opacity: 0, x: 5 }}
-                                                            animate={{ opacity: 1, x: 0 }}
-                                                            exit={{ opacity: 0, x: -5 }}
-                                                            transition={{ duration: 0.2 }}
-                                                            className="absolute left-0 pl-2.5 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
-                                                        >
-                                                            Yes
-                                                        </motion.span>
-                                                    )}
-                                                </AnimatePresence>
-                                                {/* White circle handle */}
-                                                <motion.span
-                                                    className="absolute h-4.5 w-4.5 rounded-full bg-white shadow-md"
-                                                    animate={{
-                                                        left: useBuyerInfoForSurvey ? 'auto' : '0.225rem',
-                                                        right: useBuyerInfoForSurvey ? '0.155rem' : 'auto'
-                                                    }}
-                                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                                />
-                                            </motion.button>
-                                        </div>
+                                                }`}
+                                            animate={{
+                                                backgroundColor: useBuyerInfoForSurvey ? '#10b981' : '#ef4444'
+                                            }}
+                                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                        >
+                                            {/* NO text - shows on right when handle is on left (off state) */}
+                                            <AnimatePresence>
+                                                {!useBuyerInfoForSurvey && (
+                                                    <motion.span
+                                                        key="no"
+                                                        initial={{ opacity: 0, x: -5 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        exit={{ opacity: 0, x: 5 }}
+                                                        transition={{ duration: 0.2 }}
+                                                        className="absolute right-0 pr-3 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
+                                                    >
+                                                        No
+                                                    </motion.span>
+                                                )}
+                                            </AnimatePresence>
+                                            {/* YES text - shows on left when handle is on right (on state) */}
+                                            <AnimatePresence>
+                                                {useBuyerInfoForSurvey && (
+                                                    <motion.span
+                                                        key="yes"
+                                                        initial={{ opacity: 0, x: 5 }}
+                                                        animate={{ opacity: 1, x: 0 }}
+                                                        exit={{ opacity: 0, x: -5 }}
+                                                        transition={{ duration: 0.2 }}
+                                                        className="absolute left-0 pl-2.5 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
+                                                    >
+                                                        Yes
+                                                    </motion.span>
+                                                )}
+                                            </AnimatePresence>
+                                            {/* White circle handle */}
+                                            <motion.span
+                                                className="absolute h-4.5 w-4.5 rounded-full bg-white shadow-md"
+                                                animate={{
+                                                    left: useBuyerInfoForSurvey ? 'auto' : '0.225rem',
+                                                    right: useBuyerInfoForSurvey ? '0.155rem' : 'auto'
+                                                }}
+                                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                            />
+                                        </motion.button>
                                     </div>
-                        </motion.div>
-                    </div>
+                                </div>
+                            </motion.div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2060,9 +2055,9 @@ export default function AccountSettingsPage() {
                             <div className="flex flex-col items-center mb-6">
                                 {profilePictureUrl ? (
                                     <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-gray-200 shadow-lg mb-4">
-                                        <img 
-                                            src={profilePictureUrl} 
-                                            alt="Profile" 
+                                        <img
+                                            src={profilePictureUrl}
+                                            alt="Profile"
                                             className="w-full h-full object-cover"
                                         />
                                     </div>
