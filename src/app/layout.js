@@ -3,7 +3,6 @@ import "./globals.css";
 import Footer from '../components/Footer';
 import Header from "../components/Header";
 import LoggedInHeaderOverlay from "../components/LoggedInHeaderOverlay";
-import SettingsNavigation from "../components/SettingsNavigation";
 import AuthSessionManager from "../components/AuthSessionManager";
 import RootAuroraBackground from "../components/RootAuroraBackground";
 
@@ -35,7 +34,6 @@ export default function RootLayout({ children }) {
           <AuthSessionManager />
           <Header />
           <LoggedInHeaderOverlay />
-          <SettingsNavigation />
           {children}
           <Footer />
         </div>
