@@ -6,6 +6,12 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { User, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import PendingSurveyLinkGuard from '@/components/PendingSurveyLinkGuard';
+import {
+  clearPendingSurveyLink,
+  getPendingSurveyLinkPropertyId,
+  hasPendingSurveyLink,
+} from '@/lib/pendingSurveyLink';
 
 function LoginPageContent() {
   const [email, setEmail] = useState('');
@@ -166,7 +172,7 @@ function LoginPageContent() {
       }
       
       // Check if there's a property to link after auth
-      const linkPropertyId = sessionStorage.getItem('linkPropertyIdAfterAuth');
+      const linkPropertyId = hasPendingSurveyLink() ? getPendingSurveyLinkPropertyId() : null;
       if (linkPropertyId) {
         // Link the property to the user's account
         try {
@@ -184,7 +190,7 @@ function LoginPageContent() {
           const linkResult = await linkResponse.json();
           if (linkResponse.ok) {
             console.log('✅ Property linked to account:', linkResult.message);
-            sessionStorage.removeItem('linkPropertyIdAfterAuth');
+            clearPendingSurveyLink();
           } else {
             console.error('Error linking property:', linkResult.error);
           }
@@ -228,6 +234,7 @@ function LoginPageContent() {
 
   return (
     <div className="min-h-screen w-full relative flex items-start justify-center px-4 pt-20 pb-16 md:pt-24 md:pb-20 lg:pt-28 lg:pb-24">
+      <PendingSurveyLinkGuard />
       <div
         className="absolute inset-0 z-0"
         style={{

@@ -13,6 +13,7 @@ import {
   getStreetViewPhotoUrl,
   getStreetViewMetadataStatus,
   isGoogleMapsPhotoUrl,
+  isPropertyPhotoPlaceholder,
   PROPWIZ_BRANDED_PLACEHOLDER_URL,
 } from '@/lib/propertyPhotos';
 import {
@@ -141,6 +142,18 @@ const buildSurveyAddress = (survey) => {
 const createMapCacheKey = (surveyId, queryAddress) => `${surveyId}::${queryAddress}`;
 const getPhotoCacheKey = (survey) =>
   `${survey?.id || 'unknown'}::${buildSurveyAddress(survey) || 'no-address'}`;
+
+const isPersistablePhotoCacheEntry = (entry) =>
+  !!entry?.photoUrl &&
+  !isPropertyPhotoPlaceholder(entry.photoUrl) &&
+  entry.photoSource !== 'placeholder';
+
+const filterPersistablePhotoCache = (cache) => {
+  if (!cache || typeof cache !== 'object') return {};
+  return Object.fromEntries(
+    Object.entries(cache).filter(([, entry]) => isPersistablePhotoCacheEntry(entry))
+  );
+};
 
 const extractGoogleApiKeyFromScriptUrl = (scriptUrl) => {
   if (!scriptUrl) return '';
@@ -1078,11 +1091,12 @@ export default function DashboardContent({
       const raw = sessionStorage.getItem(PHOTO_CACHE_SESSION_KEY);
       if (!raw) return {};
       const parsed = JSON.parse(raw);
-      return parsed && typeof parsed === 'object' ? parsed : {};
+      return filterPersistablePhotoCache(parsed);
     } catch {
       return {};
     }
   });
+  const propertyPhotoCacheRef = useRef(propertyPhotoCache);
   const [imageLoadedByPropertyId, setImageLoadedByPropertyId] = useState({});
   const photoInflightRef = useRef(new Map());
   const photoAttemptedKeysRef = useRef(new Set());
@@ -1116,9 +1130,16 @@ export default function DashboardContent({
   }, [geocodeCache]);
 
   useEffect(() => {
+    propertyPhotoCacheRef.current = propertyPhotoCache;
+  }, [propertyPhotoCache]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      sessionStorage.setItem(PHOTO_CACHE_SESSION_KEY, JSON.stringify(propertyPhotoCache));
+      sessionStorage.setItem(
+        PHOTO_CACHE_SESSION_KEY,
+        JSON.stringify(filterPersistablePhotoCache(propertyPhotoCache))
+      );
     } catch {
       // Ignore storage quota / privacy mode errors.
     }
@@ -1162,16 +1183,19 @@ export default function DashboardContent({
         const merged = (result.data || []).map((survey) => {
           const cacheKey = getPhotoCacheKey(survey);
           const cached = propertyPhotoCache[cacheKey];
-          if (survey.photo_url) {
-            return survey;
+          const normalizedSurvey = isPropertyPhotoPlaceholder(survey.photo_url)
+            ? { ...survey, photo_url: null, photo_source: null }
+            : survey;
+          if (normalizedSurvey.photo_url) {
+            return normalizedSurvey;
           }
-          if (!cached?.photoUrl) {
-            return survey;
+          if (!isPersistablePhotoCacheEntry(cached)) {
+            return normalizedSurvey;
           }
           return {
-            ...survey,
+            ...normalizedSurvey,
             photo_url: cached.photoUrl,
-            photo_source: cached.photoSource || survey.photo_source || null,
+            photo_source: cached.photoSource || normalizedSurvey.photo_source || null,
           };
         });
         setSurveys(merged);
@@ -1230,9 +1254,8 @@ export default function DashboardContent({
     const resolveAndPersistPhoto = async (survey) => {
       const cacheKey = getPhotoCacheKey(survey);
       const existingUrl = survey.photo_url;
-      const isPlaceholderUrl = (url) => url === PROPWIZ_BRANDED_PLACEHOLDER_URL;
-      const isSvgPlaceholderDataUrl = (url) =>
-        typeof url === 'string' && url.startsWith('data:image/svg+xml');
+      const isPlaceholderUrl = isPropertyPhotoPlaceholder;
+      const isSvgPlaceholderDataUrl = isPropertyPhotoPlaceholder;
       const isAnyDataImageUrl = (url) =>
         typeof url === 'string' && url.startsWith('data:image');
       const persistPhotoUrl = async ({ photoUrl, photoSource }) => {
@@ -1289,8 +1312,8 @@ export default function DashboardContent({
         return;
       }
 
-      const cached = propertyPhotoCache[cacheKey];
-      if (cached?.photoUrl && cached?.photoSource !== 'place_photo') {
+      const cached = propertyPhotoCacheRef.current[cacheKey];
+      if (isPersistablePhotoCacheEntry(cached) && cached.photoSource !== 'place_photo') {
         setSurveys((prev) => {
           let changed = false;
           const next = prev.map((item) => {
@@ -1330,12 +1353,14 @@ export default function DashboardContent({
         const address = buildSurveyAddress(survey);
         let resolvedPlaceId = survey.place_id || survey.google_place_id || null;
 
-        if (!resolvedPlaceId && geocoderForPhotosRef.current && address) {
+        if (geocoderForPhotosRef.current && address) {
           const geocoded = await geocodeAddressWithRetry(geocoderForPhotosRef.current, address);
           if (geocoded?.coordinates && !derivedCoordinates) {
             derivedCoordinates = geocoded.coordinates;
           }
-          resolvedPlaceId = geocoded?.placeId || null;
+          if (!resolvedPlaceId) {
+            resolvedPlaceId = geocoded?.placeId || null;
+          }
         }
 
         if (resolvedPlaceId && placesServiceRef.current) {
@@ -1367,12 +1392,19 @@ export default function DashboardContent({
             });
           }
 
-          if (metadataStatus === 'OK' && hasValidDerivedCoordinates) {
-            const streetViewUrl = getStreetViewPhotoUrl({
-              lat: derivedCoordinates.lat,
-              lng: derivedCoordinates.lng,
-              apiKey: googleApiKeyRef.current,
-            });
+          if (metadataStatus === 'OK') {
+            const streetViewUrl = getStreetViewPhotoUrl(
+              hasValidDerivedCoordinates
+                ? {
+                    lat: derivedCoordinates.lat,
+                    lng: derivedCoordinates.lng,
+                    apiKey: googleApiKeyRef.current,
+                  }
+                : {
+                    location: address,
+                    apiKey: googleApiKeyRef.current,
+                  }
+            );
             if (streetViewUrl) {
               finalUrl = streetViewUrl;
               finalSource = 'street_view';
@@ -1387,16 +1419,18 @@ export default function DashboardContent({
 
         if (cancelled) return;
 
-        setPropertyPhotoCache((prev) => {
-          const current = prev[cacheKey];
-          if (current?.photoUrl === finalUrl && current?.photoSource === finalSource) {
-            return prev;
-          }
-          return {
-            ...prev,
-            [cacheKey]: { photoUrl: finalUrl, photoSource: finalSource },
-          };
-        });
+        if (isPersistablePhotoCacheEntry({ photoUrl: finalUrl, photoSource: finalSource })) {
+          setPropertyPhotoCache((prev) => {
+            const current = prev[cacheKey];
+            if (current?.photoUrl === finalUrl && current?.photoSource === finalSource) {
+              return prev;
+            }
+            return {
+              ...prev,
+              [cacheKey]: { photoUrl: finalUrl, photoSource: finalSource },
+            };
+          });
+        }
 
         setSurveys((prev) => {
           let changed = false;
@@ -1438,7 +1472,7 @@ export default function DashboardContent({
     return () => {
       cancelled = true;
     };
-  }, [user, surveys, propertyPhotoCache]);
+  }, [user, surveys]);
 
   const handleResume = (propertyId) => {
     if (!propertyId) return;
@@ -1934,13 +1968,6 @@ export default function DashboardContent({
             : item
         )
       );
-      setPropertyPhotoCache((prev) => ({
-        ...prev,
-        [getPhotoCacheKey(survey)]: {
-          photoUrl: PROPWIZ_BRANDED_PLACEHOLDER_URL,
-          photoSource: 'placeholder',
-        },
-      }));
       setImageLoadedByPropertyId((prev) => ({ ...prev, [survey.id]: true }));
       if (currentPhotoSource === 'persisted') {
         // Keep DB value untouched; local placeholder avoids broken UI.
@@ -2183,15 +2210,13 @@ export default function DashboardContent({
                 <button
                   type="button"
                   onClick={() => handleMetricFilterChange('all')}
-                  className={`cursor-pointer rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all duration-200 text-left border ${
-                    metricFilter === 'all' && stateFilter === 'all'
+                  className={`cursor-pointer rounded-2xl p-2.5 sm:p-3 flex items-center gap-2 sm:gap-3 transition-all duration-200 text-left border ${metricFilter === 'all' && stateFilter === 'all'
                       ? 'bg-white border-primary shadow-sm ring-1 ring-primary/25'
                       : 'bg-white/40 border-gray-200/50 hover:bg-white/80 hover:shadow-xs hover:border-gray-300'
-                  }`}
+                    }`}
                 >
-                  <div className={`p-1.5 sm:p-2 rounded-xl transition-colors ${
-                    metricFilter === 'all' && stateFilter === 'all' ? 'bg-primary text-secondary' : 'bg-primary/10 text-primary'
-                  }`}>
+                  <div className={`p-1.5 sm:p-2 rounded-xl transition-colors ${metricFilter === 'all' && stateFilter === 'all' ? 'bg-primary text-secondary' : 'bg-primary/10 text-primary'
+                    }`}>
                     <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                   </div>
                   <div className="min-w-0">
@@ -2347,12 +2372,12 @@ export default function DashboardContent({
                   }}
                   transition={{ duration: 0.3, ease: 'easeInOut' }}
                 >
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
-                  className="mb-5 flex flex-wrap items-center justify-between gap-2.5 w-full"
-                >
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
+                    className="mb-5 flex flex-wrap items-center justify-between gap-2.5 w-full"
+                  >
                     <div className="flex items-center gap-3">
                       <h2 className="text-2xl font-bold text-gray-900">Saved Surveys</h2>
                     </div>
@@ -2360,7 +2385,7 @@ export default function DashboardContent({
                     {/* Search, Sort, Map, and Select Group */}
                     <div className="w-full md:w-auto md:flex-1 md:max-w-none md:ml-4 md:mr-0 order-3 md:order-none flex items-center gap-3">
                       <Link
-                        href="/calculator"
+                        href="/calculator?fresh=true"
                         onClick={() => {
                           resetSessionAndForm(resetForm);
                           if (typeof window !== 'undefined') {
@@ -2494,7 +2519,7 @@ export default function DashboardContent({
                     </div>
 
                     <Link
-                      href="/calculator"
+                      href="/calculator?fresh=true"
                       onClick={() => {
                         resetSessionAndForm(resetForm);
                         if (typeof window !== 'undefined') {
@@ -2520,34 +2545,34 @@ export default function DashboardContent({
                       >
                         <div className="flex h-10 items-center gap-3 w-full">
                           <button
-                             type="button"
-                             onClick={handleBulkDelete}
-                             aria-label={`Delete ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`}
-                             className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-full border border-error bg-white px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-error transition-all duration-200 hover:bg-error hover:text-error-content sm:h-10 sm:min-h-0 sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:text-sm sm:leading-normal shadow-sm"
-                           >
-                             <Trash2 className="hidden h-5 w-5 shrink-0 sm:block" />
-                             <span className="flex flex-col sm:hidden">
-                               <span>Delete</span>
-                               <span>
-                                 {selectedProperties.size}{' '}
-                                 {selectedProperties.size === 1 ? 'property' : 'properties'}
-                               </span>
-                             </span>
-                             <span className="hidden sm:inline">
-                               Delete {selectedProperties.size}{' '}
-                               {selectedProperties.size === 1 ? 'property' : 'properties'}
-                             </span>
-                           </button>
-                           <button
-                             type="button"
-                             onClick={handleBulkInspected}
-                             aria-label={
-                               bulkInspectAllSelectedAlreadyInspected
-                                 ? `Uninspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
-                                 : `Inspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
-                             }
-                             className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-full border border-primary bg-white px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-primary transition-all duration-200 hover:bg-primary hover:text-secondary sm:h-10 sm:min-h-0 sm:w-auto sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:text-sm sm:leading-normal shadow-sm"
-                           >
+                            type="button"
+                            onClick={handleBulkDelete}
+                            aria-label={`Delete ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`}
+                            className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-full border border-error bg-white px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-error transition-all duration-200 hover:bg-error hover:text-error-content sm:h-10 sm:min-h-0 sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:text-sm sm:leading-normal shadow-sm"
+                          >
+                            <Trash2 className="hidden h-5 w-5 shrink-0 sm:block" />
+                            <span className="flex flex-col sm:hidden">
+                              <span>Delete</span>
+                              <span>
+                                {selectedProperties.size}{' '}
+                                {selectedProperties.size === 1 ? 'property' : 'properties'}
+                              </span>
+                            </span>
+                            <span className="hidden sm:inline">
+                              Delete {selectedProperties.size}{' '}
+                              {selectedProperties.size === 1 ? 'property' : 'properties'}
+                            </span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleBulkInspected}
+                            aria-label={
+                              bulkInspectAllSelectedAlreadyInspected
+                                ? `Uninspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
+                                : `Inspect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`
+                            }
+                            className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-full border border-primary bg-white px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-primary transition-all duration-200 hover:bg-primary hover:text-secondary sm:h-10 sm:min-h-0 sm:w-auto sm:flex-initial sm:flex-row sm:gap-2 sm:px-6 sm:text-sm sm:leading-normal shadow-sm"
+                          >
                             <span className="flex flex-col sm:hidden">
                               <span>{bulkInspectAllSelectedAlreadyInspected ? 'Uninspect' : 'Inspect'}</span>
                               <span>
@@ -2562,25 +2587,25 @@ export default function DashboardContent({
                               {selectedProperties.size === 1 ? 'property' : 'properties'}
                             </span>
                           </button>
-                           <button
-                             type="button"
-                             onClick={() => setSelectedProperties(new Set())}
-                             aria-label={`Deselect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`}
-                             className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-full border border-base-300 bg-white px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-gray-800 transition-colors hover:bg-base-300 sm:h-10 sm:min-h-0 sm:w-auto sm:flex-initial sm:flex-row sm:gap-2 sm:px-4 sm:text-sm sm:leading-normal shadow-sm"
-                           >
-                             <X className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden />
-                             <span className="flex flex-col sm:hidden">
-                               <span>Deselect</span>
-                               <span>
-                                 {selectedProperties.size}{' '}
-                                 {selectedProperties.size === 1 ? 'property' : 'properties'}
-                               </span>
-                             </span>
-                             <span className="hidden sm:inline">
-                               Deselect {selectedProperties.size}{' '}
-                               {selectedProperties.size === 1 ? 'property' : 'properties'}
-                             </span>
-                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedProperties(new Set())}
+                            aria-label={`Deselect ${selectedProperties.size} ${selectedProperties.size === 1 ? 'property' : 'properties'}`}
+                            className="flex h-10 min-h-10 min-w-0 flex-1 cursor-pointer flex-col items-center justify-center gap-0 rounded-full border border-base-300 bg-white px-2 py-0.5 text-center text-[13px] font-medium leading-tight text-gray-800 transition-colors hover:bg-base-300 sm:h-10 sm:min-h-0 sm:w-auto sm:flex-initial sm:flex-row sm:gap-2 sm:px-4 sm:text-sm sm:leading-normal shadow-sm"
+                          >
+                            <X className="hidden h-4 w-4 shrink-0 sm:block" aria-hidden />
+                            <span className="flex flex-col sm:hidden">
+                              <span>Deselect</span>
+                              <span>
+                                {selectedProperties.size}{' '}
+                                {selectedProperties.size === 1 ? 'property' : 'properties'}
+                              </span>
+                            </span>
+                            <span className="hidden sm:inline">
+                              Deselect {selectedProperties.size}{' '}
+                              {selectedProperties.size === 1 ? 'property' : 'properties'}
+                            </span>
+                          </button>
                         </div>
                       </motion.div>
                     )}

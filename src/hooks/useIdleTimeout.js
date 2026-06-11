@@ -14,6 +14,7 @@ import {
   syncActivityTimestamp,
   clearActivityTimestamp,
 } from "@/lib/lastActivity";
+import { clearSurveyOnLogout } from "@/lib/clearSurveyOnLogout";
 
 const IDLE_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours
 const WARNING_TIME = 1 * 60 * 1000; // warning in the final minute before logout
@@ -49,6 +50,7 @@ export function useIdleTimeout(user, onWarning, onLogout) {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       await supabase.auth.signOut();
+      clearSurveyOnLogout();
       callbacksRef.current.onLogout?.();
       router.push("/login");
     } catch (error) {

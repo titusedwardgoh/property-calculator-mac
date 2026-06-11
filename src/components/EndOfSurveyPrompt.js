@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { CheckCircle, X, Save, UserPlus, LogIn } from 'lucide-react';
+import { setPendingSurveyLink } from '@/lib/pendingSurveyLink';
 
 export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount, show = true, onReturningToDashboard, propertyId }) {
   const [showPrompt, setShowPrompt] = useState(show);
@@ -75,21 +76,16 @@ export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount, 
 
   const handleCreateAccount = () => {
     // Store current URL to redirect back after signup
-    sessionStorage.setItem('returnAfterAuth', window.location.pathname);
-    // Save propertyId to sessionStorage so it can be saved to survey_leads during signup
     if (propertyId) {
-      sessionStorage.setItem('linkPropertyIdAfterAuth', propertyId);
+      setPendingSurveyLink(propertyId, window.location.pathname);
     }
     setShowPrompt(false);
     router.push('/signup');
   };
 
   const handleLogin = () => {
-    // Store current URL to redirect back after login
-    sessionStorage.setItem('returnAfterAuth', window.location.pathname);
-    // Save propertyId to sessionStorage so it can be saved to survey_leads during signup/login
     if (propertyId) {
-      sessionStorage.setItem('linkPropertyIdAfterAuth', propertyId);
+      setPendingSurveyLink(propertyId, window.location.pathname);
     }
     setShowPrompt(false);
     router.push('/login');

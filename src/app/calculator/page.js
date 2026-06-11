@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, Minus, DollarSign, Download, Mail, Edit, Plus, ArrowRight, Loader2, CheckCircle2, ChevronDown, User, Landmark, Award, Info } from 'lucide-react';
 import UpfrontCosts from '../../components/UpfrontCosts';
@@ -27,8 +27,16 @@ import { formatCurrency } from '../../states/shared/baseCalculations.js';
 import { useStateSelector } from '../../states/useStateSelector.js';
 import { formatFieldValue, fieldLabels } from '../../lib/fieldMapping.js';
 import Link from 'next/link';
+import {
+    clearPendingSurveyLink,
+    getPendingSurveyLinkPropertyId,
+    hasPendingSurveyLink,
+    setPendingSurveyLink,
+} from '../../lib/pendingSurveyLink';
+import { resetSessionAndForm } from '../../lib/sessionManager';
 
 function CalculatorPageContent() {
+    const router = useRouter();
     const formData = useFormStore();
     const updateFormData = formData.updateFormData;
     const hydrateFromPropertyRecord = formData.hydrateFromPropertyRecord;
@@ -55,6 +63,7 @@ function CalculatorPageContent() {
     const [isGrantsCardExpanded, setIsGrantsCardExpanded] = useState(false);
     const hasResumedRef = useRef(false);
     const initialWelcomeCheckedRef = useRef(false);
+    const freshStartHandledRef = useRef(false);
 
     // Get state-specific functions for calculations
     const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW');
@@ -70,7 +79,9 @@ function CalculatorPageContent() {
         {
             autoSave: true, // Enable auto-save functionality
             enableAutoSave: true, // Always auto-save to database (logged in or not)
-            isLoadingResume
+            isLoadingResume,
+            authUserId: user?.id ?? null,
+            authLoading,
         }
     );
 
@@ -100,6 +111,19 @@ function CalculatorPageContent() {
             setIsOngoingCostsExpanded((prev) => !prev);
         }
     };
+
+    // Dashboard "Start New Survey" — reset on mount even if onClick ran before navigation
+    useEffect(() => {
+        if (freshStartHandledRef.current) return;
+        if (searchParams.get('fresh') !== 'true') return;
+
+        freshStartHandledRef.current = true;
+        hasResumedRef.current = false;
+        initialWelcomeCheckedRef.current = false;
+        setOriginalLoadedState(null);
+        resetSessionAndForm(formData.resetForm);
+        router.replace('/calculator', { scroll: false });
+    }, [searchParams, formData.resetForm, router, setOriginalLoadedState]);
 
     // Resume / view a saved survey from the dashboard
     useEffect(() => {
@@ -152,16 +176,24 @@ function CalculatorPageContent() {
             });
     }, [searchParams, authLoading, user?.id, hydrateFromPropertyRecord, updateFormData, setOriginalLoadedState]);
 
-    // Fresh calculator visit (not resuming) — show welcome when there is no in-progress data
+    // Fresh calculator visit (not resuming) — show welcome; discard stale dashboard-linked state
     useEffect(() => {
         if (authLoading) return;
         if (searchParams.get('resume') === 'true') return;
+        if (searchParams.get('fresh') === 'true') return;
         if (initialWelcomeCheckedRef.current) return;
 
         initialWelcomeCheckedRef.current = true;
         hasResumedRef.current = false;
 
         const state = useFormStore.getState();
+
+        // In-memory state from a resumed dashboard survey must not continue without ?resume=true
+        if (state.propertyLinkedToUser) {
+            resetSessionAndForm(formData.resetForm);
+            return;
+        }
+
         const hasFormData =
             state.propertyPrice ||
             state.propertyAddress ||
@@ -169,12 +201,9 @@ function CalculatorPageContent() {
             state.buyerType;
 
         if (!hasFormData) {
-            if (state.propertyAddress) {
-                updateFormData('propertyAddress', '');
-            }
             updateFormData('showWelcomePage', true);
         }
-    }, [authLoading, searchParams, updateFormData]);
+    }, [authLoading, searchParams, updateFormData, formData.resetForm]);
 
     // Safety check: Stop resuming if all forms are complete
     useEffect(() => {
@@ -188,7 +217,7 @@ function CalculatorPageContent() {
     // Define handleLinkToAccount before useEffect that uses it
     const handleLinkToAccount = useCallback(async (userId) => {
         // When anonymous user logs in/creates account, link existing record to their account
-        const linkPropertyId = typeof window !== 'undefined' ? sessionStorage.getItem('linkPropertyIdAfterAuth') : null;
+        const linkPropertyId = hasPendingSurveyLink() ? getPendingSurveyLinkPropertyId() : null;
         const targetPropertyId = linkPropertyId || propertyId;
 
         if (targetPropertyId) {
@@ -227,11 +256,9 @@ function CalculatorPageContent() {
     useEffect(() => {
         if (typeof window === 'undefined') return;
 
-        const linkPropertyId = sessionStorage.getItem('linkPropertyIdAfterAuth');
-        if (linkPropertyId && user) {
-            // User logged in and there's a property to link - link it via API
+        if (hasPendingSurveyLink() && user) {
             handleLinkToAccount(user.id);
-            sessionStorage.removeItem('linkPropertyIdAfterAuth');
+            clearPendingSurveyLink();
         }
     }, [user, handleLinkToAccount]);
 
@@ -274,7 +301,7 @@ function CalculatorPageContent() {
     const handleDiscard = () => {
         // Clear baseline so auto-save does not run after reset; then clear form
         setOriginalLoadedState(null);
-        formData.resetForm();
+        resetSessionAndForm(formData.resetForm);
     };
 
     const handleEndOfSurveyDismiss = () => {
@@ -1856,7 +1883,8 @@ function CalculatorPageContent() {
                                                             whileHover={{ scale: 1.05 }}
                                                             whileTap={{ scale: 0.95 }}
                                                             onClick={() => {
-                                                                formData.resetForm();
+                                                                setOriginalLoadedState(null);
+                                                                resetSessionAndForm(formData.resetForm);
                                                             }}
                                                             className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
                                                         >
@@ -1876,10 +1904,20 @@ function CalculatorPageContent() {
                                                             whileHover={{ scale: 1.05 }}
                                                             whileTap={{ scale: 0.95 }}
                                                             onClick={() => {
-                                                                const targetUrl = user ? '/dashboard' : '/';
-                                                                if (typeof window !== 'undefined' && window.__navigationWarning) {
-                                                                    window.__navigationWarning.checkNavigation(targetUrl);
+                                                                if (user) {
+                                                                    const targetUrl = '/dashboard';
+                                                                    if (typeof window !== 'undefined' && window.__navigationWarning) {
+                                                                        const canNavigate = window.__navigationWarning.checkNavigation(targetUrl);
+                                                                        if (canNavigate) router.push(targetUrl);
+                                                                    } else {
+                                                                        router.push(targetUrl);
+                                                                    }
+                                                                    return;
                                                                 }
+                                                                if (propertyId) {
+                                                                    setPendingSurveyLink(propertyId, '/calculator');
+                                                                }
+                                                                router.push('/login?returnTo=calculator');
                                                             }}
                                                             className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-secondary hover:bg-secondary-focus text-white px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
                                                         >

@@ -6,6 +6,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { X, AlertTriangle } from 'lucide-react';
 import EndOfSurveyPrompt from './EndOfSurveyPrompt';
+import { setPendingSurveyLink, isAuthFlowPath } from '@/lib/pendingSurveyLink';
+
+const getPathFromUrl = (url) => {
+  try {
+    return new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost').pathname;
+  } catch {
+    return url;
+  }
+};
 
 export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard, onLinkToAccount, propertyAddress, onReturningToDashboard, allFormsComplete, propertyId }) {
   const [showWarning, setShowWarning] = useState(false);
@@ -44,30 +53,43 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
 
   // Function to check navigation (called from parent component)
   const checkNavigation = (url) => {
-    // Silent exit if no unsaved changes
-    if (!hasUnsavedChanges) {
-      return true; // Allow navigation immediately
+    if (url === pathname) {
+      return true;
     }
-    
-    // Check anonymous warning first (for both mid-survey and end-of-survey when not logged in)
-    if (shouldShowAnonymousWarning && url !== pathname) {
-      setPendingNavigation(url);
-      setShowAnonymousWarning(true);
-      return false; // Prevent navigation
-    }
-    // Check logged-in user warning
-    if (shouldShowWarning && url !== pathname) {
-      setPendingNavigation(url);
-      setShowWarning(true);
-      return false; // Prevent navigation
-    }
-    // Show end-of-survey prompt for logged-in users when survey is complete
-    if (shouldShowEndOfSurveyPrompt && user && url !== pathname) {
+
+    // Completed survey: always prompt before leaving, even when the resume
+    // baseline matches (completion flags are excluded from change detection).
+    if (shouldShowEndOfSurveyPrompt) {
       setPendingNavigation(url);
       setShowEndOfSurveyPrompt(true);
-      return false; // Prevent navigation
+      return false;
     }
-    return true; // Allow navigation
+
+    // Silent exit if no unsaved changes
+    if (!hasUnsavedChanges) {
+      return true;
+    }
+
+    // Allow navigation to login/signup without warning — user is choosing to save
+    if (shouldShowAnonymousWarning && isAuthFlowPath(getPathFromUrl(url))) {
+      return true;
+    }
+
+    // Check anonymous warning (mid-survey exit when not logging in to save)
+    if (shouldShowAnonymousWarning) {
+      setPendingNavigation(url);
+      setShowAnonymousWarning(true);
+      return false;
+    }
+
+    // Check logged-in user warning
+    if (shouldShowWarning) {
+      setPendingNavigation(url);
+      setShowWarning(true);
+      return false;
+    }
+
+    return true;
   };
 
   // Expose checkNavigation to parent via window (hacky but works)
@@ -83,7 +105,7 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
         delete window.__navigationWarning;
       }
     };
-  }, [shouldShowWarning, shouldShowAnonymousWarning, shouldShowEndOfSurveyPrompt, pathname]);
+  }, [shouldShowWarning, shouldShowAnonymousWarning, shouldShowEndOfSurveyPrompt, hasUnsavedChanges, allFormsComplete, pathname]);
 
   const handleConfirm = async () => {
     setShowWarning(false);
@@ -143,12 +165,8 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
   const handleAnonymousLoginToSave = () => {
     setShowAnonymousWarning(false);
     // Store propertyId in sessionStorage so we can link it after login
-    if (propertyId && typeof window !== 'undefined') {
-      sessionStorage.setItem('linkPropertyIdAfterAuth', propertyId);
-    }
-    // Store return URL to come back to calculator after login
-    if (typeof window !== 'undefined') {
-      sessionStorage.setItem('returnAfterAuth', '/calculator');
+    if (propertyId) {
+      setPendingSurveyLink(propertyId, '/calculator');
     }
     router.push('/login?returnTo=calculator');
   };

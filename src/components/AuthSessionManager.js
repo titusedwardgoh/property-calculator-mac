@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useIdleTimeout } from '@/hooks/useIdleTimeout';
 import { createClient } from '@/lib/supabase/client';
+import { clearSurveyOnLogout } from '@/lib/clearSurveyOnLogout';
 import IdleWarningModal from './IdleWarningModal';
 
 export default function AuthSessionManager() {
@@ -24,6 +25,7 @@ export default function AuthSessionManager() {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
       await supabase.auth.signOut();
+      clearSurveyOnLogout();
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);

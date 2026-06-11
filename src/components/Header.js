@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { createClient } from '@/lib/supabase/client';
+import { clearSurveyOnLogout } from '@/lib/clearSurveyOnLogout';
 import { User, LogOut } from 'lucide-react';
 import {
   PUBLIC_HEADER_GLASS_STYLE,
@@ -53,6 +54,7 @@ export default function Header() {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
       await supabase.auth.signOut();
+      clearSurveyOnLogout();
       router.push('/');
       router.refresh();
     } catch (error) {

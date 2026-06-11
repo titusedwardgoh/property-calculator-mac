@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
+import { clearSurveyOnLogout } from '@/lib/clearSurveyOnLogout';
 import { createClient } from '@/lib/supabase/client';
 import { LogOut } from 'lucide-react';
 import {
@@ -54,6 +55,7 @@ export default function LoggedInHeaderOverlay() {
         try {
             await fetch('/api/auth/logout', { method: 'POST' });
             await supabase.auth.signOut();
+            clearSurveyOnLogout();
             router.push('/');
             router.refresh();
         } catch (error) {

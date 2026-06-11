@@ -1,7 +1,8 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { getSessionId, getDeviceId, getSupabaseUserId } from '../lib/sessionManager'
+import { getSessionId, getDeviceId } from '../lib/sessionManager'
 import { useStateSelector } from '../states/useStateSelector'
 import { calculateGlobalProgress } from '../lib/progressCalculation'
+import { useFormStore } from '../stores/formStore'
 
 // Normalization helper function (outside hook for consistency)
 // IMPORTANT: this is used for change detection / auto-save decisions.
@@ -36,9 +37,8 @@ const getNormalizedData = (data) => {
     if (calculatedKeys.includes(key)) return true
     // UI flags/toggles
     if (key.startsWith('show')) return true
-    // Step tracking / navigation state
+    // Internal step counters (distinct from ActiveStep progress markers)
     if (key.endsWith('CurrentStep')) return true
-    if (key.endsWith('ActiveStep')) return true
     // Completion flags are derived from answers and can flip due to resume logic
     if (key.endsWith('Complete')) return true
     if (key.endsWith('FormComplete')) return true
@@ -82,8 +82,15 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
   const { 
     autoSave = false, // Auto-save disabled by default (only for logged-in users who want it)
     enableAutoSave = false, // Flag to enable auto-save (set to true for logged-in users)
-    isLoadingResume = false // When true, skip auto-save until baseline is set after load
+    isLoadingResume = false, // When true, skip auto-save until baseline is set after load
+    authUserId = null, // From useAuth — single source of truth for logged-in state
+    authLoading = false,
   } = options
+  
+  const authUserIdRef = useRef(authUserId)
+  useEffect(() => {
+    authUserIdRef.current = authUserId
+  }, [authUserId])
   
   const saveTimeoutRef = useRef(null)
   const isInitialMountRef = useRef(true)
@@ -108,10 +115,10 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
 
   // Calculate completion percentage based on required fields for current path
   // Uses dynamic denominator that excludes skipped fields
-  const calculateCompletionPercentage = useCallback((formData) => {
+  const calculateCompletionPercentage = useCallback((data) => {
     // Note: getSuggestedLoanDecision is not available in this context,
     // so we pass undefined - the calculation will handle it gracefully
-    return calculateGlobalProgress(formData, {})
+    return calculateGlobalProgress(data, { forPersistence: true })
   }, [])
 
   // Determine current section based on form state
@@ -329,6 +336,19 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
     }
   }, [])
 
+  // Only attach user_id on explicit save, or when resuming a dashboard survey while logged in.
+  // Background auto-save for new guest surveys stays anonymous even if a stale auth cookie exists.
+  const resolveSaveUserId = useCallback((userSaved, isResumingSurvey, propertyLinkedToUser = false) => {
+    if (authLoading) return null
+    const uid = authUserIdRef.current
+    if (!uid) return null
+    if (userSaved) return uid
+    if (isResumingSurvey) return uid
+    // Keep attaching user_id while editing a dashboard-owned record after resume finishes
+    if (propertyLinkedToUser) return uid
+    return null
+  }, [authLoading])
+
   // Save data to Supabase via API route
   const saveToSupabase = useCallback(async (data, userSaved = false) => {
     // For manual saves, wait for any in-progress auto-save to complete
@@ -383,14 +403,17 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
         return
       }
 
-      // Get Supabase user ID from session (if authenticated)
-      const userId = await getSupabaseUserId()
+      const userId = resolveSaveUserId(userSaved, data.isResumingSurvey, data.propertyLinkedToUser)
 
       const sections = organizeFormDataIntoSections(data)
-      // Use global progress calculation with full formData to account for branching
-      const completionPercentage = calculateCompletionPercentage(data)
+      const isSurveyComplete = Boolean(data.allFormsComplete || data.sellerQuestionsComplete)
+      const completionPercentage = isSurveyComplete
+        ? 100
+        : calculateCompletionPercentage(data)
       const currentSection = getCurrentSection(data)
-      const completionStatus = completionPercentage === 100 ? 'complete' : 'in_progress'
+      const completionStatus = isSurveyComplete || completionPercentage === 100
+        ? 'complete'
+        : 'in_progress'
       
       // Calculate grant and concession info for analytics
       const grantConcessionInfo = calculateGrantAndConcessionInfo(data)
@@ -480,7 +503,7 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
     } finally {
       isSavingRef.current = false
     }
-  }, [sessionId, deviceId, setPropertyId, organizeFormDataIntoSections, calculateCompletionPercentage, getCurrentSection, calculateGrantAndConcessionInfo])
+  }, [sessionId, deviceId, setPropertyId, organizeFormDataIntoSections, calculateCompletionPercentage, getCurrentSection, calculateGrantAndConcessionInfo, resolveSaveUserId])
 
   // Load existing data from Supabase via API route
   const loadFromSupabase = useCallback(async () => {
@@ -558,13 +581,13 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
   }, [updateFormData, setPropertyId])
 
   // Debounced save function
-  const debouncedSave = useCallback((data) => {
+  const debouncedSave = useCallback(() => {
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current)
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      saveToSupabase(data)
+      saveToSupabase(useFormStore.getState())
     }, 500) // 500ms delay
   }, [saveToSupabase])
 
@@ -577,6 +600,8 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
     }
     // Skip auto-save during resume load until baseline is set
     if (isLoadingResume) return
+    // Wait for auth to settle so guest surveys are not linked to a stale session
+    if (authLoading) return
     // Skip one run after baseline is set (avoids duplicate save when isLoadingResume flips to false)
     if (skipNextAutoSaveRef.current) {
       skipNextAutoSaveRef.current = false
@@ -588,10 +613,10 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
     // Only auto-save if explicitly enabled AND there are actual changes
     if (autoSave && enableAutoSave) {
       if (checkHasUnsavedChanges()) {
-        debouncedSave(formData)
+        debouncedSave()
       }
     }
-  }, [formData, debouncedSave, autoSave, enableAutoSave, checkHasUnsavedChanges, isLoadingResume])
+  }, [formData, debouncedSave, autoSave, enableAutoSave, checkHasUnsavedChanges, isLoadingResume, authLoading])
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -604,8 +629,9 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
 
   // Explicit save function (can be called on demand)
   const saveExplicitly = useCallback(async (userSaved = false) => {
-    return await saveToSupabase(formData, userSaved)
-  }, [saveToSupabase, formData])
+    // Always read latest store (step updates can lag 150ms behind UI via setTimeout)
+    return await saveToSupabase(useFormStore.getState(), userSaved)
+  }, [saveToSupabase])
 
   return {
     saveToSupabase: saveExplicitly, // Expose explicit save function

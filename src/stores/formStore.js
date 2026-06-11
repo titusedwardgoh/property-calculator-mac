@@ -11,6 +11,7 @@ export const useFormStore = create((set, get) => ({
   // Supabase integration
   propertyId: null, // Current property record ID in Supabase
   isResumingSurvey: false, // Flag to track if we're resuming an existing survey
+  propertyLinkedToUser: false, // True when loaded record belongs to a logged-in user (dashboard resume)
   
   // Welcome Page
   showWelcomePage: true,
@@ -332,6 +333,7 @@ export const useFormStore = create((set, get) => ({
       const next = {
         ...state,
         propertyId: record.id,
+        propertyLinkedToUser: Boolean(record.user_id),
         isResumingSurvey: true,
         showWelcomePage: false,
         editingFromReview: false,
@@ -406,8 +408,14 @@ export const useFormStore = create((set, get) => ({
   resetForm: () => set({
     propertyId: null, // Clear property ID to trigger new record creation
     isResumingSurvey: false, // Clear resume flag
+    propertyLinkedToUser: false,
     propertyPrice: '',
     propertyAddress: '',
+    propertyStreetAddress: '',
+    propertySuburbPostcode: '',
+    detectedState: '',
+    detectedWALocation: '',
+    detectedWAMetro: '',
     selectedState: '',
     propertyType: '',
     propertyCategory: '',
@@ -467,6 +475,7 @@ export const useFormStore = create((set, get) => ({
     allFormsComplete: false,
     showSummary: false,
     showReviewPage: false,
+    editingFromReview: false,
     showAdditionalQuestions: false,
     additionalQuestionsFields: [],
     additionalQuestionsStep: 1,

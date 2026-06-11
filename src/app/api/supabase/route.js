@@ -315,6 +315,15 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
               message: 'Draft auto-saved (anonymous)' 
             })
           }
+        } else if (currentRecord && currentRecord.user_id !== null) {
+          return Response.json({
+            success: true,
+            propertyId,
+            persisted: false,
+            message: 'Auto-save skipped (authenticated record)'
+          })
+        } else if (propertyId) {
+          return Response.json({ error: 'Record not found' }, { status: 404 })
         }
       } else {
         // Create new anonymous draft (first auto-save)
@@ -384,6 +393,8 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
             persisted: false,
             message: 'Auto-save skipped (viewing master; save explicitly to create version)'
           })
+        } else if (propertyId) {
+          return Response.json({ error: 'Record not found' }, { status: 404 })
         }
       } else {
         // Create new draft (first auto-save)
@@ -576,6 +587,13 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
         })
       }
     }
+
+    return Response.json({
+      success: true,
+      propertyId: propertyId || null,
+      persisted: false,
+      message: 'No save path matched'
+    })
   } catch (error) {
     console.error('Save error:', error)
     return Response.json({ error: error.message }, { status: 500 })

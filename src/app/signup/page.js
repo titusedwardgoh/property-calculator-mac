@@ -6,6 +6,12 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { UserPlus, Eye, EyeOff, Loader2, CheckCircle2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import PendingSurveyLinkGuard from '@/components/PendingSurveyLinkGuard';
+import {
+  clearPendingSurveyLink,
+  getPendingSurveyLinkPropertyId,
+  hasPendingSurveyLink,
+} from '@/lib/pendingSurveyLink';
 
 function SignupPageContent() {
   const [email, setEmail] = useState('');
@@ -67,7 +73,7 @@ function SignupPageContent() {
 
     try {
       // Read propertyId from sessionStorage if available (from "Log in to save" flow)
-      const linkPropertyId = typeof window !== 'undefined' ? sessionStorage.getItem('linkPropertyIdAfterAuth') : null;
+      const linkPropertyId = hasPendingSurveyLink() ? getPendingSurveyLinkPropertyId() : null;
       
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
@@ -96,7 +102,7 @@ function SignupPageContent() {
       // The propertyId was passed to the API and saved to survey_leads
       // It will be linked when the user logs in after email confirmation
       if (linkPropertyId) {
-        sessionStorage.removeItem('linkPropertyIdAfterAuth');
+        clearPendingSurveyLink();
       }
       
       // Show message about linked surveys if any were merged
@@ -135,6 +141,7 @@ function SignupPageContent() {
 
   return (
     <div className="min-h-screen w-full relative flex items-start justify-center px-4 pt-20 pb-16 md:pt-24 md:pb-20 lg:pt-28 lg:pb-24">
+      <PendingSurveyLinkGuard />
       <div
         className="absolute inset-0 z-0"
         style={{

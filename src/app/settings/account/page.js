@@ -94,8 +94,16 @@ export default function AccountSettingsPage() {
         if (!loading && !user) {
             router.push('/login?next=/settings/account');
         } else if (user) {
-            // Load user data from Supabase
-            loadUserData();
+            // Load user data from Supabase - only show spinner on initial load when email is not loaded yet
+            const isInitial = !email;
+            loadUserData(isInitial);
+
+            // Set pending email verification status if a change is pending in Supabase
+            if (user.new_email) {
+                setPendingEmailVerification(user.new_email);
+            } else {
+                setPendingEmailVerification(null);
+            }
         }
     }, [user, loading, router]);
 
@@ -338,10 +346,12 @@ export default function AccountSettingsPage() {
         }
     }, [isManualEntry, isEditingAddress]);
 
-    const loadUserData = async () => {
+    const loadUserData = async (showSpinner = false) => {
         if (!user) return;
 
-        setIsDataLoading(true);
+        if (showSpinner) {
+            setIsDataLoading(true);
+        }
         try {
             // Load from profiles table
             const { data: profile, error } = await supabase
@@ -1703,7 +1713,7 @@ export default function AccountSettingsPage() {
                         <div className="flex items-center gap-3">
                             <Mail className="w-5 h-5 text-gray-400" />
                             <span className="text-gray-900 font-medium">{getCurrentEmail()}</span>
-                            {pendingEmailVerification && pendingEmailVerification === getCurrentEmail() && (
+                            {pendingEmailVerification && pendingEmailVerification !== getCurrentEmail() && (
                                 <span className="bg-amber-500/10 text-amber-600 border border-amber-500/20 px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1">
                                     <Clock className="w-3 h-3" />
                                     Pending Verification

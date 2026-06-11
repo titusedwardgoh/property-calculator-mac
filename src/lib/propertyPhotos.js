@@ -19,6 +19,10 @@ export const PROPWIZ_BRANDED_PLACEHOLDER_URL = encodeSvg(`
 </svg>
 `);
 
+export const isPropertyPhotoPlaceholder = (url) =>
+  url === PROPWIZ_BRANDED_PLACEHOLDER_URL ||
+  (typeof url === 'string' && url.startsWith('data:image/svg+xml'));
+
 const toFiniteNumber = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;

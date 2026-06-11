@@ -162,7 +162,7 @@ function getBuyerFieldStep(fieldKey, formData) {
  * @param {Object} formData - The form data
  * @returns {boolean} True if the user has passed this question
  */
-function isBuyerFieldPastStep(fieldKey, formData) {
+function isBuyerFieldPastStep(fieldKey, formData, { forPersistence = false, fieldSatisfied = false } = {}) {
   // If buyer details are complete, all fields are considered passed
   if (formData.buyerDetailsComplete) {
     return true
@@ -173,9 +173,11 @@ function isBuyerFieldPastStep(fieldKey, formData) {
     return true // Not a buyer detail field, count normally
   }
   
-  // Check if user has moved past this step
   const activeStep = formData.buyerDetailsActiveStep || 1
-  return activeStep > fieldStep
+  if (activeStep > fieldStep) return true
+  // When persisting to DB, count the current step if it already has a valid answer
+  if (forPersistence && activeStep === fieldStep && fieldSatisfied) return true
+  return false
 }
 
 /**
@@ -217,7 +219,7 @@ function getSellerFieldStep(fieldKey, formData) {
  * @param {Object} formData - The form data
  * @returns {boolean} True if the user has passed this question
  */
-function isSellerFieldPastStep(fieldKey, formData) {
+function isSellerFieldPastStep(fieldKey, formData, { forPersistence = false, fieldSatisfied = false } = {}) {
   // If seller questions are complete, all fields are considered passed
   if (formData.sellerQuestionsComplete) {
     return true
@@ -228,9 +230,10 @@ function isSellerFieldPastStep(fieldKey, formData) {
     return true // Not a seller question field, count normally
   }
   
-  // Check if user has moved past this step
   const activeStep = formData.sellerQuestionsActiveStep || 1
-  return activeStep > fieldStep
+  if (activeStep > fieldStep) return true
+  if (forPersistence && activeStep === fieldStep && fieldSatisfied) return true
+  return false
 }
 
 /**
@@ -263,7 +266,7 @@ function getPropertyFieldStep(fieldKey, formData) {
  * @param {Object} formData - The form data
  * @returns {boolean} True if the user has passed this question
  */
-function isPropertyFieldPastStep(fieldKey, formData) {
+function isPropertyFieldPastStep(fieldKey, formData, { forPersistence = false, fieldSatisfied = false } = {}) {
   // If property details are complete, all fields are considered passed
   if (formData.propertyDetailsComplete) {
     return true
@@ -274,9 +277,10 @@ function isPropertyFieldPastStep(fieldKey, formData) {
     return true // Not a property detail field, count normally
   }
   
-  // Check if user has moved past this step
   const activeStep = formData.propertyDetailsActiveStep || 1
-  return activeStep > fieldStep
+  if (activeStep > fieldStep) return true
+  if (forPersistence && activeStep === fieldStep && fieldSatisfied) return true
+  return false
 }
 
 /**
@@ -284,9 +288,13 @@ function isPropertyFieldPastStep(fieldKey, formData) {
  * @param {Object} formData - The current form state from Zustand store
  * @param {Object} options - Optional configuration
  * @param {Function} options.getSuggestedLoanDecision - Function to get suggested loan decision for edge case handling
+ * @param {boolean} options.forPersistence - When true, count the current step if it has a valid answer (for DB/dashboard %)
  * @returns {number} Completion percentage (0-100)
  */
 export function calculateGlobalProgress(formData, options = {}) {
+  const forPersistence = options.forPersistence === true
+  const stepOpts = (fieldSatisfied) => ({ forPersistence, fieldSatisfied })
+
   // Get the list of required fields for the current path
   const requiredFields = getRequiredFields(formData)
   
@@ -300,16 +308,14 @@ export function calculateGlobalProgress(formData, options = {}) {
       const suggestedValue = options?.getSuggestedLoanDecision?.()
       
       if (isFieldAnswered(value)) {
-        // Count as answered if:
-        // 1. User explicitly changed it from suggestion, OR
-        // 2. User is past the loan question step (implicit confirmation)
         const userChangedIt = suggestedValue && value !== suggestedValue
         const isACT = formData.selectedState === 'ACT'
-        const isPastLoanQuestion = formData.buyerDetailsComplete || 
-                                   (formData.buyerDetailsActiveStep > 7 && !isACT) ||
-                                   (formData.buyerDetailsActiveStep > 10 && isACT)
+        const loanQuestionStep = isACT ? 10 : 7
+        const activeStep = formData.buyerDetailsActiveStep || 1
+        const isPastLoanQuestion = formData.buyerDetailsComplete || activeStep > loanQuestionStep
+        const isOnLoanQuestion = forPersistence && activeStep === loanQuestionStep
         
-        if (userChangedIt || isPastLoanQuestion) {
+        if (userChangedIt || isPastLoanQuestion || isOnLoanQuestion) {
           answeredCount++
         }
       }
@@ -326,23 +332,19 @@ export function calculateGlobalProgress(formData, options = {}) {
           : isFieldAnswered(value)
 
       if (fieldSatisfied) {
-        // For property detail fields, only count if user has passed that step
         if (isPropertyField) {
-          if (isPropertyFieldPastStep(fieldKey, formData)) {
+          if (isPropertyFieldPastStep(fieldKey, formData, stepOpts(fieldSatisfied))) {
             answeredCount++
           }
         } else if (isBuyerField) {
-          // For buyer detail fields, only count if user has passed that step
-          if (isBuyerFieldPastStep(fieldKey, formData)) {
+          if (isBuyerFieldPastStep(fieldKey, formData, stepOpts(fieldSatisfied))) {
             answeredCount++
           }
         } else if (isSellerField) {
-          // For seller question fields, only count if user has passed that step
-          if (isSellerFieldPastStep(fieldKey, formData)) {
+          if (isSellerFieldPastStep(fieldKey, formData, stepOpts(fieldSatisfied))) {
             answeredCount++
           }
         } else {
-          // Normal field check (not a property detail, buyer detail, or seller question field)
           answeredCount++
         }
       }
