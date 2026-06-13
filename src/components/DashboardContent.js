@@ -674,11 +674,21 @@ function DashboardGoogleMapPanel({
           initialFitDoneRef.current = true;
         }
       } else if (!initialFitDoneRef.current) {
-        const densestCluster = findDensestClusterPoints(pointsToRender);
-        const pointsForView = densestCluster || pointsToRender;
-        const bounds = new window.google.maps.LatLngBounds();
-        pointsForView.forEach(point => bounds.extend({ lat: point.lat, lng: point.lng }));
-        map.fitBounds(bounds, 72);
+        if (pointsToRender.length === 1) {
+          const point = pointsToRender[0];
+          const position = { lat: point.lat, lng: point.lng };
+          centerAndOffsetMap(map, position);
+          setTimeout(() => {
+            map.setZoom(getCardFocusZoom());
+            centerAndOffsetMap(map, position);
+          }, 50);
+        } else {
+          const densestCluster = findDensestClusterPoints(pointsToRender);
+          const pointsForView = densestCluster || pointsToRender;
+          const bounds = new window.google.maps.LatLngBounds();
+          pointsForView.forEach(point => bounds.extend({ lat: point.lat, lng: point.lng }));
+          map.fitBounds(bounds, 72);
+        }
         initialFitDoneRef.current = true;
       }
 

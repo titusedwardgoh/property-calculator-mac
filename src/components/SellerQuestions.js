@@ -439,6 +439,7 @@ export default function SellerQuestions() {
         // Set all forms complete to show summary page
         updateFormData('allFormsComplete', true);
         updateFormData('showSummary', true);
+        updateFormData('editingFromReview', false);
         // Stop resuming - we're at the final page
         setTimeout(() => {
           formData.setIsResumingSurvey(false);
@@ -506,6 +507,7 @@ export default function SellerQuestions() {
         // We're on the completion page, move to final completion
         updateFormData('allFormsComplete', true);
         updateFormData('showSummary', true);
+        updateFormData('editingFromReview', false);
       } else {
         // Handle form completion
         updateFormData('sellerQuestionsComplete', true);
@@ -977,6 +979,7 @@ export default function SellerQuestions() {
                      setTimeout(() => {
                        updateFormData('allFormsComplete', true);
                        updateFormData('showSummary', true);
+                       updateFormData('editingFromReview', false);
                      }, 300);
                    }}
                    {...getNextButtonAnimation()}

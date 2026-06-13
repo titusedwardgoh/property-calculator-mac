@@ -93,44 +93,6 @@ export async function POST(request) {
         linkedSurveysCount = mergeResult.linkedCount
         console.log(`Linked ${linkedSurveysCount} guest survey(s) to logged-in user account`)
       }
-
-      // Also ensure any properties already linked to this user are marked as saved
-      // This handles cases where survey was linked when email was sent but user_saved wasn't set.
-      // Do NOT match user_saved.eq.false — that is used for dashboard soft-delete and session drafts;
-      // exclude explicit false below so deleted surveys are never resurrected on login.
-      if (serviceClient) {
-        try {
-          const { data: properties, error: fetchError } = await serviceClient
-            .from('properties')
-            .select('id, user_saved, is_active')
-            .eq('user_id', data.user.id)
-            .or('user_saved.is.null,is_active.is.null,is_active.eq.false')
-
-          const toPromote = (properties || []).filter(
-            (p) => p.user_saved !== false
-          )
-
-          if (!fetchError && toPromote.length > 0) {
-            const propertyIds = toPromote.map((p) => p.id)
-            const { error: updateError } = await serviceClient
-              .from('properties')
-              .update({
-                user_saved: true,
-                is_active: true
-              })
-              .in('id', propertyIds)
-
-            if (updateError) {
-              console.error('Error updating properties on login:', updateError)
-            } else {
-              console.log(`Updated ${propertyIds.length} property/properties to be saved and active`)
-            }
-          }
-        } catch (updateErr) {
-          console.error('Error ensuring properties are saved on login:', updateErr)
-          // Don't fail login if this update fails
-        }
-      }
     }
 
     // Return success response - cookies are set by Supabase server client
