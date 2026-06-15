@@ -911,12 +911,21 @@ export default function ResultsSummary({
                                                             </div>
                                                         </div>
 
-                                                        {/* CTA Action Buttons Component */}
+                                                            </div>
+                                                        </motion.div>
+                                                    </div>
+
+                                                    {/* CTA Action Buttons */}
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 20 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        transition={{ duration: 0.6, delay: 0.25, ease: "easeOut" }}
+                                                    >
                                                         {showEmailSuccess ? (
                                                             <motion.div
                                                                 initial={{ opacity: 0, y: 20 }}
                                                                 animate={{ opacity: 1, y: 0 }}
-                                                                className="flex flex-col gap-4 pt-2"
+                                                                className="flex flex-col gap-4"
                                                             >
                                                                 <div className="bg-emerald-50/30 border-2 border-emerald-100 rounded-xl p-6 text-center">
                                                                     <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
@@ -954,11 +963,11 @@ export default function ResultsSummary({
                                                                 </div>
                                                             </motion.div>
                                                         ) : (
-                                                            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                                                            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
                                                                 <motion.button
                                                                     whileHover={{ scale: 1.02 }}
                                                                     whileTap={{ scale: 0.98 }}
-                                                                    className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-primary hover:bg-primary/95 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150"
+                                                                    className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-primary hover:bg-primary/95 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150 w-full sm:w-auto"
                                                                 >
                                                                     <Download className="w-4 h-4" />
                                                                     Download Full PDF Report
@@ -969,7 +978,7 @@ export default function ResultsSummary({
                                                                     whileTap={{ scale: 0.98 }}
                                                                     onClick={onEmailPDF}
                                                                     disabled={isEmailingPDF}
-                                                                    className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-base-200 border-2 border-secondary text-secondary hover:bg-secondary/5 px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                    className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-base-200 border-2 border-secondary text-secondary hover:bg-secondary/5 px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
                                                                 >
                                                                     {isEmailingPDF ? (
                                                                         <>
@@ -985,10 +994,7 @@ export default function ResultsSummary({
                                                                 </motion.button>
                                                             </div>
                                                         )}
-
-                                                            </div>
-                                                        </motion.div>
-                                                    </div>
+                                                    </motion.div>
 
                                                     {/* Action Control: Edit and Reset Summary Row */}
                                                     <motion.div

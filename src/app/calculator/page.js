@@ -236,7 +236,7 @@ function CalculatorPageContent() {
     const showAdditionalQuestions = formData.showAdditionalQuestions;
     const editingFromReview = formData.editingFromReview;
     const missingFields = getMissingFields(formData);
-    const showResultsSummary = allFormsComplete && !showReviewPage;
+    const showResultsSummary = allFormsComplete && !showReviewPage && !editingFromReview;
     const showCostsSidebar = !showAdditionalQuestions && showReviewPage && missingFields.length === 0;
     const selectedState = formData.selectedState;
     const isACT = formData.isACT;
