@@ -36,11 +36,15 @@ import {
 } from "./shared/animations/inputAnimations";
 import QuestionInfoTooltip from "./shared/QuestionInfoTooltip";
 import { QUESTION_TOOLTIPS } from "../lib/questionTooltips";
+import { useWizardStep } from "../hooks/useWizardStep";
+import { useEditSession } from "../contexts/EditSessionContext";
 
 export default function AdditionalQuestions() {
   const formData = useFormStore();
   const updateFormData = useFormStore((s) => s.updateFormData);
   const updateLVR = useFormStore((s) => s.updateLVR);
+  const { navigateToStep, completeEditAndReturnToResults, abortEditAndReturnToResults, WIZARD_STEPS } = useWizardStep();
+  const { requestDiscardConfirm } = useEditSession();
   const netStateDuty = useNetStateDuty(formData);
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState("forward");
@@ -75,18 +79,16 @@ export default function AdditionalQuestions() {
         state.updateLMI?.();
         state.updateLoanRepayments?.();
       }
-      updateFormData("showAdditionalQuestions", false);
       updateFormData("additionalQuestionsFields", []);
       updateFormData("additionalQuestionsStep", 1);
-      updateFormData("showSummary", true);
-      updateFormData("editingFromReview", false);
+      void completeEditAndReturnToResults();
       setShowCompletionOverlay(false);
     }, 4000);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
     };
-  }, [showCompletionOverlay, updateFormData]);
+  }, [showCompletionOverlay, updateFormData, completeEditAndReturnToResults]);
 
   const storedValueForCurrentField = currentFieldKey
     ? formData[currentFieldKey]
@@ -123,10 +125,10 @@ export default function AdditionalQuestions() {
 
   useEffect(() => {
     if (fields.length === 0) {
-      updateFormData("showAdditionalQuestions", false);
       updateFormData("additionalQuestionsFields", []);
+      void completeEditAndReturnToResults();
     }
-  }, [fields.length, updateFormData]);
+  }, [fields.length, updateFormData, completeEditAndReturnToResults]);
 
   const config = currentFieldKey ? getFieldUIConfig(currentFieldKey) : null;
   const value = draftValue !== null ? draftValue : (formData[currentFieldKey] ?? "");
@@ -173,9 +175,15 @@ export default function AdditionalQuestions() {
   };
 
   const handleBack = () => {
-    updateFormData("showAdditionalQuestions", false);
+    if (useFormStore.getState().editSessionActive) {
+      requestDiscardConfirm(() => {
+        abortEditAndReturnToResults();
+      });
+      return;
+    }
     updateFormData("additionalQuestionsFields", []);
     updateFormData("additionalQuestionsStep", 1);
+    abortEditAndReturnToResults();
   };
 
   const isCurrentStepValid = () => {

@@ -2,16 +2,12 @@
 
 import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import UpfrontCosts from '../../components/UpfrontCosts';
-import OngoingCosts from '../../components/OngoingCosts';
-import Summary from '../../components/Summary';
+import { motion } from 'framer-motion';
 import PropertyDetails from '../../components/PropertyDetails';
 import BuyerDetails from '../../components/BuyerDetails';
 import LoanDetails from '../../components/LoanDetails';
 import SellerQuestions from '../../components/SellerQuestions';
 import WelcomePage from '../../components/WelcomePage';
-import ReviewSummary from '../../components/ReviewSummary';
 import AdditionalQuestions from '../../components/AdditionalQuestions';
 import SurveyHeaderOverlay from '../../components/SurveyHeaderOverlay';
 import SurveyLoadingScreen, { SurveyLoadingFallback } from '../../components/SurveyLoadingOverlay';
@@ -20,7 +16,7 @@ import EndOfSurveyPrompt from '../../components/EndOfSurveyPrompt';
 import EmailModal from '../../components/EmailModal';
 import ResultsSummary from '../../components/ResultsSummary';
 import { useFormStore } from '../../stores/formStore';
-import { getMissingFields, calculateGlobalProgress } from '../../lib/progressCalculation';
+import { calculateGlobalProgress, calculateEditModeOverallProgress } from '../../lib/progressCalculation';
 import { useSupabaseSync } from '../../hooks/useSupabaseSync';
 import { useAuth } from '../../hooks/useAuth';
 import { useStateSelector } from '../../states/useStateSelector.js';
@@ -29,8 +25,18 @@ import {
     getPendingSurveyLinkPropertyId,
     hasPendingSurveyLink,
 } from '../../lib/pendingSurveyLink';
-import { resetSessionAndForm } from '../../lib/sessionManager';
+import { resetSessionAndForm, getSessionId, getDeviceId } from '../../lib/sessionManager';
 import { buildResultsSummary } from '../../lib/resultsSummary/buildResultsSummary';
+import { useWizardStep } from '../../hooks/useWizardStep';
+import {
+    WIZARD_STEPS,
+    buildCalculatorUrl,
+    computeStepFromFormState,
+    hasStartedSurvey,
+    resolveWizardStep,
+    SUB_COMPLETE,
+} from '../../lib/wizardSteps';
+import { EditSessionProvider } from '../../contexts/EditSessionContext';
 
 function CalculatorPageContent() {
     const router = useRouter();
@@ -44,7 +50,6 @@ function CalculatorPageContent() {
     const searchParams = useSearchParams();
     const [isLoadingResume, setIsLoadingResume] = useState(false);
     const [isReturningToDashboard, setIsReturningToDashboard] = useState(false);
-    const [showReviewOverlay, setShowReviewOverlay] = useState(false);
     const [isEmailingPDF, setIsEmailingPDF] = useState(false);
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [showEmailSuccess, setShowEmailSuccess] = useState(false);
@@ -52,6 +57,10 @@ function CalculatorPageContent() {
     const hasResumedRef = useRef(false);
     const initialWelcomeCheckedRef = useRef(false);
     const freshStartHandledRef = useRef(false);
+    const urlLoadHandledRef = useRef(false);
+    const stepRedirectHandledRef = useRef(false);
+
+    const { step, fromReview, navigateToStep } = useWizardStep();
 
     // Get state-specific functions for calculations
     const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW');
@@ -99,7 +108,6 @@ function CalculatorPageContent() {
         hasResumedRef.current = true;
         setIsLoadingResume(true);
         sessionStorage.setItem('resumePropertyId', resumePropertyId);
-        updateFormData('showWelcomePage', false);
 
         fetch('/api/supabase', {
             method: 'POST',
@@ -110,6 +118,8 @@ function CalculatorPageContent() {
                 action: 'loadPropertyById',
                 propertyId: resumePropertyId,
                 userId: user?.id,
+                sessionId: getSessionId(),
+                deviceId: getDeviceId(),
             }),
         })
             .then((res) => res.json())
@@ -117,6 +127,36 @@ function CalculatorPageContent() {
                 if (result.success && result.data) {
                     hydrateFromPropertyRecord(result.data);
                     sessionStorage.removeItem('resumePropertyId');
+
+                    const hydrated = useFormStore.getState();
+                    const { step: resumeStep, sub: resumeSub } = resolveWizardStep(
+                        searchParams,
+                        hydrated,
+                        { completionStatus: result.data.completion_status }
+                    );
+
+                    const urlStep = searchParams.get('step');
+                    const urlSub = searchParams.get('sub');
+                    const urlAlreadyCorrect =
+                        urlStep === resumeStep &&
+                        (urlSub == null ||
+                            urlSub === String(resumeSub) ||
+                            (urlSub === SUB_COMPLETE && resumeSub === SUB_COMPLETE));
+
+                    if (!urlAlreadyCorrect) {
+                        router.replace(
+                            buildCalculatorUrl({
+                                step: resumeStep,
+                                sub: resumeSub,
+                                propertyId: resumePropertyId,
+                                resume: true,
+                                from: searchParams.get('from') === 'review' ? 'review' : undefined,
+                            }),
+                            { scroll: false }
+                        );
+                    }
+
+                    setIsResumingSurvey(false);
 
                     setTimeout(() => {
                         setOriginalLoadedState(useFormStore.getState());
@@ -126,16 +166,14 @@ function CalculatorPageContent() {
                     console.error('❌ Resume failed - no data in response:', result);
                     hasResumedRef.current = false;
                     setIsLoadingResume(false);
-                    updateFormData('showWelcomePage', true);
                 }
             })
             .catch((error) => {
                 console.error('Error loading survey to resume:', error);
                 hasResumedRef.current = false;
                 setIsLoadingResume(false);
-                updateFormData('showWelcomePage', true);
             });
-    }, [searchParams, authLoading, user?.id, hydrateFromPropertyRecord, updateFormData, setOriginalLoadedState]);
+    }, [searchParams, authLoading, user?.id, hydrateFromPropertyRecord, setOriginalLoadedState, router]);
 
     // Fresh calculator visit (not resuming) — show welcome; discard stale dashboard-linked state
     useEffect(() => {
@@ -155,16 +193,131 @@ function CalculatorPageContent() {
             return;
         }
 
-        const hasFormData =
-            state.propertyPrice ||
-            state.propertyAddress ||
-            state.selectedState ||
-            state.buyerType;
-
-        if (!hasFormData) {
-            updateFormData('showWelcomePage', true);
+        if (hasStartedSurvey(state) && !searchParams.get('step')) {
+            const { step: inferredStep, sub: inferredSub } = computeStepFromFormState(state);
+            router.replace(
+                buildCalculatorUrl({
+                    step: inferredStep,
+                    sub: inferredSub,
+                    propertyId: state.propertyId,
+                }),
+                { scroll: false }
+            );
         }
-    }, [authLoading, searchParams, updateFormData, formData.resetForm]);
+    }, [authLoading, searchParams, formData.resetForm, router]);
+
+    // Reload survey from URL after refresh (propertyId + step in URL, empty store)
+    useEffect(() => {
+        const urlPropertyId = searchParams.get('propertyId');
+        const urlStep = searchParams.get('step');
+
+        if (authLoading) return;
+        if (searchParams.get('resume') === 'true') return;
+        if (!urlPropertyId || !urlStep || urlStep === WIZARD_STEPS.WELCOME) return;
+
+        const state = useFormStore.getState();
+        if (state.propertyId === urlPropertyId && hasStartedSurvey(state)) return;
+        if (urlLoadHandledRef.current === urlPropertyId) return;
+
+        urlLoadHandledRef.current = urlPropertyId;
+        setIsLoadingResume(true);
+
+        fetch('/api/supabase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'loadPropertyById',
+                propertyId: urlPropertyId,
+                userId: user?.id,
+                sessionId: getSessionId(),
+                deviceId: getDeviceId(),
+            }),
+        })
+            .then((res) => res.json())
+            .then((result) => {
+                if (result.success && result.data) {
+                    hydrateFromPropertyRecord(result.data);
+                    setIsResumingSurvey(false);
+                    setTimeout(() => {
+                        setOriginalLoadedState(useFormStore.getState());
+                        setIsLoadingResume(false);
+                    }, 800);
+                } else {
+                    console.error('Failed to reload survey from URL:', result.error || result);
+                    setIsLoadingResume(false);
+                }
+            })
+            .catch((error) => {
+                console.error('Error reloading survey from URL:', error);
+                setIsLoadingResume(false);
+            });
+    }, [
+        searchParams,
+        authLoading,
+        user?.id,
+        hydrateFromPropertyRecord,
+        setOriginalLoadedState,
+        setIsResumingSurvey,
+    ]);
+
+    // Keep propertyId in the URL once auto-save creates a record
+    useEffect(() => {
+        if (!propertyId || isLoadingResume) return;
+        const urlPropertyId = searchParams.get('propertyId');
+        const urlStep = searchParams.get('step');
+        if (urlPropertyId === propertyId && urlStep && urlStep !== WIZARD_STEPS.WELCOME) return;
+
+        const rawSub = searchParams.get('sub');
+        const sub =
+            rawSub === SUB_COMPLETE
+                ? SUB_COMPLETE
+                : parseInt(rawSub || '1', 10) || 1;
+
+        router.replace(
+            buildCalculatorUrl({
+                step: urlStep && urlStep !== WIZARD_STEPS.WELCOME ? urlStep : step,
+                sub,
+                propertyId,
+                from: fromReview ? 'review' : undefined,
+            }),
+            { scroll: false }
+        );
+    }, [propertyId, isLoadingResume, searchParams, step, fromReview, router]);
+
+    // Sync edit-from-review flag for formStore branch guards (URL → store only)
+    useEffect(() => {
+        if (fromReview && !formData.editingFromReview) {
+            updateFormData('editingFromReview', true);
+        }
+    }, [fromReview, formData.editingFromReview, updateFormData]);
+
+    // Legacy review URLs → Results
+    useEffect(() => {
+        if (step !== WIZARD_STEPS.REVIEW) return;
+        updateFormData('showSummary', true);
+        updateFormData('showReviewPage', false);
+        navigateToStep(WIZARD_STEPS.RESULTS, { from: undefined });
+    }, [step, updateFormData, navigateToStep]);
+
+    // Redirect invalid step once survey data is available
+    useEffect(() => {
+        if (authLoading || isLoadingResume) return;
+        if (searchParams.get('fresh') === 'true') return;
+        if (step !== WIZARD_STEPS.WELCOME) return;
+        if (!hasStartedSurvey(formData)) return;
+        if (stepRedirectHandledRef.current) return;
+
+        stepRedirectHandledRef.current = true;
+        const { step: inferredStep, sub: inferredSub } = computeStepFromFormState(formData);
+        router.replace(
+            buildCalculatorUrl({
+                step: inferredStep,
+                sub: inferredSub,
+                propertyId,
+            }),
+            { scroll: false }
+        );
+    }, [authLoading, isLoadingResume, step, formData, propertyId, searchParams, router]);
 
     // Safety check: Stop resuming if all forms are complete
     useEffect(() => {
@@ -223,21 +376,15 @@ function CalculatorPageContent() {
         }
     }, [user, handleLinkToAccount]);
 
-    const showWelcomePage = formData.showWelcomePage;
+    const showWelcomePage = step === WIZARD_STEPS.WELCOME;
     const propertyDetailsComplete = formData.propertyDetailsComplete;
     const buyerDetailsComplete = formData.buyerDetailsComplete;
     const needsLoan = formData.needsLoan;
-    const showLoanDetails = formData.showLoanDetails;
     const loanDetailsComplete = formData.loanDetailsComplete;
-    const showSellerQuestions = formData.showSellerQuestions;
     const sellerQuestionsComplete = formData.sellerQuestionsComplete;
     const allFormsComplete = formData.allFormsComplete;
-    const showReviewPage = formData.showReviewPage;
-    const showAdditionalQuestions = formData.showAdditionalQuestions;
-    const editingFromReview = formData.editingFromReview;
-    const missingFields = getMissingFields(formData);
-    const showResultsSummary = allFormsComplete && !showReviewPage;
-    const showCostsSidebar = !showAdditionalQuestions && showReviewPage && missingFields.length === 0;
+    const editingFromReview = fromReview || formData.editingFromReview;
+    const showResultsSummary = step === WIZARD_STEPS.RESULTS;
     const selectedState = formData.selectedState;
     const isACT = formData.isACT;
     const propertyType = formData.propertyType;
@@ -261,10 +408,32 @@ function CalculatorPageContent() {
     };
 
     const handleDiscard = () => {
+        if (formData.editSessionActive) {
+            formData.abortEditSession();
+            setOriginalLoadedState(useFormStore.getState());
+            return;
+        }
         // Clear baseline so auto-save does not run after reset; then clear form
         setOriginalLoadedState(null);
         resetSessionAndForm(formData.resetForm);
     };
+
+    // Silent discard when tab closes during an active edit session
+    useEffect(() => {
+        const onPageHide = () => {
+            if (useFormStore.getState().editSessionActive) {
+                useFormStore.getState().abortEditSession();
+                setOriginalLoadedState(useFormStore.getState());
+            }
+        };
+        window.addEventListener('pagehide', onPageHide);
+        return () => window.removeEventListener('pagehide', onPageHide);
+    }, [setOriginalLoadedState]);
+
+    const handleEditSessionAbort = useCallback(() => {
+        formData.abortEditSession();
+        setOriginalLoadedState(useFormStore.getState());
+    }, [formData, setOriginalLoadedState]);
 
     const handleEndOfSurveyDismiss = () => {
         // User chose not to save - data is still retained in backend
@@ -340,12 +509,18 @@ function CalculatorPageContent() {
     };
 
     return (
+        <EditSessionProvider
+            saveToSupabase={saveToSupabase}
+            setOriginalLoadedState={setOriginalLoadedState}
+        >
         <div className="aurora-page-bg min-h-screen">
             {/* Navigation warning for unsaved changes */}
             {/* Only show if logged in AND property address is set */}
             <NavigationWarning
                 hasUnsavedChanges={hasUnsavedChanges()}
                 allFormsComplete={formData.allFormsComplete}
+                editSessionActive={formData.editSessionActive}
+                onEditSessionAbort={handleEditSessionAbort}
                 onSave={() => handleSave(true)} // Set user_saved = true when user clicks SAVE
                 onDiscard={handleDiscard}
                 onLinkToAccount={handleLinkToAccount}
@@ -373,16 +548,12 @@ function CalculatorPageContent() {
                 <SurveyLoadingScreen message="Returning to dashboard..." />
             )}
 
-            {showReviewOverlay && (
-                <SurveyLoadingScreen message="Let's review your responses" />
-            )}
-
             {showWelcomePage && !isLoadingResume ? (
                 <WelcomePage />
             ) : isLoadingResume ? (
                 <SurveyLoadingScreen message="Loading your survey..." />
             ) : (
-                <main className={`container mx-auto max-w-7xl px-3 sm:px-4 pb-4 lg:pb-10 ${showResultsSummary ? 'md:pt-35 max-md:pt-30' : `md:pt-35 ${showCostsSidebar ? 'max-md:pt-20' : 'max-md:pt-30'}`}`}>
+                <main className={`container mx-auto max-w-7xl px-3 sm:px-4 pb-4 lg:pb-10 ${showResultsSummary ? 'md:pt-35 max-md:pt-20' : 'md:pt-35 max-md:pt-30'}`}>
                     {/* Progress Bars - hidden on Results Summary */}
                     {!showResultsSummary && (
                     <div className="hidden md:block mb-0 md:w-[57%]">
@@ -402,27 +573,31 @@ function CalculatorPageContent() {
                                         className="bg-primary h-1 transition-all duration-300 origin-top"
                                         style={{
                                             width: `${(() => {
-                                                if (showReviewPage || editingFromReview) {
-                                                    if (showAdditionalQuestions) {
+                                                const isEditingCompletedSurvey =
+                                                    allFormsComplete && !showResultsSummary;
+
+                                                if (
+                                                    editingFromReview ||
+                                                    step === WIZARD_STEPS.ADDITIONAL ||
+                                                    isEditingCompletedSurvey
+                                                ) {
+                                                    if (step === WIZARD_STEPS.ADDITIONAL) {
                                                         const aqFields = formData.additionalQuestionsFields || [];
                                                         const frozen = { ...formData };
                                                         aqFields.forEach(k => { frozen[k] = ''; });
                                                         return calculateGlobalProgress(frozen, {});
                                                     }
-                                                    if (missingFields.length === 0 && showReviewPage) {
-                                                        return calculateGlobalProgress(formData, {});
-                                                    }
-                                                    const totalSections = needsLoan === 'yes' ? 4 : 3;
-                                                    const propertyDone = propertyDetailsComplete || formData.propertyDetailsFormComplete;
-                                                    let completeCount = (propertyDone ? 1 : 0) + (buyerDetailsComplete ? 1 : 0) + (sellerQuestionsComplete ? 1 : 0);
-                                                    if (needsLoan === 'yes') completeCount += loanDetailsComplete ? 1 : 0;
-                                                    return Math.round((completeCount / totalSections) * 100);
+                                                    return calculateEditModeOverallProgress(
+                                                        step,
+                                                        formData,
+                                                        editingFromReview || isEditingCompletedSurvey
+                                                    );
                                                 }
                                                 if (!propertyDetailsComplete) return 0;
                                                 if (!buyerDetailsComplete) return 25;
                                                 if (buyerDetailsComplete && needsLoan === 'yes' && !loanDetailsComplete) return 50;
-                                                if (buyerDetailsComplete && needsLoan === 'yes' && loanDetailsComplete && !showSellerQuestions) return 75;
-                                                if (buyerDetailsComplete && showSellerQuestions && !sellerQuestionsComplete) return 75;
+                                                if (buyerDetailsComplete && needsLoan === 'yes' && loanDetailsComplete && step !== WIZARD_STEPS.SELLER) return 75;
+                                                if (buyerDetailsComplete && step === WIZARD_STEPS.SELLER && !sellerQuestionsComplete) return 75;
                                                 if (buyerDetailsComplete && sellerQuestionsComplete) return 100;
                                                 if (buyerDetailsComplete && needsLoan !== 'yes') return 75;
                                                 return 0;
@@ -449,16 +624,14 @@ function CalculatorPageContent() {
                                             width: `${(() => {
                                                 let progress = 0;
 
-                                                if (showReviewPage && !showAdditionalQuestions) return 0;
-
-                                                if (showReviewPage && showAdditionalQuestions) {
+                                                if (step === WIZARD_STEPS.ADDITIONAL) {
                                                     const aqFields = formData.additionalQuestionsFields || [];
                                                     if (aqFields.length === 0) return 0;
                                                     const aqStep = formData.additionalQuestionsStep || 1;
                                                     return Math.round(((aqStep - 1) / aqFields.length) * 100);
                                                 }
 
-                                                if (!propertyDetailsComplete) {
+                                                if (step === WIZARD_STEPS.PROPERTY) {
                                                     // PropertyDetails progress - calculate based on display step and total steps
                                                     const internalStep = propertyDetailsActiveStep || 1;
                                                     let displayStep = internalStep;
@@ -477,27 +650,23 @@ function CalculatorPageContent() {
                                                         progress = ((displayStep - 1) / totalSteps) * 100;
                                                     }
 
-                                                } else if (!buyerDetailsComplete || (buyerDetailsComplete && !formData.showLoanDetails && !formData.showSellerQuestions)) {
-                                                    // BuyerDetails progress - calculate based on current step and total steps
+                                                } else if (step === WIZARD_STEPS.BUYER) {
                                                     const currentStep = buyerDetailsActiveStep || 1;
                                                     const totalSteps = isACT ? 10 : 7;
 
-                                                    // Check if form is complete (on completion page)
-                                                    if (formData.buyerDetailsComplete && !formData.showLoanDetails && !formData.showSellerQuestions) {
+                                                    if (formData.buyerDetailsComplete) {
                                                         progress = 100;
                                                     } else {
                                                         progress = ((currentStep - 1) / totalSteps) * 100;
                                                     }
-                                                } else if (needsLoan === 'yes' && showLoanDetails && !loanDetailsComplete) {
-                                                    // LoanDetails progress - calculate based on current step and total steps
+                                                } else if (step === WIZARD_STEPS.LOAN && !loanDetailsComplete) {
                                                     const currentStep = loanDetailsActiveStep || 1;
                                                     const totalSteps = 7;
 
                                                     progress = ((currentStep - 1) / totalSteps) * 100;
-                                                } else if (needsLoan === 'yes' && loanDetailsComplete && !showSellerQuestions) {
-                                                    // LoanDetails complete - show 100%
+                                                } else if (step === WIZARD_STEPS.LOAN && loanDetailsComplete) {
                                                     progress = 100;
-                                                } else if (showSellerQuestions && !sellerQuestionsComplete) {
+                                                } else if (step === WIZARD_STEPS.SELLER && !sellerQuestionsComplete) {
                                                     // SellerQuestions progress - calculate based on current step and total steps
                                                     const currentStep = sellerQuestionsActiveStep || 1;
 
@@ -565,67 +734,37 @@ function CalculatorPageContent() {
                     )}
 
                     <div className="flex flex-col md:flex-row md:items-start">
-                        {/* Sidebar: Summary, Upfront and Ongoing Costs - only when on Review with no missing fields */}
-                        {showCostsSidebar && (
-                            <div className="order-1 md:order-2 md:w-2/5 md:flex-shrink-0 px-4 pb-4 max-md:pt-0 md:px-6 md:pb-6 md:pt-4 md:mt-4 md:rounded-r-lg">
-                                <AnimatePresence>
-                                    {formData.showSummary && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: -20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -20 }}
-                                            transition={{ duration: 0.5 }}
-                                            className="mb-4"
-                                        >
-                                            <Summary />
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                                <motion.div
-                                    layout
-                                    transition={{ duration: 0.3, ease: "easeInOut" }}
-                                >
-                                    <AnimatePresence mode="wait">
-                                        <UpfrontCosts />
-                                    </AnimatePresence>
-                                    <div className="mt-3 -mb-5">
-                                        <AnimatePresence mode="wait">
-                                            <OngoingCosts />
-                                        </AnimatePresence>
-                                    </div>
-                                </motion.div>
-                            </div>
-                        )}
-
-                        {/* Main content area - showReviewPage first so user stays on Review when branch resets create gaps */}
                         <div className={`order-2 md:order-1 ${showResultsSummary ? 'w-full max-w-6xl mx-auto' : 'md:w-3/5'}`}>
                             {(() => {
-                                if (showReviewPage && showAdditionalQuestions) return <AdditionalQuestions />;
-                                if (showReviewPage) return <ReviewSummary />;
-                                if (!propertyDetailsComplete) return <PropertyDetails />;
-                                if (!buyerDetailsComplete) return <BuyerDetails />;
-                                if (buyerDetailsComplete && showLoanDetails && !loanDetailsComplete) return <LoanDetails />;
-                                if (buyerDetailsComplete && loanDetailsComplete && !showSellerQuestions) return <LoanDetails />;
-                                if (buyerDetailsComplete && showSellerQuestions && !sellerQuestionsComplete) return <SellerQuestions />;
-                                if (buyerDetailsComplete && sellerQuestionsComplete && !allFormsComplete && !editingFromReview) return <SellerQuestions />;
-                                if (buyerDetailsComplete && !showLoanDetails && !showSellerQuestions && !formData.buyerDetailsCurrentStep) return <BuyerDetails />;
-                                if (formData.buyerDetailsCurrentStep) return <BuyerDetails />;
-                                if (allFormsComplete) return (
-                                    <ResultsSummary
-                                        formData={formData}
-                                        stateFunctions={stateFunctions}
-                                        user={user}
-                                        router={router}
-                                        propertyId={propertyId}
-                                        onEmailPDF={handleEmailPDF}
-                                        isEmailingPDF={isEmailingPDF}
-                                        showEmailSuccess={showEmailSuccess}
-                                        emailSuccessData={emailSuccessData}
-                                        setShowReviewOverlay={setShowReviewOverlay}
-                                        setOriginalLoadedState={setOriginalLoadedState}
-                                    />
-                                );
-                                return null;
+                                switch (step) {
+                                    case WIZARD_STEPS.PROPERTY:
+                                        return <PropertyDetails />;
+                                    case WIZARD_STEPS.BUYER:
+                                        return <BuyerDetails />;
+                                    case WIZARD_STEPS.LOAN:
+                                        return <LoanDetails />;
+                                    case WIZARD_STEPS.SELLER:
+                                        return <SellerQuestions />;
+                                    case WIZARD_STEPS.ADDITIONAL:
+                                        return <AdditionalQuestions />;
+                                    case WIZARD_STEPS.RESULTS:
+                                        return (
+                                            <ResultsSummary
+                                                formData={formData}
+                                                stateFunctions={stateFunctions}
+                                                user={user}
+                                                router={router}
+                                                propertyId={propertyId}
+                                                onEmailPDF={handleEmailPDF}
+                                                isEmailingPDF={isEmailingPDF}
+                                                showEmailSuccess={showEmailSuccess}
+                                                emailSuccessData={emailSuccessData}
+                                                setOriginalLoadedState={setOriginalLoadedState}
+                                            />
+                                        );
+                                    default:
+                                        return null;
+                                }
                             })()}
                         </div>
                     </div>
@@ -640,6 +779,7 @@ function CalculatorPageContent() {
                 propertyId={propertyId}
             />
         </div>
+        </EditSessionProvider>
     )
 }
 

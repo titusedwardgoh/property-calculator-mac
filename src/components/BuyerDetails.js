@@ -11,6 +11,7 @@ import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 import { calculateGlobalProgress, getMissingFields } from '../lib/progressCalculation';
+import { useWizardStep } from '../hooks/useWizardStep';
 import QuestionInfoTooltip from './shared/QuestionInfoTooltip';
 import { QUESTION_TOOLTIPS } from '../lib/questionTooltips';
 import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
@@ -18,6 +19,7 @@ import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/Su
 export default function BuyerDetails() {
     const formData = useFormStore();
     const updateFormData = useFormStore(state => state.updateFormData);
+    const { isSubComplete, subNumeric, fromReview, navigateToStep, pushSubStep, completeEditAndReturnToResults, WIZARD_STEPS, SUB_COMPLETE } = useWizardStep();
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState('forward'); // 'forward' or 'backward'
   const [isInitialEntry, setIsInitialEntry] = useState(true); // Track if we're on initial entry from PropertyDetails
@@ -79,6 +81,23 @@ export default function BuyerDetails() {
       updateFormData('showSellerQuestions', false);
     }
   }, [formData.buyerDetailsCurrentStep, updateFormData, formData.buyerDetailsComplete]);
+
+  // Sync sub-step from URL (refresh / browser back)
+  useEffect(() => {
+    if (isSubComplete) {
+      updateFormData('buyerDetailsComplete', true);
+      return;
+    }
+
+    if (formData.buyerDetailsComplete) {
+      updateFormData('buyerDetailsComplete', false);
+    }
+
+    if (subNumeric != null && subNumeric !== currentStep) {
+      setCurrentStep(subNumeric);
+      updateFormData('buyerDetailsActiveStep', subNumeric);
+    }
+  }, [isSubComplete, subNumeric, formData.buyerDetailsComplete, currentStep, updateFormData]);
 
   // Auto-set ownedPropertyLast5Years to "no" if first home buyer is "yes"
   useEffect(() => {
@@ -252,6 +271,7 @@ export default function BuyerDetails() {
         setCurrentStep(currentStep + 1);
         // Update the store with current step for progress tracking
         updateFormData('buyerDetailsActiveStep', currentStep + 1);
+        pushSubStep(currentStep + 1);
         
         // Trigger auto-selection when moving from savings to loan question
         const isMovingToLoanQuestion = 
@@ -274,6 +294,7 @@ export default function BuyerDetails() {
           updateFormData('buyerDetailsComplete', true);
           updateFormData('showLoanDetails', false);
           updateFormData('showSellerQuestions', false);
+          navigateToStep(WIZARD_STEPS.BUYER, { sub: SUB_COMPLETE });
         }, 2500);
       } else {
         setTimeout(() => setOverlayPhase('done'), 2500);
@@ -282,6 +303,7 @@ export default function BuyerDetails() {
           updateFormData('buyerDetailsComplete', true);
           updateFormData('showLoanDetails', false);
           updateFormData('showSellerQuestions', false);
+          navigateToStep(WIZARD_STEPS.BUYER, { sub: SUB_COMPLETE });
         }, 3500);
       }
     }
@@ -294,17 +316,16 @@ export default function BuyerDetails() {
         setCurrentStep(currentStep - 1);
         // Update the store with current step for progress tracking
         updateFormData('buyerDetailsActiveStep', currentStep - 1);
+        pushSubStep(currentStep - 1);
       }, 150);
     }
   };
 
   const handleBack = () => {
     setDirection('backward');
-    // Go back to PropertyDetails
     updateFormData('propertyDetailsComplete', false);
-    // Set PropertyDetails to show the last step (property price step)
-    // For both WA and non-WA, the property price step is internal step 6
     updateFormData('propertyDetailsCurrentStep', 6);
+    navigateToStep(WIZARD_STEPS.PROPERTY, { sub: 6 });
   };
 
   // Check if current step is valid
@@ -341,25 +362,17 @@ export default function BuyerDetails() {
     if (formData.isResumingSurvey) {
       // If section is already complete, advance to next section based on needsLoan
       if (formData.buyerDetailsComplete) {
-        // Check needsLoan to determine next section
         if (formData.needsLoan === 'yes') {
-          // Advance to LoanDetails
-          updateFormData('showLoanDetails', true);
-          // Only set loanDetailsActiveStep to 1 if it's not already set (user hasn't started LoanDetails yet)
-          // Don't overwrite existing progress in LoanDetails
           if (!formData.loanDetailsActiveStep || formData.loanDetailsActiveStep === 1) {
             updateFormData('loanDetailsActiveStep', 1);
           }
+          navigateToStep(WIZARD_STEPS.LOAN, { sub: formData.loanDetailsActiveStep || 1 });
         } else {
-          // Advance to SellerQuestions
-          updateFormData('showSellerQuestions', true);
-          // Only set sellerQuestionsActiveStep to 1 if it's not already set (user hasn't started SellerQuestions yet)
-          // Don't overwrite existing progress in SellerQuestions
           if (!formData.sellerQuestionsActiveStep || formData.sellerQuestionsActiveStep === 1) {
             updateFormData('sellerQuestionsActiveStep', 1);
           }
+          navigateToStep(WIZARD_STEPS.SELLER, { sub: formData.sellerQuestionsActiveStep || 1 });
         }
-        // Reset completion flag temporarily to allow transition
         updateFormData('buyerDetailsComplete', false);
         // Stop resuming in this component - next section will handle its own auto-advance
         setTimeout(() => {
@@ -407,14 +420,12 @@ export default function BuyerDetails() {
     onPrev: prevStep,
     onComplete: () => {
       if (formData.buyerDetailsComplete) {
-        // We're on the completion page, move to next section
         if (formData.needsLoan === 'yes') {
-          updateFormData('showLoanDetails', true);
+          navigateToStep(WIZARD_STEPS.LOAN, { sub: 1 });
         } else {
-          updateFormData('showSellerQuestions', true);
+          navigateToStep(WIZARD_STEPS.SELLER, { sub: 1 });
         }
       } else {
-        // Handle form completion
         updateFormData('buyerDetailsComplete', true);
       }
     },
@@ -1189,8 +1200,9 @@ export default function BuyerDetails() {
                 onClick={() => {
                   setDirection('backward');
                   updateFormData('buyerDetailsComplete', false);
-                  // Go back to the loan question (last question before completion)
-                  setCurrentStep(formData.isACT ? 10 : 7); // Go back to loan question
+                  const lastStep = formData.isACT ? 10 : 7;
+                  setCurrentStep(lastStep);
+                  pushSubStep(lastStep);
                 }}
                 {...getBackButtonAnimation()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
@@ -1200,31 +1212,26 @@ export default function BuyerDetails() {
               
               <motion.button
                 onClick={() => {
-                  if (formData.editingFromReview) {
+                  const editing = fromReview || formData.editingFromReview;
+                  if (editing) {
                     if (formData.needsLoan === 'yes') {
-                      // Mirror Property Details: return to Review with AdditionalQuestions for loan fields
-                      updateFormData('editingFromReview', false);
-                      updateFormData('loanDetailsComplete', false); // Ensure we don't show LoanDetails completion screen
+                      updateFormData('loanDetailsComplete', false);
                       const missing = getMissingFields({ ...formData, buyerDetailsComplete: true });
                       if (missing.length > 0) {
                         updateFormData('additionalQuestionsFields', missing);
-                        updateFormData('showAdditionalQuestions', true);
                         updateFormData('additionalQuestionsStep', 1);
+                        navigateToStep(WIZARD_STEPS.ADDITIONAL, { from: 'review' });
+                        return;
                       }
-                      updateFormData('showReviewPage', true);
-                      updateFormData('showLoanDetails', false);
-                      updateFormData('showSellerQuestions', false);
-                    } else {
-                      // Standard return to review
-                      updateFormData('showReviewPage', true);
-                      updateFormData('editingFromReview', false);
                     }
+                    updateFormData('buyerDetailsComplete', true);
+                    void completeEditAndReturnToResults();
                     return;
                   }
                   if (formData.needsLoan === 'yes') {
-                    updateFormData('showLoanDetails', true);
+                    navigateToStep(WIZARD_STEPS.LOAN, { sub: 1 });
                   } else {
-                    updateFormData('showSellerQuestions', true);
+                    navigateToStep(WIZARD_STEPS.SELLER, { sub: 1 });
                   }
                 }}
                 {...getNextButtonAnimation()}

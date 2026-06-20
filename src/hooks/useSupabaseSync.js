@@ -610,6 +610,9 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
     // Cooldown: skip auto-save for 1.5s after baseline set so late-arriving state updates don't trigger save
     if (Date.now() - lastBaselineSetAtRef.current < 1500) return
 
+    // Skip auto-save during completed-survey edit session (commit saves explicitly)
+    if (useFormStore.getState().editSessionActive) return
+
     // Only auto-save if explicitly enabled AND there are actual changes
     if (autoSave && enableAutoSave) {
       if (checkHasUnsavedChanges()) {

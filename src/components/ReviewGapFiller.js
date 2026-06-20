@@ -2,15 +2,18 @@
 
 import { motion } from "framer-motion";
 import { useFormStore } from "../stores/formStore";
+import { useWizardStep } from "../hooks/useWizardStep";
 
 export default function ReviewGapFiller({ missingFields }) {
   const updateFormData = useFormStore((s) => s.updateFormData);
+  const { navigateToStep, WIZARD_STEPS } = useWizardStep();
 
   if (!missingFields || missingFields.length === 0) return null;
 
   const handleAnswerNow = () => {
     updateFormData("additionalQuestionsFields", missingFields);
-    updateFormData("showAdditionalQuestions", true);
+    updateFormData("additionalQuestionsStep", 1);
+    navigateToStep(WIZARD_STEPS.ADDITIONAL);
   };
 
   return (

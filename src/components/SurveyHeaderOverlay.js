@@ -6,6 +6,9 @@ import Image from 'next/image';
 import { useRouter, usePathname } from 'next/navigation';
 import { useFormStore } from '../stores/formStore';
 import { useAuth } from '@/hooks/useAuth';
+import { useWizardStep } from '@/hooks/useWizardStep';
+import { shouldReturnToResultsOnClose } from '@/lib/wizardSteps';
+import { useEditSession } from '@/contexts/EditSessionContext';
 import SiteHeaderShell from '@/components/SiteHeaderShell';
 import { PUBLIC_HEADER_GLASS_STYLE } from '@/lib/loggedInHeaderGlassStyle';
 import SurveyLoadingOverlay from '@/components/SurveyLoadingOverlay';
@@ -13,8 +16,13 @@ import SurveyLoadingOverlay from '@/components/SurveyLoadingOverlay';
 export default function SurveyHeaderOverlay() {
     const router = useRouter();
     const pathname = usePathname();
-    const resetForm = useFormStore(state => state.resetForm);
+    const allFormsComplete = useFormStore((state) => state.allFormsComplete);
+    const editingFromReview = useFormStore((state) => state.editingFromReview);
+    const editSessionActive = useFormStore((state) => state.editSessionActive);
+    const updateFormData = useFormStore((state) => state.updateFormData);
     const { user } = useAuth();
+    const { step, fromReview, navigateToStep, abortEditAndReturnToResults, WIZARD_STEPS } = useWizardStep();
+    const { requestDiscardConfirm } = useEditSession();
     const [isNavigatingAway, setIsNavigatingAway] = useState(false);
     const [navigationDestination, setNavigationDestination] = useState(null);
     const navigationTimeoutRef = useRef(null);
@@ -110,17 +118,43 @@ export default function SurveyHeaderOverlay() {
         router.push(url);
     };
 
-    const handleClose = () => {
-        // Navigate to dashboard if logged in, home if not
+    const returnToResults = () => {
+        updateFormData('showSummary', true);
+        updateFormData('editingFromReview', false);
+        updateFormData('showReviewPage', false);
+        navigateToStep(WIZARD_STEPS.RESULTS, { from: undefined });
+    };
+
+    const handleExitSurvey = () => {
+        if (
+            shouldReturnToResultsOnClose({
+                step,
+                allFormsComplete,
+                fromReview,
+                editingFromReview,
+            })
+        ) {
+            if (editSessionActive && step !== WIZARD_STEPS.RESULTS) {
+                requestDiscardConfirm(() => {
+                    abortEditAndReturnToResults();
+                });
+                return;
+            }
+            returnToResults();
+            return;
+        }
+
         const targetUrl = user ? '/dashboard' : '/';
         handleNavigation(targetUrl);
     };
 
+    const handleClose = () => {
+        handleExitSurvey();
+    };
+
     const handleLogoClick = (e) => {
         e.preventDefault();
-        // Navigate to dashboard if logged in, home if not
-        const targetUrl = user ? '/dashboard' : '/';
-        handleNavigation(targetUrl);
+        handleExitSurvey();
     };
 
     return (

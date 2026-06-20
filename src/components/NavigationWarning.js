@@ -16,7 +16,7 @@ const getPathFromUrl = (url) => {
   }
 };
 
-export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard, onLinkToAccount, propertyAddress, onReturningToDashboard, allFormsComplete, propertyId }) {
+export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard, onLinkToAccount, propertyAddress, onReturningToDashboard, allFormsComplete, propertyId, editSessionActive, onEditSessionAbort }) {
   const [showWarning, setShowWarning] = useState(false);
   const [showAnonymousWarning, setShowAnonymousWarning] = useState(false);
   const [showEndOfSurveyPrompt, setShowEndOfSurveyPrompt] = useState(false);
@@ -54,6 +54,12 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
   // Function to check navigation (called from parent component)
   const checkNavigation = (url) => {
     if (url === pathname) {
+      return true;
+    }
+
+    // Active edit session: discard in memory and allow navigation (no EndOfSurvey prompt)
+    if (editSessionActive && onEditSessionAbort) {
+      onEditSessionAbort();
       return true;
     }
 

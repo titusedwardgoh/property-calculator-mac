@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useFormStore } from '../stores/formStore';
 import { createNewSession } from '../lib/sessionManager';
+import { useWizardStep } from '../hooks/useWizardStep';
 import Image from 'next/image';
 import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
 
@@ -9,8 +10,8 @@ const LOADING_QUESTIONS_MS = 1500;
 const HERE_WE_GO_MS = 1500;
 
 export default function WelcomePage() {
-    const updateFormData = useFormStore(state => state.updateFormData);
     const resetForm = useFormStore(state => state.resetForm);
+    const { navigateToStep, WIZARD_STEPS } = useWizardStep();
     const [isExiting, setIsExiting] = useState(false);
     const [showLoadingOverlay, setShowLoadingOverlay] = useState(false);
     const [overlayPhase, setOverlayPhase] = useState('loading'); // 'loading' | 'here'
@@ -40,13 +41,14 @@ export default function WelcomePage() {
 
         transitionTimeoutsRef.current.push(
             setTimeout(() => {
-                updateFormData('showWelcomePage', false);
+                navigateToStep(WIZARD_STEPS.PROPERTY, { sub: 1 });
             }, LOADING_QUESTIONS_MS + HERE_WE_GO_MS)
         );
     }, [
         showLoadingOverlay,
         resetForm,
-        updateFormData,
+        navigateToStep,
+        WIZARD_STEPS,
         clearTransitionTimeouts,
     ]);
 
