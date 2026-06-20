@@ -7,10 +7,12 @@ import { getRequiredFields, getMissingFields, calculateGlobalProgress } from '..
 import { getFieldLabel, formatFieldValue, parsePropertyAddressForReview } from '../lib/fieldMapping';
 import ReviewGapFiller from './ReviewGapFiller';
 import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
+import { useWizardStep } from '../hooks/useWizardStep';
 
 export default function ReviewSummary() {
   const formData = useFormStore();
-  const { updateFormData, setShowReviewPage } = formData;
+  const updateFormData = useFormStore(state => state.updateFormData);
+  const { navigateToStep, WIZARD_STEPS } = useWizardStep();
   const [showRemovingLoanOverlay, setShowRemovingLoanOverlay] = useState(false);
   const [overlayPhase, setOverlayPhase] = useState('removing');
   const [showEditSectionOverlay, setShowEditSectionOverlay] = useState(false);
@@ -48,42 +50,38 @@ export default function ReviewSummary() {
   // Edit button handlers
   const doPropertyEdit = () => {
     updateFormData('editingFromReview', true);
-    updateFormData('showReviewPage', false);
     updateFormData('propertyDetailsActiveStep', 1);
     updateFormData('propertyDetailsComplete', false);
     updateFormData('propertyDetailsFormComplete', false);
     updateFormData('isResumingSurvey', false);
+    navigateToStep(WIZARD_STEPS.PROPERTY, { sub: 1, from: 'review' });
     window.scrollTo(0, 0);
   };
 
   const doBuyerEdit = () => {
     updateFormData('editingFromReview', true);
-    updateFormData('showReviewPage', false);
     updateFormData('buyerDetailsActiveStep', 1);
     updateFormData('buyerDetailsComplete', false);
     updateFormData('isResumingSurvey', false);
+    navigateToStep(WIZARD_STEPS.BUYER, { sub: 1, from: 'review' });
     window.scrollTo(0, 0);
   };
 
   const doLoanEdit = () => {
     updateFormData('editingFromReview', true);
-    updateFormData('showReviewPage', false);
-    updateFormData('showLoanDetails', true);
-    updateFormData('showSellerQuestions', false);
     updateFormData('loanDetailsActiveStep', 1);
     updateFormData('loanDetailsComplete', false);
     updateFormData('isResumingSurvey', false);
+    navigateToStep(WIZARD_STEPS.LOAN, { sub: 1, from: 'review' });
     window.scrollTo(0, 0);
   };
 
   const doSellerEdit = () => {
     updateFormData('editingFromReview', true);
-    updateFormData('showReviewPage', false);
-    updateFormData('showLoanDetails', false);
-    updateFormData('showSellerQuestions', true);
     updateFormData('sellerQuestionsActiveStep', 1);
     updateFormData('sellerQuestionsComplete', false);
     updateFormData('isResumingSurvey', false);
+    navigateToStep(WIZARD_STEPS.SELLER, { sub: 1, from: 'review' });
     window.scrollTo(0, 0);
   };
 
@@ -290,8 +288,8 @@ export default function ReviewSummary() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                setShowReviewPage(false);
                 updateFormData('showSummary', true);
+                navigateToStep(WIZARD_STEPS.RESULTS);
                 window.scrollTo(0, 0);
               }}
               className="px-6 py-3 cursor-pointer bg-white border-2 border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 hover:border-gray-400 transition-colors"
@@ -304,9 +302,9 @@ export default function ReviewSummary() {
               disabled={missingFields.length > 0 || progress < 100}
               onClick={() => {
                 if (missingFields.length > 0 || progress < 100) return;
-                setShowReviewPage(false);
                 updateFormData('showSummary', true);
                 updateFormData('allFormsComplete', true);
+                navigateToStep(WIZARD_STEPS.RESULTS);
                 window.scrollTo(0, 0);
               }}
               className={

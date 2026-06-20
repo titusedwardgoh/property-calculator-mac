@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { captureEditSessionSnapshot, applyEditSessionSnapshot } from '../lib/editSession'
 
 const BRANCH_DEPENDENCIES = {
   // Keep hasPensionCard when state changes because the same question applies in ACT and non-ACT.
@@ -85,10 +86,14 @@ export const useFormStore = create((set, get) => ({
   allFormsComplete: false,
   showSummary: false,
   showReviewPage: false,
-  editingFromReview: false, // true when user clicked Edit from Review; completing a section returns to Review
+  editingFromReview: false, // true when user clicked Edit from Results
   showAdditionalQuestions: false, // true when user clicked Answer now from Review gap-filler
   additionalQuestionsFields: [], // frozen list of field keys when entering the AdditionalQuestions wizard
   additionalQuestionsStep: 1, // current step in the AdditionalQuestions wizard
+
+  // Edit session (completed survey edits from Results — in-memory until commit/abort)
+  editSessionActive: false,
+  editSessionSnapshot: null,
 
   // Dropdown state management
   openDropdown: null, // 'upfront' or 'ongoing' or 'summary' or null
@@ -296,7 +301,38 @@ export const useFormStore = create((set, get) => ({
     }
     return next;
   }),
-  
+
+  startEditSession: () =>
+    set((state) => {
+      if (state.editSessionActive && state.editSessionSnapshot) return state;
+      return {
+        editSessionActive: true,
+        editSessionSnapshot: captureEditSessionSnapshot(state),
+      };
+    }),
+
+  abortEditSession: () =>
+    set((state) => {
+      if (!state.editSessionSnapshot) {
+        return {
+          editSessionActive: false,
+          editSessionSnapshot: null,
+          editingFromReview: false,
+        };
+      }
+      return applyEditSessionSnapshot(state.editSessionSnapshot);
+    }),
+
+  commitEditSession: () =>
+    set({
+      editSessionActive: false,
+      editSessionSnapshot: null,
+      editingFromReview: false,
+      showAdditionalQuestions: false,
+      additionalQuestionsFields: [],
+      additionalQuestionsStep: 1,
+    }),
+
   // Set property ID from Supabase
   setPropertyId: (id) => set({ propertyId: id }),
   
@@ -479,6 +515,8 @@ export const useFormStore = create((set, get) => ({
     showAdditionalQuestions: false,
     additionalQuestionsFields: [],
     additionalQuestionsStep: 1,
+    editSessionActive: false,
+    editSessionSnapshot: null,
     showWelcomePage: true,
     openDropdown: null,
     showUpfrontDropdown: false,

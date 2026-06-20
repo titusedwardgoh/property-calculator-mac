@@ -53,7 +53,7 @@ export async function POST(request) {
       case 'loadUserProperties':
         return await loadUserProperties(userId)
       case 'loadPropertyById':
-        return await loadPropertyById(propertyId, userId)
+        return await loadPropertyById(propertyId, userId, sessionId, deviceId)
       case 'linkPropertyToUser':
         return await linkPropertyToUser(propertyId)
       case 'linkGuestSurveyToUser':
@@ -360,7 +360,7 @@ async function saveProperty(sessionId, deviceId, userId, data, propertyId, userS
           .eq('id', propertyId)
           .maybeSingle()
 
-        if (currentRecord && currentRecord.user_id !== verifiedUserId) {
+        if (currentRecord && currentRecord.user_id && currentRecord.user_id !== verifiedUserId) {
           return Response.json({ error: 'Unauthorized' }, { status: 401 })
         }
 
@@ -768,7 +768,7 @@ async function linkPropertyToUser(propertyId) {
   }
 }
 
-async function loadPropertyById(propertyId, userId) {
+async function loadPropertyById(propertyId, userId, sessionId, deviceId) {
   try {
     if (!propertyId) {
       return Response.json({ error: 'Property ID is required' }, { status: 400 })
@@ -802,9 +802,18 @@ async function loadPropertyById(propertyId, userId) {
       })
     }
 
-    // If verifiedUserId exists, verify the property belongs to the user
-    if (verifiedUserId && masterRecord.user_id !== verifiedUserId) {
+    // Owned record: must match the logged-in user
+    if (verifiedUserId && masterRecord.user_id && masterRecord.user_id !== verifiedUserId) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Anonymous in-progress draft: allow same browser session or device
+    if (!masterRecord.user_id) {
+      const sessionMatches = sessionId && masterRecord.session_id === sessionId
+      const deviceMatches = deviceId && masterRecord.device_id === deviceId
+      if (!sessionMatches && !deviceMatches) {
+        return Response.json({ error: 'Unauthorized property access' }, { status: 403 })
+      }
     }
 
     // IMPORTANT: Do NOT create a session (shadow) record on load.

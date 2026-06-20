@@ -5,6 +5,8 @@
  * excluding fields that are skipped due to branching logic.
  */
 
+import { WIZARD_STEPS } from './wizardSteps'
+
 /**
  * Check if a field value is considered "answered"
  * @param {*} value - The field value to check
@@ -64,7 +66,10 @@ export function getRequiredFields(formData) {
   const isACT = formData.selectedState === 'ACT'
   const loanQuestionStep = isACT ? 10 : 7
   const hasConfirmedLoanDecision = formData.buyerDetailsComplete ||
-                                   formData.showReviewPage || // Trust the review page state
+                                   formData.showReviewPage ||
+                                   formData.editingFromReview ||
+                                   // Survey reached seller section — loan choice was confirmed earlier
+                                   formData.sellerQuestionsComplete ||
                                    (formData.buyerDetailsActiveStep > loanQuestionStep)
   
   // Only exclude loan fields if user has confirmed they don't need a loan
@@ -359,5 +364,47 @@ export function calculateGlobalProgress(formData, options = {}) {
   }
   
   return Math.round((answeredCount / totalRequired) * 100)
+}
+
+/**
+ * Overall progress during edit-from-Results: advances by section only, not per question.
+ * On a completed survey, sections other than the one being edited count as done.
+ * @param {boolean} isEditingFromResults - true when editing from Results (URL from=review or store flag)
+ */
+export function calculateEditModeOverallProgress(step, formData, isEditingFromResults = false) {
+  const needsLoan = formData.needsLoan === 'yes'
+  const totalSections = needsLoan ? 4 : 3
+  const sections = needsLoan
+    ? [WIZARD_STEPS.PROPERTY, WIZARD_STEPS.BUYER, WIZARD_STEPS.LOAN, WIZARD_STEPS.SELLER]
+    : [WIZARD_STEPS.PROPERTY, WIZARD_STEPS.BUYER, WIZARD_STEPS.SELLER]
+
+  const isSectionComplete = (sectionStep) => {
+    switch (sectionStep) {
+      case WIZARD_STEPS.PROPERTY:
+        return !!(formData.propertyDetailsComplete || formData.propertyDetailsFormComplete)
+      case WIZARD_STEPS.BUYER:
+        return !!formData.buyerDetailsComplete
+      case WIZARD_STEPS.LOAN:
+        return !!formData.loanDetailsComplete
+      case WIZARD_STEPS.SELLER:
+        return !!formData.sellerQuestionsComplete
+      default:
+        return false
+    }
+  }
+
+  const treatOtherSectionsAsComplete =
+    isEditingFromResults || formData.allFormsComplete || formData.editingFromReview
+  let completeCount = 0
+
+  for (const sectionStep of sections) {
+    if (treatOtherSectionsAsComplete && sectionStep !== step) {
+      completeCount += 1
+    } else if (isSectionComplete(sectionStep)) {
+      completeCount += 1
+    }
+  }
+
+  return Math.round((completeCount / totalSections) * 100)
 }
 

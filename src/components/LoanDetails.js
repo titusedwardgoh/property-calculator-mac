@@ -5,6 +5,7 @@ import { useFormStore } from '../stores/formStore';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import { calculateGlobalProgress } from '../lib/progressCalculation';
+import { useWizardStep } from '../hooks/useWizardStep';
 import {
   useNetStateDuty,
   LoanDepositStep,
@@ -20,6 +21,7 @@ import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/Su
 export default function LoanDetails() {
   const formData = useFormStore();
   const updateFormData = useFormStore(state => state.updateFormData);
+  const { isSubComplete, subNumeric, fromReview, navigateToStep, pushSubStep, completeEditAndReturnToResults, WIZARD_STEPS, SUB_COMPLETE } = useWizardStep();
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState('forward');
   const [isInitialEntry, setIsInitialEntry] = useState(true); // Track if we're on initial entry from BuyerDetails
@@ -106,6 +108,7 @@ export default function LoanDetails() {
         setCurrentStep(currentStep + 1);
         // Update the store with current step for progress tracking
         updateFormData('loanDetailsActiveStep', currentStep + 1);
+        pushSubStep(currentStep + 1);
       }, 150);
     } else if (currentStep === totalSteps) {
       // Show overlay (same as BuyerDetails) before completing
@@ -116,6 +119,7 @@ export default function LoanDetails() {
         setShowCalculatingOverlay(false);
         updateFormData('loanDetailsComplete', true);
         updateFormData('loanDetailsEverCompleted', true);
+        navigateToStep(WIZARD_STEPS.LOAN, { sub: SUB_COMPLETE });
       }, 3500);
       
       // Log final form completion
@@ -172,21 +176,17 @@ export default function LoanDetails() {
         setCurrentStep(currentStep - 1);
         // Update the store with current step for progress tracking
         updateFormData('loanDetailsActiveStep', currentStep - 1);
+        pushSubStep(currentStep - 1);
       }, 150);
     }
   };
 
   const handleBack = () => {
     setDirection('backward');
-    // Go back to BuyerDetails last question
     updateFormData('buyerDetailsComplete', false);
-    // Reset the navigation flags to ensure proper flow
-    updateFormData('showLoanDetails', false);
-    updateFormData('showSellerQuestions', false);
-    // Set BuyerDetails to show the last question
-    // For ACT: step 10 (savings question), for others: step 7 (savings question)
     const lastStep = formData.selectedState === 'ACT' ? 10 : 7;
     updateFormData('buyerDetailsCurrentStep', lastStep);
+    navigateToStep(WIZARD_STEPS.BUYER, { sub: lastStep });
   };
 
   // Check if current step is valid
@@ -235,14 +235,10 @@ export default function LoanDetails() {
     if (formData.isResumingSurvey) {
       // If section is already complete, advance to next section (SellerQuestions)
       if (formData.loanDetailsComplete) {
-        // Advance to SellerQuestions
-        updateFormData('showSellerQuestions', true);
-        // Only set sellerQuestionsActiveStep to 1 if it's not already set (user hasn't started SellerQuestions yet)
-        // Don't overwrite existing progress in SellerQuestions
         if (!formData.sellerQuestionsActiveStep || formData.sellerQuestionsActiveStep === 1) {
           updateFormData('sellerQuestionsActiveStep', 1);
         }
-        // Reset completion flag temporarily to allow transition
+        navigateToStep(WIZARD_STEPS.SELLER, { sub: formData.sellerQuestionsActiveStep || 1 });
         updateFormData('loanDetailsComplete', false);
         // Stop resuming in this component - SellerQuestions will handle its own auto-advance
         setTimeout(() => {
@@ -305,10 +301,8 @@ export default function LoanDetails() {
     onPrev: prevStep,
     onComplete: () => {
       if (formData.loanDetailsComplete) {
-        // We're on the completion page, move to next section
-        updateFormData('showSellerQuestions', true);
+        navigateToStep(WIZARD_STEPS.SELLER, { sub: 1 });
       } else {
-        // Handle form completion
         updateFormData('loanDetailsComplete', true);
         updateFormData('loanDetailsEverCompleted', true);
       }
@@ -324,6 +318,24 @@ export default function LoanDetails() {
       // Don't reset loanDetailsComplete here - let auto-advance useEffect handle it
     }
   }, [formData.isResumingSurvey, formData.loanDetailsActiveStep]);
+
+  // Sync sub-step from URL (refresh / browser back)
+  useEffect(() => {
+    if (isSubComplete) {
+      updateFormData('loanDetailsComplete', true);
+      updateFormData('loanDetailsEverCompleted', true);
+      return;
+    }
+
+    if (formData.loanDetailsComplete) {
+      updateFormData('loanDetailsComplete', false);
+    }
+
+    if (subNumeric != null && subNumeric !== currentStep) {
+      setCurrentStep(subNumeric);
+      updateFormData('loanDetailsActiveStep', subNumeric);
+    }
+  }, [isSubComplete, subNumeric, formData.loanDetailsComplete, currentStep, updateFormData]);
 
   // Watch for loanDetailsCurrentStep flag from SellerQuestions
   useEffect(() => {
@@ -544,6 +556,7 @@ export default function LoanDetails() {
                   setDirection('backward');
                   updateFormData('loanDetailsComplete', false);
                   setCurrentStep(7);
+                  pushSubStep(7);
                 }}
                 {...getBackButtonAnimation()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
@@ -553,12 +566,12 @@ export default function LoanDetails() {
               
               <motion.button
                 onClick={() => {
-                  if (formData.editingFromReview) {
-                    updateFormData('showReviewPage', true);
-                    updateFormData('editingFromReview', false);
+                  if (fromReview || formData.editingFromReview) {
+                    updateFormData('loanDetailsComplete', true);
+                    void completeEditAndReturnToResults();
                     return;
                   }
-                  updateFormData('showSellerQuestions', true);
+                  navigateToStep(WIZARD_STEPS.SELLER, { sub: 1 });
                 }}
                 {...getNextButtonAnimation()}
                 className="flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer"

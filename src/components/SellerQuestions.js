@@ -7,6 +7,7 @@ import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 import { calculateGlobalProgress } from '../lib/progressCalculation';
+import { useWizardStep } from '../hooks/useWizardStep';
 import QuestionInfoTooltip from './shared/QuestionInfoTooltip';
 import { QUESTION_TOOLTIPS } from '../lib/questionTooltips';
 import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
@@ -14,6 +15,7 @@ import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/Su
 export default function SellerQuestions() {
   const formData = useFormStore();
   const updateFormData = useFormStore(state => state.updateFormData);
+  const { isSubComplete, subNumeric, fromReview, navigateToStep, pushSubStep, completeEditAndReturnToResults, WIZARD_STEPS, SUB_COMPLETE } = useWizardStep();
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState('forward');
   const [isInitialEntry, setIsInitialEntry] = useState(true);
@@ -235,6 +237,7 @@ export default function SellerQuestions() {
         setCurrentStep(nextStepNumber);
         // Update the store with current step for progress tracking
         updateFormData('sellerQuestionsActiveStep', nextStepNumber);
+        pushSubStep(nextStepNumber);
       }, 150);
     } else if (currentStep === totalSteps) {
       // Show 4-phase overlay before completing
@@ -246,7 +249,9 @@ export default function SellerQuestions() {
       setTimeout(() => {
         setShowCalculatingOverlay(false);
         updateFormData('sellerQuestionsComplete', true);
+        setLocalCompletionState(true);
         formData.updateOngoingCosts();
+        navigateToStep(WIZARD_STEPS.SELLER, { sub: SUB_COMPLETE });
       }, 6000);
       
       // Log final form completion
@@ -320,32 +325,26 @@ export default function SellerQuestions() {
         setCurrentStep(prevStepNumber);
         // Update the store with current step for progress tracking
         updateFormData('sellerQuestionsActiveStep', prevStepNumber);
+        pushSubStep(prevStepNumber);
       }, 150);
     }
   }, [currentStep, updateFormData, formData.propertyType, formData.selectedState]);
 
   const handleBack = useCallback(() => {
     setDirection('backward');
-    // Reset the current section completion and visibility
     updateFormData('sellerQuestionsComplete', false);
-    updateFormData('showSellerQuestions', false);
 
     if (formData.needsLoan === 'yes') {
-      // Go back to LoanDetails Q7 (loan path)
       updateFormData('loanDetailsComplete', false);
-      updateFormData('showLoanDetails', true);
       updateFormData('loanDetailsCurrentStep', 7);
-      // Reset the showSellerQuestions flag to ensure proper flow
-      updateFormData('showSellerQuestions', false);
-             } else {
-      // Go back to BuyerDetails (no loan path - "Do you need a loan?" question)
+      navigateToStep(WIZARD_STEPS.LOAN, { sub: 7 });
+    } else {
       updateFormData('buyerDetailsComplete', false);
-      updateFormData('showLoanDetails', false);
-      // For ACT, the loan question is step 10, for others it's step 7
       const loanQuestionStep = formData.selectedState === 'ACT' ? 10 : 7;
       updateFormData('buyerDetailsCurrentStep', loanQuestionStep);
+      navigateToStep(WIZARD_STEPS.BUYER, { sub: loanQuestionStep });
     }
-  }, [formData.needsLoan, updateFormData, formData.selectedState]);
+  }, [formData.needsLoan, formData.selectedState, updateFormData, navigateToStep, WIZARD_STEPS]);
 
 
 
@@ -386,6 +385,27 @@ export default function SellerQuestions() {
       // Don't reset sellerQuestionsComplete here - let auto-advance useEffect handle it
     }
   }, [formData.isResumingSurvey, formData.sellerQuestionsActiveStep]);
+
+  // Sync sub-step from URL (refresh / browser back)
+  useEffect(() => {
+    if (isSubComplete) {
+      setLocalCompletionState(true);
+      updateFormData('sellerQuestionsComplete', true);
+      return;
+    }
+
+    if (localCompletionState) {
+      setLocalCompletionState(false);
+    }
+    if (formData.sellerQuestionsComplete) {
+      updateFormData('sellerQuestionsComplete', false);
+    }
+
+    if (subNumeric != null && subNumeric !== currentStep) {
+      setCurrentStep(subNumeric);
+      updateFormData('sellerQuestionsActiveStep', subNumeric);
+    }
+  }, [isSubComplete, subNumeric, formData.sellerQuestionsComplete, currentStep, updateFormData]);
 
   // Set localCompletionState when sellerQuestionsComplete becomes true
   useEffect(() => {
@@ -436,10 +456,10 @@ export default function SellerQuestions() {
     if (formData.isResumingSurvey) {
       // If section is already complete, advance to final completion page
       if (formData.sellerQuestionsComplete || formData.allFormsComplete) {
-        // Set all forms complete to show summary page
         updateFormData('allFormsComplete', true);
         updateFormData('showSummary', true);
         updateFormData('editingFromReview', false);
+        navigateToStep(WIZARD_STEPS.RESULTS);
         // Stop resuming - we're at the final page
         setTimeout(() => {
           formData.setIsResumingSurvey(false);
@@ -504,16 +524,15 @@ export default function SellerQuestions() {
     onPrev: prevStep,
     onComplete: useCallback(() => {
       if (localCompletionState) {
-        // We're on the completion page, move to final completion
         updateFormData('allFormsComplete', true);
         updateFormData('showSummary', true);
         updateFormData('editingFromReview', false);
+        navigateToStep(WIZARD_STEPS.RESULTS);
       } else {
-        // Handle form completion
         updateFormData('sellerQuestionsComplete', true);
         setLocalCompletionState(true);
       }
-    }, [localCompletionState, updateFormData]),
+    }, [localCompletionState, updateFormData, navigateToStep, WIZARD_STEPS.RESULTS]),
     onBack: useCallback(() => {
       if (localCompletionState) {
         // We're on the completion page, go back to the last question
@@ -955,6 +974,7 @@ export default function SellerQuestions() {
                        setLocalCompletionState(false);
                        setCurrentStep(8);
                        updateFormData('sellerQuestionsComplete', false);
+                       pushSubStep(8);
                      }, 10);
                    }}
                    {...getBackButtonAnimation()}
@@ -965,10 +985,9 @@ export default function SellerQuestions() {
                  
                  <motion.button
                    onClick={() => {
-                     if (formData.editingFromReview) {
+                     if (fromReview || formData.editingFromReview) {
                        updateFormData('sellerQuestionsComplete', true);
-                       updateFormData('showReviewPage', true);
-                       updateFormData('editingFromReview', false);
+                       void completeEditAndReturnToResults();
                        return;
                      }
                      setButtonsExiting(true);
@@ -980,6 +999,7 @@ export default function SellerQuestions() {
                        updateFormData('allFormsComplete', true);
                        updateFormData('showSummary', true);
                        updateFormData('editingFromReview', false);
+                       navigateToStep(WIZARD_STEPS.RESULTS);
                      }, 300);
                    }}
                    {...getNextButtonAnimation()}

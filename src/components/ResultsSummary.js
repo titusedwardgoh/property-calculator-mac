@@ -2,13 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, DollarSign, Download, Mail, Edit, Plus, ArrowRight, Loader2, CheckCircle2, ChevronDown, User, Landmark, Award, Info, Receipt } from 'lucide-react';
+import { Home, DollarSign, Download, Mail, Edit, Plus, Loader2, CheckCircle2, ChevronDown, User, Landmark, Award, Info, Receipt } from 'lucide-react';
 import Link from 'next/link';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { formatFieldValue } from '../lib/fieldMapping.js';
 import { buildResultsSummary } from '../lib/resultsSummary/buildResultsSummary';
-import { setPendingSurveyLink } from '../lib/pendingSurveyLink';
 import { resetSessionAndForm } from '../lib/sessionManager';
+import { useWizardStep } from '../hooks/useWizardStep';
+import { useFormStore } from '../stores/formStore';
+import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
 
 export default function ResultsSummary({
     formData,
@@ -20,9 +22,15 @@ export default function ResultsSummary({
     isEmailingPDF,
     showEmailSuccess,
     emailSuccessData,
-    setShowReviewOverlay,
     setOriginalLoadedState,
 }) {
+    const { navigateToStep, WIZARD_STEPS } = useWizardStep();
+    const updateFormData = useFormStore((s) => s.updateFormData);
+    const startEditSession = useFormStore((s) => s.startEditSession);
+    const [showEditSectionOverlay, setShowEditSectionOverlay] = useState(false);
+    const [editSectionLabel, setEditSectionLabel] = useState('');
+    const [showRemovingLoanOverlay, setShowRemovingLoanOverlay] = useState(false);
+    const [overlayPhase, setOverlayPhase] = useState('removing');
     const [isPropertyCardExpanded, setIsPropertyCardExpanded] = useState(false);
     const [isBuyerCardExpanded, setIsBuyerCardExpanded] = useState(false);
     const [isLoanCardExpanded, setIsLoanCardExpanded] = useState(false);
@@ -83,34 +91,255 @@ export default function ResultsSummary({
         loanLmiDisplay,
         loanLvrDisplay,
         settlementOtherCostsTotal,
-        annualOtherCostsTotal,
         otherCostsDetailRows,
     } = buildResultsSummary(formData, stateFunctions);
 
     const getGrantsAndConcessionsList = () => grantsAndConcessionsList;
 
+    const doPropertyEdit = () => {
+        startEditSession();
+        updateFormData('editingFromReview', true);
+        updateFormData('propertyDetailsActiveStep', 1);
+        updateFormData('propertyDetailsComplete', false);
+        updateFormData('propertyDetailsFormComplete', false);
+        updateFormData('isResumingSurvey', false);
+        navigateToStep(WIZARD_STEPS.PROPERTY, { sub: 1, from: 'review' });
+        window.scrollTo(0, 0);
+    };
+
+    const doBuyerEdit = () => {
+        startEditSession();
+        updateFormData('editingFromReview', true);
+        updateFormData('buyerDetailsActiveStep', 1);
+        updateFormData('buyerDetailsComplete', false);
+        updateFormData('isResumingSurvey', false);
+        navigateToStep(WIZARD_STEPS.BUYER, { sub: 1, from: 'review' });
+        window.scrollTo(0, 0);
+    };
+
+    const doLoanEdit = () => {
+        startEditSession();
+        updateFormData('editingFromReview', true);
+        updateFormData('loanDetailsActiveStep', 1);
+        updateFormData('loanDetailsComplete', false);
+        updateFormData('isResumingSurvey', false);
+        navigateToStep(WIZARD_STEPS.LOAN, { sub: 1, from: 'review' });
+        window.scrollTo(0, 0);
+    };
+
+    const doSellerEdit = () => {
+        startEditSession();
+        updateFormData('editingFromReview', true);
+        updateFormData('sellerQuestionsActiveStep', 1);
+        updateFormData('sellerQuestionsComplete', false);
+        updateFormData('isResumingSurvey', false);
+        navigateToStep(WIZARD_STEPS.SELLER, { sub: 1, from: 'review' });
+        window.scrollTo(0, 0);
+    };
+
+    const withEditOverlay = (doEdit, label) => () => {
+        setEditSectionLabel(label);
+        setShowEditSectionOverlay(true);
+        setTimeout(() => {
+            doEdit();
+            // Keep overlay visible until step changes and ResultsSummary unmounts
+        }, 2000);
+    };
+
+    const handlePropertyEdit = withEditOverlay(doPropertyEdit, 'Property Details');
+    const handleBuyerEdit = withEditOverlay(doBuyerEdit, 'Buyer Details');
+    const handleLoanEdit = withEditOverlay(doLoanEdit, 'Loan Details');
+    const handleSellerEdit = withEditOverlay(doSellerEdit, 'Other Costs');
+
+    const handleWantLoan = () => {
+        if (!useFormStore.getState().editSessionActive) {
+            startEditSession();
+        }
+        updateFormData('needsLoan', 'yes');
+        updateFormData('sellerQuestionsComplete', true);
+        updateFormData('allFormsComplete', true);
+        updateFormData('showSummary', true);
+        handleLoanEdit();
+    };
+
+    const handlePayCash = () => {
+        setOverlayPhase('removing');
+        setShowRemovingLoanOverlay(true);
+        updateFormData('needsLoan', 'no');
+        updateFormData('sellerQuestionsComplete', true);
+        updateFormData('allFormsComplete', true);
+        updateFormData('showSummary', true);
+        setTimeout(() => setOverlayPhase('done'), 2500);
+        setTimeout(() => {
+            setShowRemovingLoanOverlay(false);
+        }, 3500);
+    };
+
+    const cardEditButtonClass =
+        'px-3 py-1.5 cursor-pointer text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors shrink-0';
+
+    const CardEditButton = ({ label, onClick }) => (
+        <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={(e) => {
+                e.stopPropagation();
+                onClick();
+            }}
+            className={cardEditButtonClass}
+        >
+            {label}
+        </motion.button>
+    );
+
+    const reportCtaActions = showEmailSuccess ? (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col gap-4 w-full max-w-xl"
+        >
+            <div className="bg-emerald-50/30 border-2 border-emerald-100 rounded-xl p-6 text-center">
+                <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
+                <h3 className="text-lg font-bold text-secondary mb-1">Check your inbox!</h3>
+                <p className="text-sm text-gray-600 mb-4">Your detailed property report has been dispatched to {emailSuccessData?.email}</p>
+
+                {emailSuccessData?.testingMode && (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-left">
+                        <p className="text-xs text-yellow-800 font-semibold mb-1">📝 Developer Runtime Notice:</p>
+                        <p className="text-[11px] text-yellow-700">{emailSuccessData?.reminder || 'Resend validation protocol pending.'}</p>
+                    </div>
+                )}
+
+                {!user && (
+                    emailSuccessData?.emailExists ? (
+                        <>
+                            <p className="text-xs text-gray-500 mb-4">An identified account vector exists for this address. Sign in to sync your calculation sheets.</p>
+                            <Link href={`/login?email=${encodeURIComponent(emailSuccessData.email)}&next=/calculator`} className="inline-block">
+                                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-secondary hover:bg-secondary/90 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
+                                    Sign In to Your Account
+                                </motion.button>
+                            </Link>
+                        </>
+                    ) : (
+                        <>
+                            <p className="text-xs text-gray-500 mb-4">Want to track these properties over long horizons? Open a persistent record track.</p>
+                            <Link href={`/signup?email=${encodeURIComponent(emailSuccessData.email)}`} className="inline-block">
+                                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
+                                    Create My Account
+                                </motion.button>
+                            </Link>
+                        </>
+                    )
+                )}
+            </div>
+        </motion.div>
+    ) : (
+        <div className="flex flex-col gap-3 w-full sm:flex-row sm:w-auto sm:justify-center">
+            <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center cursor-pointer justify-center gap-2 min-h-12 w-full sm:w-auto bg-primary hover:bg-primary/95 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150"
+            >
+                <Download className="w-4 h-4" />
+                Download Full PDF Report
+            </motion.button>
+
+            <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={onEmailPDF}
+                disabled={isEmailingPDF}
+                className="flex items-center cursor-pointer justify-center gap-2 min-h-12 w-full sm:w-auto bg-base-200 border-2 border-secondary text-secondary hover:bg-secondary/5 px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                {isEmailingPDF ? (
+                    <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Sending...
+                    </>
+                ) : (
+                    <>
+                        <Mail className="w-4 h-4" />
+                        Email Me These Results
+                    </>
+                )}
+            </motion.button>
+        </div>
+    );
+
     return (
-                                        <AnimatePresence mode="wait">
+        <>
+            {showEditSectionOverlay && (
+                <SurveyLoadingOverlay message={`Taking you back to ${editSectionLabel}`} />
+            )}
+            {showRemovingLoanOverlay && (
+                <SurveyLoadingOverlay>
+                    <div className="flex min-h-[3rem] items-center justify-center">
+                        <AnimatePresence mode="wait">
+                            {overlayPhase === 'removing' ? (
+                                <motion.p
+                                    key="removing"
+                                    initial={{ y: 0, opacity: 1 }}
+                                    exit={{ y: 50, opacity: 0 }}
+                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                    className={SURVEY_LOADING_TEXT_CLASS}
+                                >
+                                    Removing your Loan!
+                                </motion.p>
+                            ) : (
+                                <motion.p
+                                    key="done"
+                                    initial={{ y: -30, opacity: 0 }}
+                                    animate={{ y: 0, opacity: 1 }}
+                                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                    className={SURVEY_LOADING_TEXT_CLASS}
+                                >
+                                    Done, that was quick!
+                                </motion.p>
+                            )}
+                        </AnimatePresence>
+                    </div>
+                </SurveyLoadingOverlay>
+            )}
+        <AnimatePresence mode="wait">
                                             <motion.div
                                                 key="all-forms-complete"
                                                 initial={{ opacity: 0, y: 20 }}
                                                 animate={{ opacity: 1, y: 0 }}
                                                 exit={{ opacity: 0, y: -20 }}
                                                 transition={{ duration: 0.5, ease: "easeInOut" }}
-                                                className="mt-8 md:mt-4 w-full"
+                                                className="mt-0 md:mt-0 w-full"
                                             >
                                                 <div className="max-w-6xl mx-auto space-y-6">
-                                                    {/* Page Intro Text */}
-                                                    <motion.div
-                                                        initial={{ opacity: 0, y: 10 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                                                        className="text-center mb-2 md:pt-4"
-                                                    >
-                                                        <h2 className="text-3xl md:text-4xl font-black tracking-tight text-secondary leading-tight">
-                                                            Results Summary
-                                                        </h2>
-                                                    </motion.div>
+                                                    {/* Page header: Start New Survey + title */}
+                                                    <div className="relative flex flex-col gap-3 mb-5 xl:mb-8 md:pt-4 md:min-h-14">
+                                                        <motion.button
+                                                            initial={{ opacity: 0, y: 10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+                                                            whileHover={{ scale: 1.05 }}
+                                                            whileTap={{ scale: 0.95 }}
+                                                            onClick={() => {
+                                                                setOriginalLoadedState(null);
+                                                                resetSessionAndForm(formData.resetForm);
+                                                                router.replace('/calculator', { scroll: false });
+                                                            }}
+                                                            className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto md:absolute md:left-0 md:top-1/2 md:-translate-y-1/2 md:z-10 shrink-0"
+                                                        >
+                                                            <Plus className="w-4 h-4" />
+                                                            Start New Survey
+                                                        </motion.button>
+
+                                                        <motion.div
+                                                            initial={{ opacity: 0, y: 10 }}
+                                                            animate={{ opacity: 1, y: 0 }}
+                                                            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+                                                            className="text-center md:absolute md:inset-0 md:flex md:items-center md:justify-center md:pointer-events-none"
+                                                        >
+                                                            <h2 className="text-3xl md:text-4xl font-black tracking-tight text-secondary leading-tight">
+                                                                Results Summary
+                                                            </h2>
+                                                        </motion.div>
+                                                    </div>
 
                                                     <div className="flex flex-col lg:grid lg:grid-cols-12 lg:items-stretch gap-6">
                                                         {/* Right column on desktop: reference info */}
@@ -128,16 +357,19 @@ export default function ResultsSummary({
                                                             >
                                                                 {/* Card Header Row */}
                                                                 <div className="flex flex-col gap-3">
-                                                                    <div className="flex items-center gap-3 min-w-0">
-                                                                        <div className="p-2.5 bg-white rounded-lg border border-[#fef6e4] shadow-sm shrink-0">
-                                                                            <Home className="w-5 h-5 text-primary" />
+                                                                    <div className="flex items-start justify-between gap-2">
+                                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                                            <div className="p-2.5 bg-white rounded-lg border border-[#fef6e4] shadow-sm shrink-0">
+                                                                                <Home className="w-5 h-5 text-primary" />
+                                                                            </div>
+                                                                            <div className="min-w-0">
+                                                                                <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Property Address</span>
+                                                                                <p className="text-sm lg:text-base font-bold text-secondary mt-0.5 break-words">
+                                                                                    {propertyDisplayAddress}
+                                                                                </p>
+                                                                            </div>
                                                                         </div>
-                                                                        <div className="min-w-0">
-                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Property Address</span>
-                                                                            <p className="text-sm lg:text-base font-bold text-secondary mt-0.5 break-words">
-                                                                                {propertyDisplayAddress}
-                                                                            </p>
-                                                                        </div>
+                                                                        <CardEditButton label="Edit" onClick={handlePropertyEdit} />
                                                                     </div>
                                                                     <div className="flex items-center gap-3 w-full justify-between">
                                                                         <div>
@@ -227,16 +459,19 @@ export default function ResultsSummary({
                                                                 onClick={() => setIsBuyerCardExpanded(!isBuyerCardExpanded)}
                                                             >
                                                                 <div className="flex flex-col gap-3">
-                                                                    <div className="flex items-center gap-3 min-w-0">
-                                                                        <div className="p-2.5 bg-white rounded-lg border border-[#fef6e4] shadow-sm shrink-0">
-                                                                            <User className="w-5 h-5 text-primary" />
+                                                                    <div className="flex items-start justify-between gap-2">
+                                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                                            <div className="p-2.5 bg-white rounded-lg border border-[#fef6e4] shadow-sm shrink-0">
+                                                                                <User className="w-5 h-5 text-primary" />
+                                                                            </div>
+                                                                            <div className="min-w-0">
+                                                                                <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Buyer Type</span>
+                                                                                <p className="text-sm lg:text-base font-bold text-secondary mt-0.5">
+                                                                                    {buyerTypeDisplay}
+                                                                                </p>
+                                                                            </div>
                                                                         </div>
-                                                                        <div className="min-w-0">
-                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Buyer Type</span>
-                                                                            <p className="text-sm lg:text-base font-bold text-secondary mt-0.5">
-                                                                                {buyerTypeDisplay}
-                                                                            </p>
-                                                                        </div>
+                                                                        <CardEditButton label="Edit" onClick={handleBuyerEdit} />
                                                                     </div>
                                                                     <div className="flex items-center gap-3 w-full justify-between">
                                                                         <div>
@@ -280,15 +515,29 @@ export default function ResultsSummary({
                                                                     onClick={() => setIsLoanCardExpanded(!isLoanCardExpanded)}
                                                                 >
                                                                     <div className="flex flex-col gap-3">
-                                                                        <div className="flex items-center gap-3 min-w-0">
-                                                                            <div className="p-2.5 bg-white rounded-lg border border-[#fef6e4] shadow-sm shrink-0">
-                                                                                <Landmark className="w-5 h-5 text-primary" />
+                                                                        <div className="flex items-start justify-between gap-2">
+                                                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                                                <div className="p-2.5 bg-white rounded-lg border border-[#fef6e4] shadow-sm shrink-0">
+                                                                                    <Landmark className="w-5 h-5 text-primary" />
+                                                                                </div>
+                                                                                <div className="min-w-0">
+                                                                                    <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Loan Type</span>
+                                                                                    <p className="text-sm lg:text-base font-bold text-secondary mt-0.5">
+                                                                                        {hasLoan ? loanTypeDisplay : 'N/A'}
+                                                                                    </p>
+                                                                                </div>
                                                                             </div>
-                                                                            <div className="min-w-0">
-                                                                                <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Loan Type</span>
-                                                                                <p className="text-sm lg:text-base font-bold text-secondary mt-0.5">
-                                                                                    {hasLoan ? loanTypeDisplay : 'N/A'}
-                                                                                </p>
+                                                                            <div className="flex items-center gap-2 shrink-0">
+                                                                                {formData.needsLoan === 'yes' && (
+                                                                                    <CardEditButton
+                                                                                        label="Pay in Cash"
+                                                                                        onClick={handlePayCash}
+                                                                                    />
+                                                                                )}
+                                                                                <CardEditButton
+                                                                                    label={formData.needsLoan === 'yes' ? 'Edit' : 'Add Loan'}
+                                                                                    onClick={formData.needsLoan === 'yes' ? handleLoanEdit : handleWantLoan}
+                                                                                />
                                                                             </div>
                                                                         </div>
                                                                         <div className="flex items-center gap-3 w-full justify-between">
@@ -349,16 +598,19 @@ export default function ResultsSummary({
                                                                 onClick={() => setIsOtherCostsCardExpanded(!isOtherCostsCardExpanded)}
                                                             >
                                                                 <div className="flex flex-col gap-3">
-                                                                    <div className="flex items-center gap-3 min-w-0">
-                                                                        <div className="p-2.5 bg-white rounded-lg border border-[#fef6e4] shadow-sm shrink-0">
-                                                                            <Receipt className="w-5 h-5 text-primary" />
+                                                                    <div className="flex items-start justify-between gap-2">
+                                                                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                                            <div className="p-2.5 bg-white rounded-lg border border-[#fef6e4] shadow-sm shrink-0">
+                                                                                <Receipt className="w-5 h-5 text-primary" />
+                                                                            </div>
+                                                                            <div className="min-w-0">
+                                                                                <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Other Costs</span>
+                                                                                <p className="text-sm lg:text-base font-bold text-secondary mt-0.5">
+                                                                                    At settlement fees
+                                                                                </p>
+                                                                            </div>
                                                                         </div>
-                                                                        <div className="min-w-0">
-                                                                            <span className="block text-[10px] font-bold uppercase tracking-widest text-gray-400">Other Costs</span>
-                                                                            <p className="text-sm lg:text-base font-bold text-secondary mt-0.5">
-                                                                                At settlement fees
-                                                                            </p>
-                                                                        </div>
+                                                                        <CardEditButton label="Edit" onClick={handleSellerEdit} />
                                                                     </div>
                                                                     <div className="flex items-center gap-3 w-full justify-between">
                                                                         <div>
@@ -366,11 +618,6 @@ export default function ResultsSummary({
                                                                             <p className="text-xl lg:text-2xl font-black text-secondary mt-0.5 tracking-tight">
                                                                                 {formatCurrency(settlementOtherCostsTotal)}
                                                                             </p>
-                                                                            {annualOtherCostsTotal > 0 && (
-                                                                                <p className="text-xs text-gray-500 mt-1">
-                                                                                    {formatCurrency(annualOtherCostsTotal)}/yr in ongoing rates
-                                                                                </p>
-                                                                            )}
                                                                         </div>
                                                                         <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
                                                                             <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isOtherCostsCardExpanded ? 'rotate-180' : ''}`} />
@@ -915,170 +1162,18 @@ export default function ResultsSummary({
                                                         </motion.div>
                                                     </div>
 
-                                                    {/* CTA Action Buttons */}
-                                                    <motion.div
-                                                        initial={{ opacity: 0, y: 20 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        transition={{ duration: 0.6, delay: 0.25, ease: "easeOut" }}
-                                                    >
-                                                        {showEmailSuccess ? (
-                                                            <motion.div
-                                                                initial={{ opacity: 0, y: 20 }}
-                                                                animate={{ opacity: 1, y: 0 }}
-                                                                className="flex flex-col gap-4"
-                                                            >
-                                                                <div className="bg-emerald-50/30 border-2 border-emerald-100 rounded-xl p-6 text-center">
-                                                                    <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
-                                                                    <h3 className="text-lg font-bold text-secondary mb-1">Check your inbox!</h3>
-                                                                    <p className="text-sm text-gray-600 mb-4">Your detailed property report has been dispatched to {emailSuccessData?.email}</p>
-
-                                                                    {emailSuccessData?.testingMode && (
-                                                                        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-left">
-                                                                            <p className="text-xs text-yellow-800 font-semibold mb-1">📝 Developer Runtime Notice:</p>
-                                                                            <p className="text-[11px] text-yellow-700">{emailSuccessData?.reminder || 'Resend validation protocol pending.'}</p>
-                                                                        </div>
-                                                                    )}
-
-                                                                    {!user && (
-                                                                        emailSuccessData?.emailExists ? (
-                                                                            <>
-                                                                                <p className="text-xs text-gray-500 mb-4">An identified account vector exists for this address. Sign in to sync your calculation sheets.</p>
-                                                                                <Link href={`/login?email=${encodeURIComponent(emailSuccessData.email)}&next=/calculator`} className="inline-block">
-                                                                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-secondary hover:bg-secondary/90 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
-                                                                                        Sign In to Your Account
-                                                                                    </motion.button>
-                                                                                </Link>
-                                                                            </>
-                                                                        ) : (
-                                                                            <>
-                                                                                <p className="text-xs text-gray-500 mb-4">Want to track these properties over long horizons? Open a persistent record track.</p>
-                                                                                <Link href={`/signup?email=${encodeURIComponent(emailSuccessData.email)}`} className="inline-block">
-                                                                                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
-                                                                                        Create My Account
-                                                                                    </motion.button>
-                                                                                </Link>
-                                                                            </>
-                                                                        )
-                                                                    )}
-                                                                </div>
-                                                            </motion.div>
-                                                        ) : (
-                                                            <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
-                                                                <motion.button
-                                                                    whileHover={{ scale: 1.02 }}
-                                                                    whileTap={{ scale: 0.98 }}
-                                                                    className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-primary hover:bg-primary/95 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150 w-full sm:w-auto"
-                                                                >
-                                                                    <Download className="w-4 h-4" />
-                                                                    Download Full PDF Report
-                                                                </motion.button>
-
-                                                                <motion.button
-                                                                    whileHover={{ scale: 1.02 }}
-                                                                    whileTap={{ scale: 0.98 }}
-                                                                    onClick={onEmailPDF}
-                                                                    disabled={isEmailingPDF}
-                                                                    className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-base-200 border-2 border-secondary text-secondary hover:bg-secondary/5 px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
-                                                                >
-                                                                    {isEmailingPDF ? (
-                                                                        <>
-                                                                            <Loader2 className="w-4 h-4 animate-spin" />
-                                                                            Sending...
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <Mail className="w-4 h-4" />
-                                                                            Email Me These Results
-                                                                        </>
-                                                                    )}
-                                                                </motion.button>
-                                                            </div>
-                                                        )}
-                                                    </motion.div>
-
-                                                    {/* Action Control: Edit and Reset Summary Row */}
+                                                    {/* CTA Action Buttons - outside card, centered */}
                                                     <motion.div
                                                         initial={{ opacity: 0, y: 20 }}
                                                         animate={{ opacity: 1, y: 0 }}
                                                         transition={{ duration: 0.6, delay: 0.3, ease: "easeOut" }}
-                                                        className="flex flex-col sm:flex-row gap-3 justify-center items-center"
+                                                        className="flex justify-center w-full pt-4 pb-2 lg:pt-2"
                                                     >
-                                                        <motion.button
-                                                            whileHover={{ scale: 1.05 }}
-                                                            whileTap={{ scale: 0.95 }}
-                                                            onClick={() => {
-                                                                setShowReviewOverlay(true);
-                                                                setTimeout(() => {
-                                                                    formData.setShowReviewPage(true);
-                                                                    window.scrollTo(0, 0);
-                                                                    setShowReviewOverlay(false);
-                                                                }, 2000);
-                                                            }}
-                                                            className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                            Review/Edit All Answers
-                                                        </motion.button>
-
-                                                        <motion.button
-                                                            whileHover={{ scale: 1.05 }}
-                                                            whileTap={{ scale: 0.95 }}
-                                                            onClick={() => {
-                                                                setOriginalLoadedState(null);
-                                                                resetSessionAndForm(formData.resetForm);
-                                                            }}
-                                                            className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
-                                                        >
-                                                            <Plus className="w-4 h-4" />
-                                                            Start New Survey
-                                                        </motion.button>
-                                                    </motion.div>
-
-                                                    {/* Dashboard / Auth Navigation Link Button */}
-                                                    <motion.div
-                                                        initial={{ opacity: 0, y: 20 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
-                                                        className="flex justify-center pt-2"
-                                                    >
-                                                        <motion.button
-                                                            whileHover={{ scale: 1.05 }}
-                                                            whileTap={{ scale: 0.95 }}
-                                                            onClick={() => {
-                                                                if (user) {
-                                                                    const targetUrl = '/dashboard';
-                                                                    if (typeof window !== 'undefined' && window.__navigationWarning) {
-                                                                        const canNavigate = window.__navigationWarning.checkNavigation(targetUrl);
-                                                                        if (canNavigate) router.push(targetUrl);
-                                                                    } else {
-                                                                        router.push(targetUrl);
-                                                                    }
-                                                                    return;
-                                                                }
-                                                                if (propertyId) {
-                                                                    setPendingSurveyLink(propertyId, '/calculator');
-                                                                }
-                                                                router.push('/login?returnTo=calculator');
-                                                            }}
-                                                            className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-secondary hover:bg-secondary-focus text-white px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto"
-                                                        >
-                                                            {user ? (
-                                                                <>
-                                                                    <Home className="w-4 h-4" />
-                                                                    Exit to My Dashboard
-                                                                    <ArrowRight className="w-4 h-4" />
-                                                                </>
-                                                            ) : (
-                                                                <>
-                                                                    <Mail className="w-4 h-4" />
-                                                                    Log in to Save Progress
-                                                                    <ArrowRight className="w-4 h-4" />
-                                                                </>
-                                                            )}
-                                                        </motion.button>
+                                                        {reportCtaActions}
                                                     </motion.div>
                                                 </div>
                                             </motion.div>
                                         </AnimatePresence>
+        </>
     );
 }

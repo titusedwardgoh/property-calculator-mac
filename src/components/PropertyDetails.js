@@ -9,6 +9,7 @@ import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 import { calculateGlobalProgress, getMissingFields } from '../lib/progressCalculation';
+import { useWizardStep } from '../hooks/useWizardStep';
 import QuestionInfoTooltip from './shared/QuestionInfoTooltip';
 import { QUESTION_TOOLTIPS } from '../lib/questionTooltips';
 import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
@@ -16,6 +17,7 @@ import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/Su
 export default function PropertyDetails() {
   const formData = useFormStore();
   const updateFormData = useFormStore(state => state.updateFormData);
+  const { isSubComplete, subNumeric, fromReview, navigateToStep, pushSubStep, completeEditAndReturnToResults, WIZARD_STEPS, SUB_COMPLETE } = useWizardStep();
   const [currentStep, setCurrentStep] = useState(1);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [direction, setDirection] = useState('forward'); // 'forward' or 'backward'
@@ -88,6 +90,29 @@ export default function PropertyDetails() {
       setIsComplete(false);
     }
   }, [formData.isResumingSurvey, formData.propertyDetailsActiveStep, formData.selectedState]);
+
+  // Sync sub-step from URL (refresh / browser back)
+  useEffect(() => {
+    if (isSubComplete) {
+      setIsComplete(true);
+      updateFormData('propertyDetailsFormComplete', true);
+      return;
+    }
+
+    if (formData.propertyDetailsFormComplete) {
+      updateFormData('propertyDetailsFormComplete', false);
+    }
+    setIsComplete(false);
+
+    if (subNumeric != null && subNumeric !== currentStep) {
+      let validStep = subNumeric;
+      if (formData.selectedState !== 'WA' && validStep === 3) {
+        validStep = 4;
+      }
+      setCurrentStep(validStep);
+      updateFormData('propertyDetailsActiveStep', validStep);
+    }
+  }, [isSubComplete, subNumeric, formData.selectedState, formData.propertyDetailsFormComplete, currentStep, updateFormData]);
   
   // Calculate the display step number (what the user sees)
   const getDisplayStep = () => {
@@ -676,6 +701,7 @@ export default function PropertyDetails() {
         
         // Update the store with current step for progress tracking
         updateFormData('propertyDetailsActiveStep', nextStepNumber);
+        pushSubStep(nextStepNumber);
       }, 150);
     } else {
       // Show overlay for 2s before completing and showing "Basic Property Details Complete"
@@ -691,6 +717,7 @@ export default function PropertyDetails() {
         // propertyDetailsComplete will be set when user clicks Next on completion page (goToBuyerDetails)
         // propertyDetailsFormComplete tracks that they reached the completion page (for resume logic)
         updateFormData('propertyDetailsFormComplete', true);
+        navigateToStep(WIZARD_STEPS.PROPERTY, { sub: SUB_COMPLETE });
         // DON'T set propertyDetailsComplete here - let it be set in goToBuyerDetails() when user clicks Next
         // This ensures the completion page shows before transitioning to BuyerDetails
         // Reset the executing ref
@@ -745,17 +772,18 @@ export default function PropertyDetails() {
   const goToBuyerDetails = () => {
     setDirection('forward');
     updateFormData('propertyDetailsComplete', true);
-    if (formData.editingFromReview) {
-      updateFormData('editingFromReview', false);
+    if (fromReview || formData.editingFromReview) {
       const missing = getMissingFields({ ...formData, propertyDetailsComplete: true });
       if (missing.length > 0) {
         updateFormData('additionalQuestionsFields', missing);
-        updateFormData('showAdditionalQuestions', true);
         updateFormData('additionalQuestionsStep', 1);
+        navigateToStep(WIZARD_STEPS.ADDITIONAL, { from: 'review' });
+        return;
       }
-      updateFormData('showReviewPage', true);
+      void completeEditAndReturnToResults();
       return;
     }
+    navigateToStep(WIZARD_STEPS.BUYER, { sub: 1 });
   };
 
   const prevStep = () => {
@@ -787,6 +815,7 @@ export default function PropertyDetails() {
         setCurrentStep(prevStepNumber);
         // Update the store with current step for progress tracking
         updateFormData('propertyDetailsActiveStep', prevStepNumber);
+        pushSubStep(prevStepNumber);
         setIsTransitioning(false);
       }, 150);
     }
@@ -1472,8 +1501,8 @@ export default function PropertyDetails() {
                   setDirection('backward');
                   setIsComplete(false);
                   updateFormData('propertyDetailsFormComplete', false);
-                  // Go back to the last question (step 6)
                   setCurrentStep(6);
+                  pushSubStep(6);
                 }}
                 {...getBackButtonAnimation()}
                 className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
