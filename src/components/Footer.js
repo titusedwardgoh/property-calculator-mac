@@ -20,7 +20,7 @@ export default function Footer() {
     }
   };
   return (
-    <footer className="relative z-20 w-full bg-secondary">
+    <footer className="relative z-20 w-full bg-gray-100 border-t border-gray-200">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Section */}
@@ -37,22 +37,22 @@ export default function Footer() {
                 height={40}
                 className="w-10 h-10 object-contain"
               />
-              <h3 className="text-xl font-bold text-base-200">PropWiz</h3>
+              <h3 className="text-xl font-bold text-secondary">PropWiz</h3>
             </Link>
-            <p className="text-base-200/80 mb-4 max-w-md leading-relaxed">
+            <p className="text-gray-600 mb-4 max-w-md leading-relaxed">
               Know the true cost of any Australian property before you commit. No spreadsheets, no surprises.
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-lg font-semibold text-base-200 mb-4">Quick Links</h4>
+            <h4 className="text-lg font-semibold text-secondary mb-4">Quick Links</h4>
             <ul className="space-y-2">
               <li>
                 <Link 
                   href="/about" 
                   onClick={(e) => handleLinkClick(e, '/about')}
-                  className="text-base-200/70 hover:text-primary transition-colors flex items-center gap-2"
+                  className="text-gray-600 hover:text-primary transition-colors flex items-center gap-2"
                 >
                   <Info className="w-4 h-4" />
                   <span>About</span>
@@ -62,7 +62,7 @@ export default function Footer() {
                 <Link 
                   href="/faq" 
                   onClick={(e) => handleLinkClick(e, '/faq')}
-                  className="text-base-200/70 hover:text-primary transition-colors flex items-center gap-2"
+                  className="text-gray-600 hover:text-primary transition-colors flex items-center gap-2"
                 >
                   <HelpCircle className="w-4 h-4" />
                   <span>FAQ</span>
@@ -72,7 +72,7 @@ export default function Footer() {
                 <Link 
                   href="/contact" 
                   onClick={(e) => handleLinkClick(e, '/contact')}
-                  className="text-base-200/70 hover:text-primary transition-colors flex items-center gap-2"
+                  className="text-gray-600 hover:text-primary transition-colors flex items-center gap-2"
                 >
                   <Mail className="w-4 h-4" />
                   <span>Contact</span>
@@ -83,13 +83,13 @@ export default function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="text-lg font-semibold text-base-200 mb-4">Legal</h4>
+            <h4 className="text-lg font-semibold text-secondary mb-4">Legal</h4>
             <ul className="space-y-2">
               <li>
                 <Link 
                   href="/privacy" 
                   onClick={(e) => handleLinkClick(e, '/privacy')}
-                  className="text-base-200/70 hover:text-primary transition-colors"
+                  className="text-gray-600 hover:text-primary transition-colors"
                 >
                   Privacy Policy
                 </Link>
@@ -98,7 +98,7 @@ export default function Footer() {
                 <Link 
                   href="/terms" 
                   onClick={(e) => handleLinkClick(e, '/terms')}
-                  className="text-base-200/70 hover:text-primary transition-colors"
+                  className="text-gray-600 hover:text-primary transition-colors"
                 >
                   Terms of Service
                 </Link>
@@ -107,7 +107,7 @@ export default function Footer() {
                 <Link 
                   href="/disclaimer" 
                   onClick={(e) => handleLinkClick(e, '/disclaimer')}
-                  className="text-base-200/70 hover:text-primary transition-colors"
+                  className="text-gray-600 hover:text-primary transition-colors"
                 >
                   Disclaimer
                 </Link>
@@ -117,12 +117,12 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-base-200/20 mt-8 pt-8">
+        <div className="border-t border-gray-200 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
-            <p className="text-base-200/60 text-sm">
+            <p className="text-gray-500 text-sm">
               © 2025 PropWiz. All rights reserved.
             </p>
-            <p className="text-base-200/60 text-sm mt-2 md:mt-0">
+            <p className="text-gray-500 text-sm mt-2 md:mt-0">
               Built for Australian property buyers 
             </p>
           </div>

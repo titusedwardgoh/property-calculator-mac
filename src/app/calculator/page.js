@@ -54,6 +54,7 @@ function CalculatorPageContent() {
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [showEmailSuccess, setShowEmailSuccess] = useState(false);
     const [emailSuccessData, setEmailSuccessData] = useState(null);
+    const [isStartingNewSurvey, setIsStartingNewSurvey] = useState(false);
     const hasResumedRef = useRef(false);
     const initialWelcomeCheckedRef = useRef(false);
     const freshStartHandledRef = useRef(false);
@@ -94,6 +95,12 @@ function CalculatorPageContent() {
         resetSessionAndForm(formData.resetForm);
         router.replace('/calculator', { scroll: false });
     }, [searchParams, formData.resetForm, router, setOriginalLoadedState]);
+
+    useEffect(() => {
+        if (isStartingNewSurvey && step === WIZARD_STEPS.WELCOME && !isLoadingResume) {
+            setIsStartingNewSurvey(false);
+        }
+    }, [isStartingNewSurvey, step, isLoadingResume]);
 
     // Resume / view a saved survey from the dashboard
     useEffect(() => {
@@ -398,6 +405,15 @@ function CalculatorPageContent() {
 
 
 
+    const handleStartNewSurvey = useCallback(() => {
+        setIsStartingNewSurvey(true);
+        requestAnimationFrame(() => {
+            setOriginalLoadedState(null);
+            resetSessionAndForm(formData.resetForm);
+            router.replace('/calculator', { scroll: false });
+        });
+    }, [formData.resetForm, router, setOriginalLoadedState]);
+
     const handleSave = async (userSaved = false) => {
         // Save will automatically link to user's account if logged in
         // (user_id is already set in saveToSupabase via getSupabaseUserId)
@@ -547,6 +563,8 @@ function CalculatorPageContent() {
             {isReturningToDashboard && (
                 <SurveyLoadingScreen message="Returning to dashboard..." />
             )}
+
+            {isStartingNewSurvey && <SurveyLoadingScreen />}
 
             {showWelcomePage && !isLoadingResume ? (
                 <WelcomePage />
@@ -760,6 +778,7 @@ function CalculatorPageContent() {
                                                 showEmailSuccess={showEmailSuccess}
                                                 emailSuccessData={emailSuccessData}
                                                 setOriginalLoadedState={setOriginalLoadedState}
+                                                onStartNewSurvey={handleStartNewSurvey}
                                             />
                                         );
                                     default:

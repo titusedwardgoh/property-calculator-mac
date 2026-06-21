@@ -7,7 +7,6 @@ import Link from 'next/link';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { formatFieldValue } from '../lib/fieldMapping.js';
 import { buildResultsSummary } from '../lib/resultsSummary/buildResultsSummary';
-import { resetSessionAndForm } from '../lib/sessionManager';
 import { useWizardStep } from '../hooks/useWizardStep';
 import { useFormStore } from '../stores/formStore';
 import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
@@ -23,6 +22,7 @@ export default function ResultsSummary({
     showEmailSuccess,
     emailSuccessData,
     setOriginalLoadedState,
+    onStartNewSurvey,
 }) {
     const { navigateToStep, WIZARD_STEPS } = useWizardStep();
     const updateFormData = useFormStore((s) => s.updateFormData);
@@ -318,11 +318,7 @@ export default function ResultsSummary({
                                                             transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
                                                             whileHover={{ scale: 1.05 }}
                                                             whileTap={{ scale: 0.95 }}
-                                                            onClick={() => {
-                                                                setOriginalLoadedState(null);
-                                                                resetSessionAndForm(formData.resetForm);
-                                                                router.replace('/calculator', { scroll: false });
-                                                            }}
+                                                            onClick={onStartNewSurvey}
                                                             className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto md:absolute md:left-0 md:top-1/2 md:-translate-y-1/2 md:z-10 shrink-0"
                                                         >
                                                             <Plus className="w-4 h-4" />
