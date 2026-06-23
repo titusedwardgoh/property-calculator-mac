@@ -156,10 +156,8 @@ export default function WelcomePage() {
                                     initial={{ opacity: 0, y: 0 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.6, delay: 0.6, ease: "easeOut" }}
-                                    whileHover={{ scale: 1.05 }}
-                                    whileTap={{ scale: 0.95 }}
                                     onClick={handleGetStarted}
-                                    className="bg-primary cursor-pointer hover:bg-primary-focus text-secondary px-8 py-3 rounded-full font-medium text-base transition-all duration-200 hover:shadow-lg w-full md:w-auto mx-auto md:mx-0"
+                                    className="bg-primary cursor-pointer hover:bg-primary/90 text-secondary px-8 py-3 rounded-full font-medium text-base transition-all duration-200 hover:shadow-lg w-full md:w-auto mx-auto md:mx-0"
                                 >
                                     Let&apos;s go
                                 </motion.button>

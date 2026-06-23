@@ -318,7 +318,7 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
                   </button>
                   <button
                     onClick={handleAnonymousLoginToSave} 
-                    className="flex-1 cursor-pointer bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
+                    className="flex-1 cursor-pointer bg-primary hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
                   >
                     Log in to Save
                   </button>
@@ -384,7 +384,7 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
                 </button>
                 <button
                   onClick={handleConfirm}
-                    className="flex-1 cursor-pointer bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
+                    className="flex-1 cursor-pointer bg-primary hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
                 >
                     Save
                 </button>

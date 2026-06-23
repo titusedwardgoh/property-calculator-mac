@@ -323,16 +323,14 @@ export default function ContactPage() {
                     className="flex justify-stretch sm:justify-end pt-2"
                     {...drop(t.send)}
                   >
-                    <motion.button
+                    <button
                       type="submit"
                       disabled={isSubmitting}
-                      whileHover={isSubmitting ? undefined : { scale: 1.02 }}
-                      whileTap={isSubmitting ? undefined : { scale: 0.98 }}
-                      className="inline-flex w-full sm:w-auto items-center cursor-pointer justify-center gap-2 px-8 py-3 bg-primary hover:bg-primary-focus text-secondary rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-60 disabled:pointer-events-none"
+                      className="inline-flex w-full sm:w-auto items-center cursor-pointer justify-center gap-2 px-8 py-3 bg-primary hover:bg-primary/90 text-secondary rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-60 disabled:pointer-events-none"
                     >
                       <Send className="w-4 h-4" />
                       {isSubmitting ? "Sending…" : "Send"}
-                    </motion.button>
+                    </button>
                   </motion.div>
                 </form>
               )}

@@ -150,7 +150,7 @@ export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount, 
                     <button
                       onClick={handleSave}
                       disabled={isSaving}
-                      className="w-full bg-primary cursor-pointer hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      className="w-full bg-primary cursor-pointer hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                       {isSaving ? (
                         <>
@@ -175,7 +175,7 @@ export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount, 
                   <>
                     <button
                       onClick={handleCreateAccount}
-                      className="w-full bg-primary cursor-pointer hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg flex items-center justify-center gap-2"
+                      className="w-full bg-primary cursor-pointer hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg flex items-center justify-center gap-2"
                     >
                       <UserPlus className="w-5 h-5" />
                       <span>Create Account</span>

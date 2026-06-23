@@ -108,7 +108,7 @@ export default function AboutPage() {
                         >
                             <Link
                                 href="/calculator"
-                                className="bg-primary hover:bg-primary-focus text-secondary px-8 py-4 rounded-full font-medium text-base transition-all duration-200 hover:shadow-lg w-full sm:w-auto"
+                                className="bg-primary hover:bg-primary/90 text-secondary px-8 py-4 rounded-full font-medium text-base hover:shadow-lg transition-all duration-200 w-full sm:w-auto"
                             >
                                 Start the free calculator
                             </Link>

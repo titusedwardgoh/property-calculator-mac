@@ -7,6 +7,7 @@ import useFormNavigation from './shared/FormNavigation.js';
 import { useFormStore } from '../stores/formStore';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
+import SurveyNavigationButtons from './shared/SurveyNavigationButtons';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 import { calculateGlobalProgress, getMissingFields } from '../lib/progressCalculation';
 import { useWizardStep } from '../hooks/useWizardStep';
@@ -1088,7 +1089,7 @@ export default function PropertyDetails() {
                           {...getNextButtonAnimation(validateManualAddress())}
                           className={`px-6 py-3 rounded-full border border-primary font-medium flex-1 ${
                             validateManualAddress() 
-                              ? 'bg-primary hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer' 
+                              ? 'bg-primary hover:bg-primary/90 transition-all duration-200 hover:shadow-lg cursor-pointer' 
                               : 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
                           }`}
                         >
@@ -1129,7 +1130,7 @@ export default function PropertyDetails() {
                       updateFormData('detectedWAMetro', '');
                       resetAddressValidation();
                     }}
-                    className="text-sm text-gray-500 hover:text-gray-700 mt-2 underline"
+                    className="text-sm text-gray-500 hover:text-gray-700 mt-2 underline cursor-pointer"
                   >
                     Change address
                   </button>
@@ -1492,71 +1493,35 @@ export default function PropertyDetails() {
           ></motion.div>
         </motion.div>
         
-        <div className="flex justify-start mx-auto mt-4">
-          {isComplete ? (
-            // Completion state: Back and Next buttons
-            <>
-              <motion.button
-                onClick={() => {
-                  setDirection('backward');
-                  setIsComplete(false);
-                  updateFormData('propertyDetailsFormComplete', false);
-                  setCurrentStep(6);
-                  pushSubStep(6);
-                }}
-                {...getBackButtonAnimation()}
-                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
-              >
-                &lt;
-              </motion.button>
-              
-              <motion.button
-                onClick={goToBuyerDetails}
-                {...getNextButtonAnimation()}
-                className="flex-1 ml-4 px-6 py-3 rounded-full border border-primary bg-primary hover:bg-primary hover:border-gray-700 hover:shadow-sm font-medium cursor-pointer"
-              >
-                Next
-              </motion.button>
-            </>
-          ) : currentStep === 1 ? (
-            // Step 1: Full width OK button
-            <motion.button
-              onClick={nextStep}
-              disabled={!isCurrentStepValid()}
-              {...getNextButtonAnimation(isCurrentStepValid())}
-              className={`w-full px-6 py-3 rounded-full border border-primary font-medium ${
-                !isCurrentStepValid()
-                  ? 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
-                  : 'bg-primary hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer'
-              }`}
-            >
-              Next
-            </motion.button>
-          ) : (
-            // Step 2 onwards: Back and Next buttons with smooth transition
-            <>
-              <motion.button
-                onClick={prevStep}
-                {...getBackButtonAnimation()}
-                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
-              >
-                &lt;
-              </motion.button>
-              
-              <motion.button
-                onClick={nextStep}
-                disabled={!isCurrentStepValid()}
-                {...getNextButtonAnimation(isCurrentStepValid())}
-                className={`flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium ${
-                  !isCurrentStepValid()
-                    ? 'border-primary-100 cursor-not-allowed bg-gray-50 text-base-100'
-                    : 'text-secondary hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer'
-                }`}
-              >
-                                 {getDisplayStep() === getDisplayTotalSteps() ? 'Calculate stamp duty' : 'Next'}
-              </motion.button>
-            </>
-          )}
+        <div className="flex justify-start mx-auto mt-4 w-full">
+          <SurveyNavigationButtons
+            showBack={isComplete || currentStep !== 1}
+            onBack={
+              isComplete
+                ? () => {
+                    setDirection('backward');
+                    setIsComplete(false);
+                    updateFormData('propertyDetailsFormComplete', false);
+                    setCurrentStep(6);
+                    pushSubStep(6);
+                  }
+                : prevStep
+            }
+            onNext={isComplete ? goToBuyerDetails : nextStep}
+            nextDisabled={!isComplete && !isCurrentStepValid()}
+            nextLabel={
+              isComplete
+                ? 'Next'
+                : getDisplayStep() === getDisplayTotalSteps()
+                  ? 'Calculate stamp duty'
+                  : 'Next'
+            }
+            nextClassName={
+              isComplete || isCurrentStepValid()
+                ? 'bg-primary text-secondary hover:bg-primary/90 transition-all duration-200 hover:shadow-lg cursor-pointer'
+                : 'border-primary-100 cursor-not-allowed bg-primary text-white'
+            }
+          />
         </div>
       </div>
     </div>

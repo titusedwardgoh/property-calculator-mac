@@ -22,6 +22,9 @@ import {
 } from '@/lib/loggedInHeaderGlassStyle';
 
 function SurveyInspectedToggle({ inspected, onToggle, compact }) {
+  const offColor = '#9ca3af';
+  const onColor = '#439775';
+
   return (
     <motion.button
       type="button"
@@ -29,7 +32,7 @@ function SurveyInspectedToggle({ inspected, onToggle, compact }) {
       className={`relative inline-flex shrink-0 cursor-pointer items-center rounded-full focus:outline-none active:outline-none ${compact ? 'h-6 w-12' : 'h-6 w-14'
         }`}
       animate={{
-        backgroundColor: inspected ? '#10b981' : '#ef4444',
+        backgroundColor: inspected ? onColor : offColor,
       }}
       transition={{ duration: 0.3, ease: 'easeInOut' }}
     >
@@ -41,7 +44,7 @@ function SurveyInspectedToggle({ inspected, onToggle, compact }) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 5 }}
             transition={{ duration: 0.2 }}
-            className={`pointer-events-none absolute right-0 flex h-full items-center font-bold text-white z-10 ${compact ? 'pr-2.5 text-[10px]' : 'pr-3 text-[10px]'
+            className={`pointer-events-none absolute right-0 flex h-full items-center font-semibold text-white/95 z-10 ${compact ? 'pr-2.5 text-[10px]' : 'pr-3 text-[10px]'
               }`}
           >
             No
@@ -56,7 +59,7 @@ function SurveyInspectedToggle({ inspected, onToggle, compact }) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -5 }}
             transition={{ duration: 0.2 }}
-            className={`pointer-events-none absolute left-0 flex h-full items-center font-bold text-white z-10 ${compact ? 'pl-2 text-[10px]' : 'pl-2.5 text-[10px]'
+            className={`pointer-events-none absolute left-0 flex h-full items-center font-semibold text-white/95 z-10 ${compact ? 'pl-2 text-[10px]' : 'pl-2.5 text-[10px]'
               }`}
           >
             Yes
@@ -64,7 +67,7 @@ function SurveyInspectedToggle({ inspected, onToggle, compact }) {
         )}
       </AnimatePresence>
       <motion.span
-        className={`absolute rounded-full bg-white shadow-md ${compact ? 'h-4 w-4' : 'h-4.5 w-4.5'
+        className={`absolute rounded-full bg-white shadow-sm ${compact ? 'h-4 w-4' : 'h-4.5 w-4.5'
           }`}
         animate={{
           left: inspected ? 'auto' : compact ? '0.15rem' : '0.225rem',
@@ -280,7 +283,7 @@ const buildMarkerInfoHtml = (point) => {
         <div style="width:calc(100% - 151px); padding:16px; font-family:system-ui,-apple-system,sans-serif; font-size:13px; line-height:1.5; color:#111827; display:flex; flex-direction:column; justify-content:center; background: #ffffff;">
           ${addressTitle}
           <div style="margin-bottom:4px;"><span style="color:#6b7280;">Price:</span> ${escapeHtml(priceText)}</div>
-          <div><span style="color:#6b7280;">Inspected:</span> <span style="color:${point.inspected ? '#10b981' : '#ef4444'}; font-weight:600;">${point.inspected ? 'Yes' : 'No'}</span></div>
+          <div><span style="color:#6b7280;">Inspected:</span> <span style="color:${point.inspected ? '#439775' : '#9ca3af'}; font-weight:600;">${point.inspected ? 'Yes' : 'No'}</span></div>
         </div>
     </div>
   `;
@@ -2402,7 +2405,7 @@ export default function DashboardContent({
                             sessionStorage.removeItem('resumePropertyId');
                           }
                         }}
-                        className="hidden items-center justify-center gap-2 rounded-full border border-base-300 bg-white px-5 py-2 text-sm font-medium text-gray-800 shadow-sm transition-all duration-200 hover:bg-primary hover:border-primary hover:text-secondary md:inline-flex h-10 shrink-0"
+                        className="hidden items-center justify-center gap-2 rounded-full border border-primary bg-white px-5 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10 md:inline-flex h-10 shrink-0"
                       >
                         <FileText className="h-4 w-4" />
                         Start New Survey
@@ -2423,7 +2426,7 @@ export default function DashboardContent({
                       <div className="relative shrink-0">
                         <button
                           onClick={() => setShowSortMenu(!showSortMenu)}
-                          className="flex cursor-pointer items-center justify-center w-10 h-10 border border-gray-300 rounded-full bg-white hover:bg-gray-50 transition-colors"
+                          className="flex cursor-pointer items-center justify-center w-10 h-10 border border-gray-300 rounded-full bg-white hover:bg-primary/10 transition-colors"
                           aria-label="Sort surveys"
                         >
                           <ArrowUpDown className="w-5 h-5 text-gray-600" />
@@ -2498,7 +2501,7 @@ export default function DashboardContent({
                       <button
                         type="button"
                         onClick={handleDesktopMapToggle}
-                        className="hidden cursor-pointer items-center gap-2 rounded-full border border-base-300 bg-white px-4 py-1.5 text-sm font-medium text-gray-800 shadow-sm transition-colors hover:bg-base-300 lg:inline-flex shrink-0 h-10"
+                        className="hidden cursor-pointer items-center gap-2 rounded-full border border-gray-300 bg-white px-4 py-1.5 text-sm font-medium text-gray-800 transition-colors hover:bg-primary/10 lg:inline-flex shrink-0 h-10"
                       >
                         <MapIcon className="h-4 w-4" />
                         {isMapHiddenDesktop ? 'Show map' : 'Hide map'}
@@ -2536,7 +2539,7 @@ export default function DashboardContent({
                           sessionStorage.removeItem('resumePropertyId');
                         }
                       }}
-                      className="inline-flex items-center justify-center gap-2 rounded-full border border-base-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm transition-all duration-200 hover:bg-primary hover:border-primary hover:text-secondary md:hidden"
+                      className="inline-flex items-center justify-center gap-2 rounded-full border border-primary bg-white px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary/10 md:hidden"
                     >
                       <FileText className="h-4 w-4" />
                       Start New Survey

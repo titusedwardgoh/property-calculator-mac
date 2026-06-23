@@ -362,12 +362,10 @@ function LoginPageContent() {
           )}
 
           {/* Login Button */}
-          <motion.button
+          <button
             type="submit"
-            whileHover={{ scale: loading ? 1 : 1.02 }}
-            whileTap={{ scale: loading ? 1 : 0.98 }}
             disabled={loading}
-            className="w-full cursor-pointer bg-primary hover:bg-primary-focus text-secondary font-medium py-3 px-6 rounded-full transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full cursor-pointer bg-primary hover:bg-primary/90 text-secondary font-medium py-3 px-6 rounded-full transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -377,7 +375,7 @@ function LoginPageContent() {
             ) : (
               'Log in'
             )}
-          </motion.button>
+          </button>
 
           {/* Forgot Password Link */}
           <div className="text-start">
@@ -400,12 +398,10 @@ function LoginPageContent() {
         {/* Social Login Buttons */}
         <div className="flex items-center justify-center gap-4">
           {/* Google */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+          <button
             onClick={() => handleOAuthLogin('google')}
             disabled={loading}
-            className="flex cursor-pointer items-center justify-center w-12 h-12 border-2 border-primary/35 bg-white rounded-full shadow-sm hover:border-primary hover:bg-primary/10 transition-all disabled:opacity-50"
+            className="flex cursor-pointer items-center justify-center w-12 h-12 border border-primary bg-white rounded-full hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:pointer-events-none"
             aria-label="Continue with Google"
           >
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -414,7 +410,7 @@ function LoginPageContent() {
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-          </motion.button>
+          </button>
 
         </div>
       </motion.div>

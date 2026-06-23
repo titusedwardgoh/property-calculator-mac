@@ -559,7 +559,7 @@ export default function LoanDetails() {
                   pushSubStep(7);
                 }}
                 {...getBackButtonAnimation()}
-                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
+                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary/90 transition-all duration-200 hover:shadow-lg flex-shrink-0 cursor-pointer"
               >
                 &lt;
               </motion.button>
@@ -574,7 +574,7 @@ export default function LoanDetails() {
                   navigateToStep(WIZARD_STEPS.SELLER, { sub: 1 });
                 }}
                 {...getNextButtonAnimation()}
-                className="flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer"
+                className="flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium hover:bg-primary/90 transition-all duration-200 hover:shadow-lg cursor-pointer"
               >
                 Next
               </motion.button>
@@ -585,7 +585,7 @@ export default function LoanDetails() {
               <motion.button
                 onClick={handleBack}
                 {...getBackButtonAnimation()}
-                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
+                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary/90 transition-all duration-200 hover:shadow-lg flex-shrink-0 cursor-pointer"
               >
                 &lt;
               </motion.button>
@@ -597,7 +597,7 @@ export default function LoanDetails() {
                 className={`flex-1 ml-4 px-6 py-3 rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
-                    : 'bg-primary hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer'
+                    : 'bg-primary hover:bg-primary/90 transition-all duration-200 hover:shadow-lg cursor-pointer'
                 }`}
               >
                 Next
@@ -609,7 +609,7 @@ export default function LoanDetails() {
               <motion.button
                 onClick={prevStep}
                 {...getBackButtonAnimation()}
-                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary hover:border-gray-700 hover:shadow-sm flex-shrink-0 cursor-pointer"
+                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary/90 transition-all duration-200 hover:shadow-lg flex-shrink-0 cursor-pointer"
               >
                 &lt;
               </motion.button>
@@ -621,7 +621,7 @@ export default function LoanDetails() {
                 className={`flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium ${
                   !isCurrentStepValid()
                     ? 'border-primary-100 cursor-not-allowed bg-gray-50 text-base-100'
-                    : 'text-secondary hover:bg-primary hover:border-gray-700 hover:shadow-sm cursor-pointer'
+                    : 'text-secondary hover:bg-primary/90 transition-all duration-200 hover:shadow-lg cursor-pointer'
                 }`}
               >
                 {currentStep === totalSteps ? 'Add in loan costs' : 'Next'}

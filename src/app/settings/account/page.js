@@ -65,6 +65,7 @@ export default function AccountSettingsPage() {
     const [isProfilePictureModalOpen, setIsProfilePictureModalOpen] = useState(false);
     const [isDeletingPicture, setIsDeletingPicture] = useState(false);
     const fileInputRef = useRef(null);
+    const phoneInputWrapperRef = useRef(null);
     const [isDataLoading, setIsDataLoading] = useState(true);
 
     // Add global error handler for unhandled Supabase auth errors
@@ -847,6 +848,15 @@ export default function AccountSettingsPage() {
         setIsEditingPhone(true);
     };
 
+    const handlePhoneFieldClick = (event) => {
+        if (event.target.closest('.PhoneInputCountry') || event.target.closest('.PhoneInputInput')) {
+            return;
+        }
+
+        const input = phoneInputWrapperRef.current?.querySelector('.PhoneInputInput');
+        input?.focus();
+    };
+
     const handleCancelEditPhone = () => {
         setIsEditingPhone(false);
         setPhoneData(getCurrentPhoneNumber());
@@ -1450,14 +1460,14 @@ export default function AccountSettingsPage() {
                                 <button
                                     onClick={handleCancelEditName}
                                     disabled={isSavingName}
-                                    className="px-5 py-2 h-10 rounded-full border border-base-300 bg-white text-sm font-semibold text-gray-800 shadow-sm transition-all duration-200 hover:bg-base-300 cursor-pointer flex items-center justify-center"
+                                    className="px-5 py-2 h-10 rounded-full border border-primary bg-white text-sm font-semibold text-primary transition-colors hover:bg-primary/10 cursor-pointer flex items-center justify-center"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleSaveName}
                                     disabled={isSavingName || !nameData.firstName || !nameData.lastName}
-                                    className="px-5 py-2 h-10 rounded-full bg-primary text-secondary text-sm font-semibold shadow-sm transition-all duration-200 hover:bg-primary/95 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                                    className="px-5 py-2 h-10 rounded-full bg-primary text-secondary text-sm font-semibold transition-all duration-200 hover:bg-primary/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
                                 >
                                     {isSavingName ? 'Saving...' : 'Save'}
                                 </button>
@@ -1597,14 +1607,14 @@ export default function AccountSettingsPage() {
                             <button
                                 onClick={handleCancelEditBuyerInfo}
                                 disabled={isSavingBuyerInfo}
-                                className="px-5 py-2 h-10 rounded-full border border-base-300 bg-white text-sm font-semibold text-gray-800 shadow-sm transition-all duration-200 hover:bg-base-300 cursor-pointer flex items-center justify-center"
+                                className="px-5 py-2 h-10 rounded-full border border-primary bg-white text-sm font-semibold text-primary transition-colors hover:bg-primary/10 cursor-pointer flex items-center justify-center"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSaveBuyerInfo}
                                 disabled={isSavingBuyerInfo}
-                                className="px-5 py-2 h-10 rounded-full bg-primary text-secondary text-sm font-semibold shadow-sm transition-all duration-200 hover:bg-primary/95 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                                className="px-5 py-2 h-10 rounded-full bg-primary text-secondary text-sm font-semibold transition-all duration-200 hover:bg-primary/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
                             >
                                 {isSavingBuyerInfo ? 'Saving...' : 'Save'}
                             </button>
@@ -1645,12 +1655,9 @@ export default function AccountSettingsPage() {
                         <span className="text-sm font-semibold text-gray-800">Use this information to prepopulate survey</span>
                         <motion.button
                             onClick={() => handleToggleUseInfoPopulate(!useBuyerInfoForSurvey)}
-                            className={`relative inline-flex items-center h-6 cursor-pointer rounded-full w-14 focus:outline-none active:outline-none ${useBuyerInfoForSurvey
-                                ? 'bg-green-500'
-                                : 'bg-red-500'
-                                }`}
+                            className="relative inline-flex items-center h-6 cursor-pointer rounded-full w-14 focus:outline-none active:outline-none"
                             animate={{
-                                backgroundColor: useBuyerInfoForSurvey ? '#10b981' : '#ef4444'
+                                backgroundColor: useBuyerInfoForSurvey ? '#439775' : '#9ca3af'
                             }}
                             transition={{ duration: 0.3, ease: 'easeInOut' }}
                         >
@@ -1663,7 +1670,7 @@ export default function AccountSettingsPage() {
                                         animate={{ opacity: 1, x: 0 }}
                                         exit={{ opacity: 0, x: 5 }}
                                         transition={{ duration: 0.2 }}
-                                        className="absolute right-0 pr-3 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
+                                        className="absolute right-0 pr-3 flex items-center h-full text-[10px] font-semibold text-white/95 pointer-events-none z-10"
                                     >
                                         No
                                     </motion.span>
@@ -1678,7 +1685,7 @@ export default function AccountSettingsPage() {
                                         animate={{ opacity: 1, x: 0 }}
                                         exit={{ opacity: 0, x: -5 }}
                                         transition={{ duration: 0.2 }}
-                                        className="absolute left-0 pl-2.5 flex items-center h-full text-[10px] font-bold text-white pointer-events-none z-10"
+                                        className="absolute left-0 pl-2.5 flex items-center h-full text-[10px] font-semibold text-white/95 pointer-events-none z-10"
                                     >
                                         Yes
                                     </motion.span>
@@ -1686,7 +1693,7 @@ export default function AccountSettingsPage() {
                             </AnimatePresence>
                             {/* White circle handle */}
                             <motion.span
-                                className="absolute h-4.5 w-4.5 rounded-full bg-white shadow-md"
+                                className="absolute h-4.5 w-4.5 rounded-full bg-white shadow-sm"
                                 animate={{
                                     left: useBuyerInfoForSurvey ? 'auto' : '0.225rem',
                                     right: useBuyerInfoForSurvey ? '0.155rem' : 'auto'
@@ -1743,7 +1750,11 @@ export default function AccountSettingsPage() {
                 </div>
                 {isEditingPhone ? (
                     <div className="space-y-4">
-                        <div className="border border-gray-300 rounded-full overflow-hidden focus-within:ring-2 focus-within:ring-primary focus-within:border-transparent transition-all bg-white shadow-xs">
+                        <div
+                            ref={phoneInputWrapperRef}
+                            onClick={handlePhoneFieldClick}
+                            className="flex h-10 w-full cursor-text items-center overflow-hidden rounded-full border border-gray-300 bg-white shadow-xs focus-within:border-transparent focus-within:ring-2 focus-within:ring-primary"
+                        >
                             <PhoneInput
                                 international
                                 defaultCountry="AU"
@@ -1751,21 +1762,22 @@ export default function AccountSettingsPage() {
                                 onChange={(value) => setPhoneData(value || '')}
                                 placeholder="Enter phone number"
                                 disabled={isSavingPhone}
-                                className="[&_.PhoneInputCountry]:px-3 [&_.PhoneInputCountry]:py-2 [&_.PhoneInputCountry]:border-r [&_.PhoneInputCountry]:border-gray-300 [&_.PhoneInputCountry]:flex [&_.PhoneInputCountry]:items-center [&_.PhoneInputCountry]:gap-2 [&_.PhoneInputInput]:flex-1 [&_.PhoneInputInput]:px-4 [&_.PhoneInputInput]:py-2 [&_.PhoneInputInput]:border-0 [&_.PhoneInputInput]:focus:ring-0 [&_.PhoneInputInput]:focus:outline-none [&_.PhoneInputInput]:disabled:opacity-50 [&_.PhoneInputInput]:disabled:cursor-not-allowed"
+                                numberInputProps={{ autoFocus: false }}
+                                className="flex h-10 w-full min-w-0 items-center [&_.PhoneInputCountry]:flex [&_.PhoneInputCountry]:h-full [&_.PhoneInputCountry]:shrink-0 [&_.PhoneInputCountry]:items-center [&_.PhoneInputCountry]:gap-2 [&_.PhoneInputCountry]:border-r [&_.PhoneInputCountry]:border-gray-300 [&_.PhoneInputCountry]:px-3 [&_.PhoneInputCountryIcon]:!h-4 [&_.PhoneInputCountryIcon]:!w-6 [&_.PhoneInputInput]:h-full [&_.PhoneInputInput]:min-w-0 [&_.PhoneInputInput]:flex-1 [&_.PhoneInputInput]:w-full [&_.PhoneInputInput]:border-0 [&_.PhoneInputInput]:bg-transparent [&_.PhoneInputInput]:px-4 [&_.PhoneInputInput]:text-sm [&_.PhoneInputInput]:text-gray-950 [&_.PhoneInputInput]:focus:outline-none [&_.PhoneInputInput]:focus:ring-0 [&_.PhoneInputInput]:disabled:cursor-not-allowed [&_.PhoneInputInput]:disabled:opacity-50"
                             />
                         </div>
                         <div className="flex gap-3 justify-end">
                             <button
                                 onClick={handleCancelEditPhone}
                                 disabled={isSavingPhone}
-                                className="px-5 py-2 h-10 rounded-full border border-base-300 bg-white text-sm font-semibold text-gray-800 shadow-sm transition-all duration-200 hover:bg-base-300 cursor-pointer flex items-center justify-center"
+                                className="px-5 py-2 h-10 rounded-full border border-primary bg-white text-sm font-semibold text-primary transition-colors hover:bg-primary/10 cursor-pointer flex items-center justify-center"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSavePhone}
                                 disabled={isSavingPhone || !phoneData}
-                                className="px-5 py-2 h-10 rounded-full bg-primary text-secondary text-sm font-semibold shadow-sm transition-all duration-200 hover:bg-primary/95 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                                className="px-5 py-2 h-10 rounded-full bg-primary text-secondary text-sm font-semibold transition-all duration-200 hover:bg-primary/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
                             >
                                 {isSavingPhone ? 'Saving...' : 'Save'}
                             </button>
@@ -1776,7 +1788,7 @@ export default function AccountSettingsPage() {
                         {(() => {
                             const currentPhone = getCurrentPhoneNumber();
                             return currentPhone ? (
-                                <div className="flex items-center justify-between p-4 border border-base-300 rounded-2xl bg-white/50">
+                                <div className="flex h-14 items-center justify-between rounded-2xl border border-base-300 bg-white/50 p-4">
                                     <div className="flex items-center gap-3">
                                         <Phone className="w-5 h-5 text-gray-400" />
                                         <span className="text-gray-900 font-medium">{currentPhone}</span>
@@ -1789,7 +1801,7 @@ export default function AccountSettingsPage() {
                                     </button>
                                 </div>
                             ) : (
-                                <div className="flex items-center justify-between p-4 border border-base-300 rounded-2xl bg-white/50">
+                                <div className="flex h-14 items-center justify-between rounded-2xl border border-base-300 bg-white/50 p-4">
                                     <div className="flex items-center gap-3">
                                         <Phone className="w-5 h-5 text-gray-400" />
                                         <span className="text-gray-500 font-medium">No phone number</span>
@@ -1932,14 +1944,14 @@ export default function AccountSettingsPage() {
                                             <button
                                                 onClick={saveManualAddress}
                                                 disabled={!validateManualAddress() || isSavingAddress}
-                                                className="px-5 py-2 h-10 rounded-full bg-primary text-secondary text-sm font-semibold shadow-sm transition-all duration-200 hover:bg-primary/95 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                                                className="px-5 py-2 h-10 rounded-full bg-primary text-secondary text-sm font-semibold transition-all duration-200 hover:bg-primary/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
                                             >
                                                 Use This Address
                                             </button>
                                             <button
                                                 onClick={() => setIsManualEntry(false)}
                                                 disabled={isSavingAddress}
-                                                className="px-5 py-2 h-10 rounded-full border border-base-300 bg-white text-sm font-semibold text-gray-800 shadow-sm transition-all duration-200 hover:bg-base-300 cursor-pointer flex items-center justify-center"
+                                                className="px-5 py-2 h-10 rounded-full border border-primary bg-white text-sm font-semibold text-primary transition-colors hover:bg-primary/10 cursor-pointer flex items-center justify-center"
                                             >
                                                 Back
                                             </button>
@@ -1973,14 +1985,14 @@ export default function AccountSettingsPage() {
                             <button
                                 onClick={handleCancelEditAddress}
                                 disabled={isSavingAddress}
-                                className="px-5 py-2 h-10 rounded-full border border-base-300 bg-white text-sm font-semibold text-gray-800 shadow-sm transition-all duration-200 hover:bg-base-300 cursor-pointer flex items-center justify-center"
+                                className="px-5 py-2 h-10 rounded-full border border-primary bg-white text-sm font-semibold text-primary transition-colors hover:bg-primary/10 cursor-pointer flex items-center justify-center"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handleSaveAddress}
                                 disabled={isSavingAddress || !hasValidAddress}
-                                className="px-5 py-2 h-10 rounded-full bg-primary text-secondary text-sm font-semibold shadow-sm transition-all duration-200 hover:bg-primary/95 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
+                                className="px-5 py-2 h-10 rounded-full bg-primary text-secondary text-sm font-semibold transition-all duration-200 hover:bg-primary/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center"
                             >
                                 {isSavingAddress ? 'Saving...' : 'Save'}
                             </button>
@@ -1991,7 +2003,7 @@ export default function AccountSettingsPage() {
                         {(() => {
                             const currentAddress = getCurrentAddress();
                             return currentAddress ? (
-                                <div className="flex items-center justify-between p-4 border border-base-300 rounded-2xl bg-white/50">
+                                <div className="flex h-14 items-center justify-between rounded-2xl border border-base-300 bg-white/50 p-4">
                                     <div className="flex items-center gap-3">
                                         <MapPin className="w-5 h-5 text-gray-400" />
                                         <span className="text-gray-900 font-medium">{currentAddress}</span>
@@ -2004,7 +2016,7 @@ export default function AccountSettingsPage() {
                                     </button>
                                 </div>
                             ) : (
-                                <div className="flex items-center justify-between p-4 border border-base-300 rounded-2xl bg-white/50">
+                                <div className="flex h-14 items-center justify-between rounded-2xl border border-base-300 bg-white/50 p-4">
                                     <div className="flex items-center gap-3">
                                         <MapPin className="w-5 h-5 text-gray-400" />
                                         <span className="text-gray-500 font-medium">No address</span>
@@ -2082,7 +2094,7 @@ export default function AccountSettingsPage() {
                                 <button
                                     onClick={handleUploadNewPhoto}
                                     disabled={isUploadingPicture || isDeletingPicture}
-                                    className="w-full cursor-pointer px-5 py-2.5 bg-primary text-secondary rounded-full hover:bg-primary/95 transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold text-sm"
+                                    className="w-full cursor-pointer px-5 py-2.5 bg-primary text-secondary rounded-full transition-all duration-200 hover:bg-primary/90 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-semibold text-sm"
                                 >
                                     {isUploadingPicture ? (
                                         <>
@@ -2120,7 +2132,7 @@ export default function AccountSettingsPage() {
                                 <button
                                     onClick={() => setIsProfilePictureModalOpen(false)}
                                     disabled={isUploadingPicture || isDeletingPicture}
-                                    className="w-full cursor-pointer px-5 py-2.5 border border-base-300 bg-white text-gray-800 rounded-full hover:bg-base-300 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm"
+                                    className="w-full cursor-pointer px-5 py-2.5 border border-primary bg-white text-primary rounded-full hover:bg-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-semibold text-sm"
                                 >
                                     Cancel
                                 </button>

@@ -136,7 +136,7 @@ export default function EditPasswordModal({ isOpen, onClose, onUpdatePassword })
                                         </p>
                                         <button
                                             onClick={onClose}
-                                            className="cursor-pointer w-full bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
+                                            className="cursor-pointer w-full bg-primary hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
                                         >
                                             Close
                                         </button>
@@ -267,7 +267,7 @@ export default function EditPasswordModal({ isOpen, onClose, onUpdatePassword })
                                             <button
                                                 type="submit"
                                                 disabled={isSubmitting || !currentPassword || !newPassword || !confirmPassword}
-                                                className="cursor-pointer flex-1 bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                className="cursor-pointer flex-1 bg-primary hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                             >
                                                 {isSubmitting ? (
                                                     <>

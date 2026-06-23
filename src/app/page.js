@@ -165,14 +165,12 @@ export default function HomePage() {
                         transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
                         className="flex flex-col sm:flex-row gap-4 justify-center items-center"
                     >
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
+                        <button
                             onClick={handleGetStarted}
-                            className="bg-primary cursor-pointer hover:bg-primary-focus text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg w-full sm:w-auto"
+                            className="bg-primary cursor-pointer hover:bg-primary/90 text-secondary px-8 py-4 rounded-full font-medium text-lg hover:shadow-lg transition-all duration-200 w-full sm:w-auto"
                         >
                             Start Free Calculator
-                        </motion.button>
+                        </button>
 
                         <p className="text-sm text-gray-500">
                             Takes less than 5 minutes
@@ -188,8 +186,8 @@ export default function HomePage() {
                     className="absolute inset-0 z-0 bg-black/25 backdrop-blur-md"
                     aria-hidden="true"
                 />
-                <div className="relative z-10 container mx-auto px-4 py-16 lg:py-32">
-                        <div className="grid gap-12 lg:gap-20 md:grid-cols-2 items-center">
+                <div className="relative z-10 container mx-auto px-4 pt-12 md:pt-16 lg:pt-20 pb-8 md:pb-10 lg:pb-12">
+                        <div className="grid gap-8 lg:gap-12 md:grid-cols-2 items-center">
                             {/* Stabilized Framer Motion container with aspect layout constraints for clean mobile composition rendering */}
                             <motion.div
                                 initial={{ opacity: 0, x: isMobile ? 0 : -40, y: isMobile ? 15 : 0 }}
@@ -198,7 +196,7 @@ export default function HomePage() {
                                 transition={{ duration: 0.5, ease: "easeOut" }}
                                 className="flex justify-center w-full"
                             >
-                                <div className="w-full mx-auto aspect-square relative max-w-[450px] md:max-w-none">
+                                <div className="w-full mx-auto relative max-w-[450px] md:max-w-[420px] lg:max-w-[480px]">
                                     <Image
                                         src="/test7.png"
                                         alt="Person contemplating home buying costs"
@@ -224,15 +222,13 @@ export default function HomePage() {
                                     Most buyers underestimate what they&apos;ll actually spend — and overpay as a result. PropWiz gives you a complete picture of every fee, concession, and cost before you commit. One tool. Every number. Zero surprises.
                                 </p>
                                 <div className="flex justify-center md:justify-start">
-                                    <motion.button
-                                        whileHover={{ scale: 1.05 }}
-                                        whileTap={{ scale: 0.95 }}
+                                    <button
                                         onClick={handleGetStarted}
-                                        className="bg-primary hover:bg-primary-focus cursor-pointer text-white px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg inline-flex items-center gap-2"
+                                        className="bg-primary hover:bg-primary/90 cursor-pointer text-white px-8 py-4 rounded-full font-medium text-lg hover:shadow-lg transition-all duration-200 inline-flex items-center gap-2"
                                     >
                                         Start Free Calculator
                                         <span aria-hidden="true">→</span>
-                                    </motion.button>
+                                    </button>
                                 </div>
                             </motion.div>
                         </div>
@@ -523,22 +519,18 @@ export default function HomePage() {
                             Get a complete breakdown of every cost before you sign anything. Free, instant, and built for Australia.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                            <button
                                 onClick={handleGetStarted}
-                                className="bg-primary cursor-pointer hover:bg-primary-focus text-secondary px-8 py-4 rounded-full font-medium text-lg transition-all duration-200 hover:shadow-lg w-full sm:w-auto"
+                                className="bg-primary cursor-pointer hover:bg-primary/90 text-secondary px-8 py-4 rounded-full font-medium text-lg hover:shadow-lg transition-all duration-200 w-full sm:w-auto"
                             >
                                 Start Free Calculator
-                            </motion.button>
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                            </button>
+                            <button
                                 onClick={() => router.push('/login')}
-                                className="px-20 py-4 rounded-full font-medium text-lg border-2 border-primary text-primary cursor-pointer hover:bg-base-100/30 transition-all duration-200 w-full sm:w-auto"
+                                className="px-20 py-4 rounded-full font-medium text-lg text-primary border border-primary cursor-pointer hover:bg-primary/10 transition-colors w-full sm:w-auto"
                             >
                                 Log In
-                            </motion.button>
+                            </button>
                         </div>
                     </motion.div>
                     </div>

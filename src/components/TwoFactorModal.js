@@ -246,7 +246,7 @@ export default function TwoFactorModal({ isOpen, onClose, onStatusChange }) {
                           <button
                             onClick={handleStartEnroll}
                             disabled={isSubmitting}
-                            className="flex-1 cursor-pointer bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                            className="flex-1 cursor-pointer bg-primary hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
                           >
                             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                             Enable 2FA
@@ -332,7 +332,7 @@ export default function TwoFactorModal({ isOpen, onClose, onStatusChange }) {
                       <button
                         onClick={handleVerify}
                         disabled={isSubmitting || verifyCode.length !== 6}
-                        className="flex-1 cursor-pointer bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="flex-1 cursor-pointer bg-primary hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                         Verify & Enable
@@ -395,7 +395,7 @@ export default function TwoFactorModal({ isOpen, onClose, onStatusChange }) {
                     </p>
                     <button
                       onClick={onClose}
-                      className="w-full cursor-pointer bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-colors"
+                      className="w-full cursor-pointer bg-primary hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
                     >
                       Done
                     </button>

@@ -105,7 +105,7 @@ export default function EditEmailModal({ isOpen, onClose, currentEmail, onUpdate
                                     </div>
                                     <button
                                         onClick={onClose}
-                                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                                        className="text-gray-400 hover:text-gray-600 transition-colors cursor-pointer"
                                         aria-label="Close"
                                     >
                                         <X className="w-6 h-6" />
@@ -141,7 +141,7 @@ export default function EditEmailModal({ isOpen, onClose, currentEmail, onUpdate
                                         </p>
                                         <button
                                             onClick={onClose}
-                                            className="w-full bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
+                                            className="w-full bg-primary hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
                                         >
                                             Close
                                         </button>
@@ -229,14 +229,14 @@ export default function EditEmailModal({ isOpen, onClose, currentEmail, onUpdate
                                                 type="button"
                                                 onClick={onClose}
                                                 disabled={isSubmitting}
-                                                className="flex-1 border-2 border-gray-300 text-gray-700 bg-white hover:bg-gray-50 px-6 py-3 rounded-full font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                className="cursor-pointer flex-1 border border-primary bg-white text-primary px-6 py-3 rounded-full font-medium transition-colors hover:bg-primary/10 disabled:opacity-50 disabled:cursor-not-allowed"
                                             >
                                                 Cancel
                                             </button>
                                             <button
                                                 type="submit"
                                                 disabled={isSubmitting || !newEmail || !confirmEmail || !password}
-                                                className="flex-1 bg-primary hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                                className="cursor-pointer flex-1 bg-primary hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                                             >
                                                 {isSubmitting ? (
                                                     <>

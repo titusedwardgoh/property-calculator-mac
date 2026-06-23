@@ -87,7 +87,7 @@ export default function NotificationModal({ isOpen, onClose, type = 'success', t
                                 {/* Footer Button */}
                                 <button
                                     onClick={onClose}
-                                    className="w-full bg-primary cursor-pointer hover:bg-primary-focus text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
+                                    className="w-full bg-primary cursor-pointer hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-medium transition-all duration-200 hover:shadow-lg"
                                 >
                                     OK
                                 </button>
