@@ -179,9 +179,7 @@ export default function ResultsSummary({
         'px-3 py-1.5 cursor-pointer text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors shrink-0';
 
     const CardEditButton = ({ label, onClick }) => (
-        <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+        <button
             onClick={(e) => {
                 e.stopPropagation();
                 onClick();
@@ -189,7 +187,7 @@ export default function ResultsSummary({
             className={cardEditButtonClass}
         >
             {label}
-        </motion.button>
+        </button>
     );
 
     const reportCtaActions = showEmailSuccess ? (
@@ -235,21 +233,17 @@ export default function ResultsSummary({
         </motion.div>
     ) : (
         <div className="flex flex-col gap-3 w-full sm:flex-row sm:w-auto sm:justify-center">
-            <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center cursor-pointer justify-center gap-2 min-h-12 w-full sm:w-auto bg-primary hover:bg-primary/95 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150"
+            <button
+                className="flex items-center cursor-pointer justify-center gap-2 min-h-12 w-full sm:w-auto bg-primary hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs transition-all duration-200 hover:shadow-lg"
             >
                 <Download className="w-4 h-4" />
                 Download Full PDF Report
-            </motion.button>
+            </button>
 
-            <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+            <button
                 onClick={onEmailPDF}
                 disabled={isEmailingPDF}
-                className="flex items-center cursor-pointer justify-center gap-2 min-h-12 w-full sm:w-auto bg-base-200 border-2 border-secondary text-secondary hover:bg-secondary/5 px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center cursor-pointer justify-center gap-2 min-h-12 w-full sm:w-auto bg-white border border-secondary text-secondary hover:bg-primary/10 px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {isEmailingPDF ? (
                     <>
@@ -262,7 +256,7 @@ export default function ResultsSummary({
                         Email Me These Results
                     </>
                 )}
-            </motion.button>
+            </button>
         </div>
     );
 
@@ -316,10 +310,8 @@ export default function ResultsSummary({
                                                             initial={{ opacity: 0, y: 10 }}
                                                             animate={{ opacity: 1, y: 0 }}
                                                             transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
-                                                            whileHover={{ scale: 1.05 }}
-                                                            whileTap={{ scale: 0.95 }}
                                                             onClick={onStartNewSurvey}
-                                                            className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-white border-2 border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-full font-medium shadow-sm transition-colors text-sm w-full sm:w-auto md:absolute md:left-0 md:top-1/2 md:-translate-y-1/2 md:z-10 shrink-0"
+                                                            className="flex items-center cursor-pointer justify-center gap-2 min-h-12 bg-white border border-primary text-primary hover:bg-primary/10 px-6 py-3 rounded-full font-medium transition-colors text-sm w-full sm:w-auto md:absolute md:left-0 md:top-1/2 md:-translate-y-1/2 md:z-10 shrink-0"
                                                         >
                                                             <Plus className="w-4 h-4" />
                                                             Start New Survey

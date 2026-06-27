@@ -239,13 +239,13 @@ function LoginPageContent() {
         className="absolute inset-0 z-0"
         style={{
           background: `
-            radial-gradient(ellipse 84% 62% at 6% 38%, rgba(67, 151, 117, 0.36), transparent 67%),
-            radial-gradient(ellipse 74% 60% at 44% 46%, rgba(67, 151, 117, 0.26), transparent 67%),
-            radial-gradient(ellipse 66% 52% at 84% 76%, rgba(242, 255, 229, 0.62), transparent 63%),
-            radial-gradient(ellipse 60% 48% at 76% 20%, rgba(67, 151, 117, 0.24), transparent 66%),
-            radial-gradient(ellipse 58% 48% at 82% 82%, rgba(226, 149, 120, 0.24), transparent 66%),
-            radial-gradient(ellipse 52% 40% at 30% 72%, rgba(226, 149, 120, 0.16), transparent 68%),
-            linear-gradient(180deg, #ffffff 0%, #ffffff 36%, #f2ffe5 100%)
+            radial-gradient(ellipse 84% 62% at 6% 38%, rgba(67, 151, 117, 0.18), transparent 67%),
+            radial-gradient(ellipse 74% 60% at 44% 46%, rgba(67, 151, 117, 0.13), transparent 67%),
+            radial-gradient(ellipse 66% 52% at 84% 76%, rgba(242, 255, 229, 0.5), transparent 63%),
+            radial-gradient(ellipse 60% 48% at 76% 20%, rgba(67, 151, 117, 0.12), transparent 66%),
+            radial-gradient(ellipse 58% 48% at 82% 82%, rgba(226, 149, 120, 0.16), transparent 66%),
+            radial-gradient(ellipse 52% 40% at 30% 72%, rgba(226, 149, 120, 0.1), transparent 68%),
+            linear-gradient(180deg, #ffffff 0%, #ffffff 40%, #f7fff0 100%)
           `,
         }}
       />

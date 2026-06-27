@@ -60,12 +60,12 @@ function ForgotPasswordPageContent() {
         className="absolute inset-0 z-0"
         style={{
           background: `
-            radial-gradient(ellipse 92% 70% at 18% 16%, rgba(242, 255, 229, 0.58), transparent 69%),
-            radial-gradient(ellipse 88% 66% at 86% 34%, rgba(67, 151, 117, 0.30), transparent 71%),
-            radial-gradient(ellipse 76% 58% at 66% 82%, rgba(226, 149, 120, 0.24), transparent 73%),
-            radial-gradient(ellipse 70% 54% at 12% 76%, rgba(67, 151, 117, 0.16), transparent 75%),
-            radial-gradient(ellipse 62% 50% at 52% 56%, rgba(226, 149, 120, 0.14), transparent 76%),
-            linear-gradient(200deg, #ffffff 0%, #ffffff 30%, #f2ffe5 100%)
+            radial-gradient(ellipse 92% 70% at 18% 16%, rgba(242, 255, 229, 0.46), transparent 69%),
+            radial-gradient(ellipse 88% 66% at 86% 34%, rgba(67, 151, 117, 0.15), transparent 71%),
+            radial-gradient(ellipse 76% 58% at 66% 82%, rgba(226, 149, 120, 0.16), transparent 73%),
+            radial-gradient(ellipse 70% 54% at 12% 76%, rgba(67, 151, 117, 0.1), transparent 75%),
+            radial-gradient(ellipse 62% 50% at 52% 56%, rgba(226, 149, 120, 0.1), transparent 76%),
+            linear-gradient(200deg, #ffffff 0%, #ffffff 36%, #f7fff0 100%)
           `,
         }}
       />
@@ -157,12 +157,10 @@ function ForgotPasswordPageContent() {
             )}
 
             {/* Submit Button */}
-            <motion.button
+            <button
               type="submit"
-              whileHover={{ scale: loading ? 1 : 1.02 }}
-              whileTap={{ scale: loading ? 1 : 0.98 }}
               disabled={loading}
-              className="w-full cursor-pointer bg-primary hover:bg-primary-focus text-secondary font-medium py-3 px-6 rounded-full transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full cursor-pointer bg-primary hover:bg-primary/90 text-secondary font-medium py-3 px-6 rounded-full transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -172,7 +170,7 @@ function ForgotPasswordPageContent() {
               ) : (
                 'Send reset link'
               )}
-            </motion.button>
+            </button>
 
             {/* Back to Login Link */}
             <div className="text-center">

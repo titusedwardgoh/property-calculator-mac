@@ -305,6 +305,16 @@ html[data-theme='flyingwizard'] {
   --root-bg: #ffffff;
 }
 
+/* Guard against stray off-screen elements (e.g. tooltips/blobs) widening the
+   page, which would push the fixed survey header's close (X) button off-screen.
+   Must be on <html> too: clipping only <body> still lets the root element grow,
+   so the fixed header (sized to the layout viewport) gets pushed off-screen.
+   `clip` (not `hidden`) avoids creating a scroll container, so sticky still works. */
+html,
+body {
+  overflow-x: clip;
+}
+
 .root-aurora-bg {
   position: fixed;
   inset: 0;

@@ -911,7 +911,7 @@ export default function SellerQuestions() {
           </div>
         </SurveyLoadingOverlay>
       )}
-    <div className="bg-transparent rounded-lg overflow-visible mt-15">
+    <div className="bg-transparent rounded-lg overflow-visible mt-15 flex flex-col min-h-[calc(100dvh-12rem)] md:block md:min-h-0">
       <div className="flex">
         <AnimatePresence mode="wait">
           <motion.span
@@ -946,7 +946,7 @@ export default function SellerQuestions() {
       </div>
 
       {/* Navigation - Fixed bottom on mobile, normal position on desktop */}
-      <div className="md:pl-8 xl:text-lg fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:mt-8 md:px-6 md:pb-8 lg:mt-15 xl:mt-15">
+      <div className="md:pl-8 xl:text-lg relative mt-auto bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:mt-8 md:px-6 md:pb-8 lg:mt-15 xl:mt-15">
         {/* Progress Bar - Now rendered on main page for medium+ screens */}
         <div className="block md:hidden w-full bg-gray-100 h-1 mb-4">
           <div 

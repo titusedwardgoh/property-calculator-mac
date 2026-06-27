@@ -535,7 +535,7 @@ export default function BuyerDetails() {
       case 1:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+            <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
               Are you an Owner or Investor?
               <QuestionInfoTooltip ariaLabel="Help: owner or investor">
                 {QUESTION_TOOLTIPS.buyerType}
@@ -578,7 +578,7 @@ export default function BuyerDetails() {
       case 2:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+            <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
               Will this be your main home?
               <QuestionInfoTooltip ariaLabel="Help: principal place of residence">
                 {QUESTION_TOOLTIPS.isPPR}
@@ -630,7 +630,7 @@ export default function BuyerDetails() {
       case 3:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+            <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
               Australian citizen or permanent resident?
               <QuestionInfoTooltip ariaLabel="Help: Australian citizen or resident">
                 {QUESTION_TOOLTIPS.isAustralianResident}
@@ -673,7 +673,7 @@ export default function BuyerDetails() {
       case 4:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+            <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
               Is this your first home purchase?
               <QuestionInfoTooltip ariaLabel="Help: first home buyer">
                 {QUESTION_TOOLTIPS.isFirstHomeBuyer}
@@ -717,7 +717,7 @@ export default function BuyerDetails() {
         if (formData.isACT) {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 Have you owned any other property in the last 5 years?
                 <QuestionInfoTooltip ariaLabel="Help: property ownership in last 5 years">
                   {QUESTION_TOOLTIPS.ownedPropertyLast5Years}
@@ -770,7 +770,7 @@ export default function BuyerDetails() {
         } else {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 Are you a holder of a pensioneer card?
                 <QuestionInfoTooltip ariaLabel="Help: pensioner concession card">
                   {QUESTION_TOOLTIPS.hasPensionCard}
@@ -826,7 +826,7 @@ export default function BuyerDetails() {
         if (formData.isACT) {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 Are you a holder of a pensioneer card?
                 <QuestionInfoTooltip ariaLabel="Help: pensioner concession card">
                   {QUESTION_TOOLTIPS.hasPensionCard}
@@ -879,7 +879,7 @@ export default function BuyerDetails() {
         } else {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 How much savings do you have?
                 <QuestionInfoTooltip ariaLabel="Help: savings amount">
                   {QUESTION_TOOLTIPS.savingsAmount}
@@ -915,7 +915,7 @@ export default function BuyerDetails() {
         if (formData.isACT) {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 What is your income?
                 <QuestionInfoTooltip ariaLabel="Help: annual income">
                   {QUESTION_TOOLTIPS.income}
@@ -948,7 +948,7 @@ export default function BuyerDetails() {
         } else {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 Do you need a loan to purchase?
                 <QuestionInfoTooltip ariaLabel="Help: need a loan">
                   {QUESTION_TOOLTIPS.needsLoan}
@@ -997,7 +997,7 @@ export default function BuyerDetails() {
         if (formData.isACT) {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 How many dependants do you have?
                 <QuestionInfoTooltip ariaLabel="Help: number of dependants">
                   {QUESTION_TOOLTIPS.dependants}
@@ -1030,7 +1030,7 @@ export default function BuyerDetails() {
         if (formData.isACT) {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 How much savings do you have?
                 <QuestionInfoTooltip ariaLabel="Help: savings amount">
                   {QUESTION_TOOLTIPS.savingsAmount}
@@ -1068,7 +1068,7 @@ export default function BuyerDetails() {
         if (formData.isACT) {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 Do you need a loan to purchase?
                 <QuestionInfoTooltip ariaLabel="Help: need a loan">
                   {QUESTION_TOOLTIPS.needsLoan}
@@ -1151,29 +1151,30 @@ export default function BuyerDetails() {
           </div>
         </SurveyLoadingOverlay>
       )}
-    <div className="bg-transparent rounded-lg overflow-visible mt-15">
+    <div className="bg-transparent rounded-lg overflow-visible mt-15 flex flex-col min-h-[calc(100dvh-12rem)] md:block md:min-h-0">
       <div className="flex">
-        <AnimatePresence mode="wait">
-          <motion.span
-            key={`step-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
-            {...getQuestionNumberAnimation(direction, 0.4)}
-            className={`flex items-center text-xs -mt-93 md:-mt-93 lg:-mt-93 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap ${
-              formData.buyerDetailsComplete ? 'text-base-100' : 'text-primary'
-            }`}
-          >
-            {(formData.buyerDetailsComplete ? getStartingStepNumber() : currentStep + getStartingStepNumber() - 1) < 10 ? <span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span> : null}
-            {formData.buyerDetailsComplete ? getStartingStepNumber() : currentStep + getStartingStepNumber() - 1} 
-            <span className={`text-xs ${formData.buyerDetailsComplete ? 'text-primary' : ''}`}>→</span>
-          </motion.span>
-        </AnimatePresence>
-        <div className="flex pb-6 pb-24 md:pb-8">
-          {/* Step Content — overflow-visible + relative wrapper matches PropertyDetails so (i) tooltips aren't clipped */}
-          <div className="relative min-h-[20rem] overflow-visible">
+        <div className="ml-2 md:ml-3 lg:ml-2 flex items-center text-xs -mt-113 md:-mt-113 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap relative min-w-[3ch]">
+          <span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span>
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={`step-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
+              {...getQuestionNumberAnimation(direction, 0.4)}
+              className={`flex items-center absolute right-0 ${
+                formData.buyerDetailsComplete ? 'text-base-100' : 'text-primary'
+              }`}
+            >
+              {formData.buyerDetailsComplete ? getStartingStepNumber() : currentStep + getStartingStepNumber() - 1}
+              <span className={`text-xs ${formData.buyerDetailsComplete ? 'text-primary' : ''}`}>→</span>
+            </motion.span>
+          </AnimatePresence>
+        </div>
+        <div className="pb-6 pb-24 md:pb-8 flex">
+          {/* Step Content — h-100 matches PropertyDetails so the step number aligns with the heading's first line */}
+          <div className="h-100 relative">
             <AnimatePresence mode="wait">
               <motion.div
                 key={`content-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
                 {...getQuestionSlideAnimation(direction, formData.buyerDetailsComplete || (currentStep === 1 && isInitialEntry), 0.5, 0.3)}
-                className="overflow-visible"
               >
                 {renderStep()}
               </motion.div>
@@ -1183,7 +1184,7 @@ export default function BuyerDetails() {
       </div>
 
       {/* Navigation - Fixed bottom on mobile, normal position on desktop */}
-      <div className="md:pl-8 xl:text-lg fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:mt-8 md:px-6 md:pb-8 lg:mt-15 xl:mt-15">
+      <div className="md:pl-8 xl:text-lg relative mt-auto bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:-mt-16 md:px-6 md:pb-8 lg:-mt-9 xl:-mt-10">
         {/* Progress Bar - Now rendered on main page for medium+ screens */}
         <div className="block md:hidden w-full bg-gray-100 h-1 mb-4">
           <div 

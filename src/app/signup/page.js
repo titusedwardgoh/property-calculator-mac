@@ -146,12 +146,12 @@ function SignupPageContent() {
         className="absolute inset-0 z-0"
         style={{
           background: `
-            radial-gradient(ellipse 90% 68% at 84% 22%, rgba(67, 151, 117, 0.30), transparent 69%),
-            radial-gradient(ellipse 82% 60% at 20% 24%, rgba(242, 255, 229, 0.56), transparent 70%),
-            radial-gradient(ellipse 76% 58% at 12% 78%, rgba(226, 149, 120, 0.22), transparent 72%),
-            radial-gradient(ellipse 88% 66% at 70% 82%, rgba(67, 151, 117, 0.18), transparent 74%),
-            radial-gradient(ellipse 64% 50% at 56% 52%, rgba(226, 149, 120, 0.14), transparent 75%),
-            linear-gradient(165deg, #ffffff 0%, #ffffff 34%, #f2ffe5 100%)
+            radial-gradient(ellipse 90% 68% at 84% 22%, rgba(67, 151, 117, 0.15), transparent 69%),
+            radial-gradient(ellipse 82% 60% at 20% 24%, rgba(242, 255, 229, 0.46), transparent 70%),
+            radial-gradient(ellipse 76% 58% at 12% 78%, rgba(226, 149, 120, 0.15), transparent 72%),
+            radial-gradient(ellipse 88% 66% at 70% 82%, rgba(67, 151, 117, 0.1), transparent 74%),
+            radial-gradient(ellipse 64% 50% at 56% 52%, rgba(226, 149, 120, 0.1), transparent 75%),
+            linear-gradient(165deg, #ffffff 0%, #ffffff 38%, #f7fff0 100%)
           `,
         }}
       />

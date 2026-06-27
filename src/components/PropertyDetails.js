@@ -937,7 +937,7 @@ export default function PropertyDetails() {
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
             <div className="mb-4">
-              <h2 className="inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              <h2 className="text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 <span>What&apos;s the property address?</span>
                 <QuestionInfoTooltip ariaLabel="Why we ask for property address">
                   {QUESTION_TOOLTIPS.propertyAddress}
@@ -1144,7 +1144,7 @@ export default function PropertyDetails() {
       case 2:
         return (
           <div className="flex flex-col mt-8 md:mt-0 pr-2">
-            <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+            <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
               Which state is the property in?
               <QuestionInfoTooltip ariaLabel="Help: which state">
                 {QUESTION_TOOLTIPS.selectedState}
@@ -1192,7 +1192,7 @@ export default function PropertyDetails() {
         if (formData.selectedState === 'WA') {
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 Where is the Property
                 <QuestionInfoTooltip ariaLabel="Help: Western Australia property location">
                   {QUESTION_TOOLTIPS.propertyWARegion}
@@ -1283,7 +1283,7 @@ export default function PropertyDetails() {
         case 4:
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 What type of property is it?
                 <QuestionInfoTooltip ariaLabel="Help: property type">
                   {QUESTION_TOOLTIPS.propertyCategory}
@@ -1319,7 +1319,7 @@ export default function PropertyDetails() {
         case 5:
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 {formData.propertyCategory === 'land' 
                   ? 'Is this a house and land package?' 
                   : 'Is this property new or existing?'
@@ -1378,7 +1378,7 @@ export default function PropertyDetails() {
         case 6:
           return (
             <div className="flex flex-col mt-8 md:mt-0 pr-2">
-              <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+              <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                 What is the property&apos;s price?
                 <QuestionInfoTooltip ariaLabel="Help: property price">
                   {QUESTION_TOOLTIPS.propertyPrice}
@@ -1445,7 +1445,7 @@ export default function PropertyDetails() {
           </div>
         </SurveyLoadingOverlay>
       )}
-    <div className="bg-transparent rounded-lg overflow-visible mt-15">
+    <div className="bg-transparent rounded-lg overflow-visible mt-15 flex flex-col min-h-[calc(100dvh-12rem)] md:block md:min-h-0">
         <div className="flex">
          <div className="ml-2 md:ml-3 lg:ml-2 flex items-center text-xs -mt-113 md:-mt-113 lg:text-sm lg:pt-15 font-extrabold mr-2 pt-14 whitespace-nowrap relative overflow-hidden min-w-[3ch]">
            <span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span>
@@ -1476,7 +1476,7 @@ export default function PropertyDetails() {
       </div>
 
       {/* Navigation - Fixed bottom on mobile, normal position on desktop */}
-      <div className="md:pl-8 xl:text-lg fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:-mt-16 md:px-6 md:pb-8 lg:-mt-9 xl:-mt-10">
+      <div className="md:pl-8 xl:text-lg relative mt-auto bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:-mt-16 md:px-6 md:pb-8 lg:-mt-9 xl:-mt-10">
         {/* Progress Bar - Now rendered on main page for medium+ screens */}
         <motion.div 
           initial={{ opacity: 0, y: -10 }}

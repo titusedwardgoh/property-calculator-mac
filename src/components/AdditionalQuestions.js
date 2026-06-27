@@ -482,7 +482,7 @@ export default function AdditionalQuestions() {
   }
 
   return (
-    <div className="bg-transparent rounded-lg overflow-visible mt-15">
+    <div className="bg-transparent rounded-lg overflow-visible mt-15 flex flex-col min-h-[calc(100dvh-12rem)] md:block md:min-h-0">
       <div className="flex">
         <AnimatePresence mode="wait">
           <motion.span
@@ -506,7 +506,7 @@ export default function AdditionalQuestions() {
                 renderLoanField()
               ) : (
                 <div className="flex flex-col mt-8 md:mt-0 pr-2">
-                  <h2 className="mb-4 inline-flex flex-wrap items-center gap-3 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
+                  <h2 className="mb-4 text-3xl font-base leading-tight text-gray-800 lg:text-4xl">
                     {config.title || config.label}
                     {currentFieldKey && QUESTION_TOOLTIPS[currentFieldKey] ? (
                       <QuestionInfoTooltip
@@ -529,7 +529,7 @@ export default function AdditionalQuestions() {
         </div>
       </div>
 
-      <div className="md:pl-8 xl:text-lg fixed bottom-0 left-0 right-0 md:relative md:bottom-auto md:left-auto md:right-auto bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:mt-8 md:px-6 md:pb-8 lg:mt-15 xl:mt-15">
+      <div className="md:pl-8 xl:text-lg relative mt-auto bg-transparent pt-0 pr-4 pb-4 pl-4 md:p-0 md:mt-8 md:px-6 md:pb-8 lg:mt-15 xl:mt-15">
         <div className="flex justify-start mx-auto mt-4">
           {currentStep === 1 ? (
             <>
