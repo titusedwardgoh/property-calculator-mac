@@ -140,7 +140,7 @@ function SignupPageContent() {
   };
 
   return (
-    <div className="min-h-screen w-full relative flex items-start justify-center px-4 pt-20 pb-16 md:pt-24 md:pb-20 lg:pt-28 lg:pb-24">
+    <div className="min-h-screen w-full relative flex items-start justify-center px-4 pt-10 pb-16 md:pt-14 md:pb-20 lg:pt-16 lg:pb-24 min-[2048px]:items-center min-[2048px]:py-0">
       <PendingSurveyLinkGuard />
       <div
         className="absolute inset-0 z-0"
