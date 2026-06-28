@@ -15,6 +15,7 @@ import { useWizardStep } from '../hooks/useWizardStep';
 import QuestionInfoTooltip from './shared/QuestionInfoTooltip';
 import { QUESTION_TOOLTIPS } from '../lib/questionTooltips';
 import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
+import SurveyNavigationButtons from './shared/SurveyNavigationButtons';
 
 export default function BuyerDetails() {
     const formData = useFormStore();
@@ -1193,7 +1194,7 @@ export default function BuyerDetails() {
           ></div>
         </div>
         
-        <div className="flex justify-start mx-auto mt-4">
+        <div className="flex justify-start mx-auto mt-4 w-full">
           {formData.buyerDetailsComplete ? (
             // Completion state: Back and Next buttons
             <>
@@ -1241,66 +1242,25 @@ export default function BuyerDetails() {
                 Next
               </motion.button>
             </>
-          ) : currentStep === 1 ? (
-            // Step 1: Back to PropertyDetails and Next buttons
-            <>
-              <motion.button
-                onClick={handleBack}
-                {...getBackButtonAnimation()}
-                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary/90 transition-all duration-200 hover:shadow-lg flex-shrink-0 cursor-pointer"
-              >
-                &lt;
-              </motion.button>
-              
-              <motion.button
-                onClick={nextStep}
-                disabled={!isCurrentStepValid()}
-                {...getNextButtonAnimation(isCurrentStepValid())}
-                className={`flex-1 ml-4 px-6 py-3 rounded-full border border-primary font-medium ${
-                  !isCurrentStepValid()
-                    ? 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
-                    : 'bg-primary hover:bg-primary/90 transition-all duration-200 hover:shadow-lg cursor-pointer'
-                }`}
-              >
-                {(() => {
-                  const isLoanQuestion = (currentStep === 7 && !formData.isACT) || (currentStep === 10 && formData.isACT);
-                  if (isLoanQuestion) {
-                    return "Add in concessions";
-                  }
-                  return 'Next';
-                })()}
-              </motion.button>
-            </>
           ) : (
-            // Step 2 onwards: Back and Next buttons
-            <>
-              <motion.button
-                onClick={prevStep}
-                {...getBackButtonAnimation()}
-                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary/90 transition-all duration-200 hover:shadow-lg flex-shrink-0 cursor-pointer"
-              >
-                &lt;
-              </motion.button>
-              
-              <motion.button
-                onClick={nextStep}
-                disabled={!isCurrentStepValid()}
-                {...getNextButtonAnimation(isCurrentStepValid())}
-                className={`flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium ${
-                  !isCurrentStepValid()
-                    ? 'border-primary-100 cursor-not-allowed bg-gray-50 text-base-100'
-                    : 'text-secondary hover:bg-primary/90 transition-all duration-200 hover:shadow-lg cursor-pointer'
-                }`}
-              >
-                {(() => {
-                  const isLoanQuestion = (currentStep === 7 && !formData.isACT) || (currentStep === 10 && formData.isACT);
-                  if (isLoanQuestion) {
-                    return "Add in concessions";
-                  }
-                  return 'Next';
-                })()}
-              </motion.button>
-            </>
+            // Step 1 hides Back when editing a section from Review (acts like a fresh
+            // survey's first question); Back slides in/out on Q1<->Q2 via showBack.
+            <SurveyNavigationButtons
+              showBack={!(currentStep === 1 && (fromReview || formData.editingFromReview))}
+              onBack={currentStep === 1 ? handleBack : prevStep}
+              onNext={nextStep}
+              nextDisabled={!isCurrentStepValid()}
+              nextLabel={
+                (currentStep === 7 && !formData.isACT) || (currentStep === 10 && formData.isACT)
+                  ? 'Add in concessions'
+                  : 'Next'
+              }
+              nextClassName={
+                isCurrentStepValid()
+                  ? 'bg-primary text-secondary hover:bg-primary/90 transition-all duration-200 hover:shadow-lg cursor-pointer'
+                  : 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
+              }
+            />
           )}
         </div>
       </div>

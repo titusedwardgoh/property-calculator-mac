@@ -17,6 +17,7 @@ import {
   LoanEstablishmentFeeStep,
 } from './shared/loanFieldSteps.jsx';
 import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
+import SurveyNavigationButtons from './shared/SurveyNavigationButtons';
 
 export default function LoanDetails() {
   const formData = useFormStore();
@@ -549,7 +550,7 @@ export default function LoanDetails() {
           ></div>
         </div>
         
-        <div className="flex justify-start mx-auto mt-4">
+        <div className="flex justify-start mx-auto mt-4 w-full">
           {formData.loanDetailsComplete ? (
             // Completion state: Back to Q7 and Next to SellerQuestions
             <>
@@ -581,54 +582,21 @@ export default function LoanDetails() {
                 Next
               </motion.button>
             </>
-          ) : currentStep === 1 ? (
-            // Step 1: Back to BuyerDetails and Next buttons
-            <>
-              <motion.button
-                onClick={handleBack}
-                {...getBackButtonAnimation()}
-                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary/90 transition-all duration-200 hover:shadow-lg flex-shrink-0 cursor-pointer"
-              >
-                &lt;
-              </motion.button>
-              
-              <motion.button
-                onClick={nextStep}
-                disabled={!isCurrentStepValid()}
-                {...getNextButtonAnimation(isCurrentStepValid())}
-                className={`flex-1 ml-4 px-6 py-3 rounded-full border border-primary font-medium ${
-                  !isCurrentStepValid()
-                    ? 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
-                    : 'bg-primary hover:bg-primary/90 transition-all duration-200 hover:shadow-lg cursor-pointer'
-                }`}
-              >
-                Next
-              </motion.button>
-            </>
           ) : (
-            // Step 2 onwards: Back and Next buttons
-            <>
-              <motion.button
-                onClick={prevStep}
-                {...getBackButtonAnimation()}
-                className="bg-primary px-6 py-3 rounded-full border border-primary font-medium hover:bg-primary/90 transition-all duration-200 hover:shadow-lg flex-shrink-0 cursor-pointer"
-              >
-                &lt;
-              </motion.button>
-              
-              <motion.button
-                onClick={nextStep}
-                disabled={!isCurrentStepValid()}
-                {...getNextButtonAnimation(isCurrentStepValid())}
-                className={`flex-1 ml-4 px-6 py-3 bg-primary rounded-full border border-primary font-medium ${
-                  !isCurrentStepValid()
-                    ? 'border-primary-100 cursor-not-allowed bg-gray-50 text-base-100'
-                    : 'text-secondary hover:bg-primary/90 transition-all duration-200 hover:shadow-lg cursor-pointer'
-                }`}
-              >
-                {currentStep === totalSteps ? 'Add in loan costs' : 'Next'}
-              </motion.button>
-            </>
+            // Step 1 hides Back when editing a section from Review (acts like a fresh
+            // survey's first question); Back slides in/out on Q1<->Q2 via showBack.
+            <SurveyNavigationButtons
+              showBack={!(currentStep === 1 && (fromReview || formData.editingFromReview))}
+              onBack={currentStep === 1 ? handleBack : prevStep}
+              onNext={nextStep}
+              nextDisabled={!isCurrentStepValid()}
+              nextLabel={currentStep === totalSteps ? 'Add in loan costs' : 'Next'}
+              nextClassName={
+                isCurrentStepValid()
+                  ? 'bg-primary text-secondary hover:bg-primary/90 transition-all duration-200 hover:shadow-lg cursor-pointer'
+                  : 'border-primary-100 cursor-not-allowed bg-primary text-base-100'
+              }
+            />
           )}
         </div>
       </div>
