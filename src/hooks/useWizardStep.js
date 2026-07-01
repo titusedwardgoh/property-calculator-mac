@@ -88,6 +88,10 @@ export function useWizardStep() {
   }, [updateFormData, navigateToStep]);
 
   const completeEditAndReturnToResults = useCallback(async () => {
+    useFormStore.setState({
+      isRecalculatingResults: true,
+      isResumingSurvey: false,
+    });
     if (useFormStore.getState().editSessionActive) {
       await completeEditAndSave();
     }

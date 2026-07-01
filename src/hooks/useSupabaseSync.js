@@ -12,6 +12,7 @@ const uiOnlyKeys = [
   'showWelcomePage',
   'openDropdown',
   'isResumingSurvey',
+  'isRecalculatingResults',
   'isEditMode',
   'isTransitioning',
   'propertyId'

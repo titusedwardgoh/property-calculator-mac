@@ -12,6 +12,7 @@ import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animati
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 import { calculateGlobalProgress, getMissingFields } from '../lib/progressCalculation';
 import { useWizardStep } from '../hooks/useWizardStep';
+import { useStepTransition, useCurrentStepRef } from '../hooks/useStepTransition';
 import QuestionInfoTooltip from './shared/QuestionInfoTooltip';
 import { QUESTION_TOOLTIPS } from '../lib/questionTooltips';
 import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
@@ -23,6 +24,8 @@ export default function BuyerDetails() {
     const { isSubComplete, subNumeric, fromReview, navigateToStep, pushSubStep, completeEditAndReturnToResults, WIZARD_STEPS, SUB_COMPLETE } = useWizardStep();
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState('forward'); // 'forward' or 'backward'
+  const { isTransitioning, runTransition } = useStepTransition();
+  const currentStepRef = useCurrentStepRef(currentStep);
   const [isInitialEntry, setIsInitialEntry] = useState(true); // Track if we're on initial entry from PropertyDetails
   const [showCalculatingOverlay, setShowCalculatingOverlay] = useState(false);
   const [overlayPhase, setOverlayPhase] = useState('calculating'); // 'calculating' | 'done'
@@ -268,21 +271,21 @@ export default function BuyerDetails() {
     
     if (currentStep < totalSteps) {
       setDirection('forward');
-      setTimeout(() => {
-        setCurrentStep(currentStep + 1);
-        // Update the store with current step for progress tracking
-        updateFormData('buyerDetailsActiveStep', currentStep + 1);
-        pushSubStep(currentStep + 1);
-        
-        // Trigger auto-selection when moving from savings to loan question
-        const isMovingToLoanQuestion = 
-          (currentStep === 6 && !formData.isACT) || // Non-ACT: savings (6) -> loan (7)
-          (currentStep === 9 && formData.isACT);    // ACT: savings (9) -> loan (10)
-        
+      runTransition(() => {
+        const step = currentStepRef.current;
+        const nextStepNumber = step + 1;
+        setCurrentStep(nextStepNumber);
+        updateFormData('buyerDetailsActiveStep', nextStepNumber);
+        pushSubStep(nextStepNumber);
+
+        const isMovingToLoanQuestion =
+          (step === 6 && !formData.isACT) ||
+          (step === 9 && formData.isACT);
+
         if (isMovingToLoanQuestion) {
           autoSuggestLoanDecision();
         }
-      }, 150);
+      });
     } else if (currentStep === totalSteps) {
       // Show overlay - match Property Details style when editing from Review (going to AdditionalQuestions)
       const isEditToAdditionalQuestions = formData.editingFromReview && formData.needsLoan === 'yes';
@@ -313,12 +316,12 @@ export default function BuyerDetails() {
   const prevStep = () => {
     if (currentStep > 1) {
       setDirection('backward');
-      setTimeout(() => {
-        setCurrentStep(currentStep - 1);
-        // Update the store with current step for progress tracking
-        updateFormData('buyerDetailsActiveStep', currentStep - 1);
-        pushSubStep(currentStep - 1);
-      }, 150);
+      runTransition(() => {
+        const prevStepNumber = currentStepRef.current - 1;
+        setCurrentStep(prevStepNumber);
+        updateFormData('buyerDetailsActiveStep', prevStepNumber);
+        pushSubStep(prevStepNumber);
+      });
     }
   };
 
@@ -1249,7 +1252,7 @@ export default function BuyerDetails() {
               showBack={!(currentStep === 1 && (fromReview || formData.editingFromReview))}
               onBack={currentStep === 1 ? handleBack : prevStep}
               onNext={nextStep}
-              nextDisabled={!isCurrentStepValid()}
+              nextDisabled={!isCurrentStepValid() || isTransitioning}
               nextLabel={
                 (currentStep === 7 && !formData.isACT) || (currentStep === 10 && formData.isACT)
                   ? 'Add in concessions'

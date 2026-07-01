@@ -11,6 +11,7 @@ import SurveyNavigationButtons from './shared/SurveyNavigationButtons';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 import { calculateGlobalProgress, getMissingFields } from '../lib/progressCalculation';
 import { useWizardStep } from '../hooks/useWizardStep';
+import { useStepTransition, useCurrentStepRef } from '../hooks/useStepTransition';
 import QuestionInfoTooltip from './shared/QuestionInfoTooltip';
 import { QUESTION_TOOLTIPS } from '../lib/questionTooltips';
 import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
@@ -20,12 +21,12 @@ export default function PropertyDetails() {
   const updateFormData = useFormStore(state => state.updateFormData);
   const { isSubComplete, subNumeric, fromReview, navigateToStep, pushSubStep, completeEditAndReturnToResults, WIZARD_STEPS, SUB_COMPLETE } = useWizardStep();
   const [currentStep, setCurrentStep] = useState(1);
-  const [isTransitioning, setIsTransitioning] = useState(false);
+  const { isTransitioning, runTransition } = useStepTransition();
+  const currentStepRef = useCurrentStepRef(currentStep);
   const [direction, setDirection] = useState('forward'); // 'forward' or 'backward'
   const [isComplete, setIsComplete] = useState(false);
   const [showCalculatingOverlay, setShowCalculatingOverlay] = useState(false);
   const [overlayPhase, setOverlayPhase] = useState('calculating'); // 'calculating' | 'done'
-  const isExecutingRef = useRef(false);
   const totalSteps = 6; // Always 6 internal steps, but step 3 is skipped for non-WA
   const prevPropertyCategoryRef = useRef(formData.propertyCategory);
   const autocompleteRef = useRef(null);
@@ -628,12 +629,6 @@ export default function PropertyDetails() {
   }, [formData.propertyPrice, formData.propertyType, formData.isAustralianResident, formData.updateFIRBFee]);
 
   const nextStep = () => {
-    // Prevent double-execution
-    if (isExecutingRef.current) {
-      return;
-    }
-    isExecutingRef.current = true;
-    
     // Log current form entries before proceeding
   
     console.log('📋 Current Form Entries:', {
@@ -684,26 +679,18 @@ export default function PropertyDetails() {
     
     if (!isLastStep) {
       setDirection('forward');
-      setIsTransitioning(true);
-      setTimeout(() => {
-        let nextStepNumber = currentStep + 1;
-        
-        // Skip WA question step if state is not WA
-        if (currentStep === 2 && formData.selectedState !== 'WA') {
-          nextStepNumber = 4; // Skip to property category step
+      runTransition(() => {
+        const step = currentStepRef.current;
+        let nextStepNumber = step + 1;
+
+        if (step === 2 && formData.selectedState !== 'WA') {
+          nextStepNumber = 4;
         }
-        
-        // Use flushSync to force immediate state update
-        flushSync(() => {
-          setCurrentStep(nextStepNumber);
-          setIsTransitioning(false);
-          isExecutingRef.current = false;
-        });
-        
-        // Update the store with current step for progress tracking
+
+        setCurrentStep(nextStepNumber);
         updateFormData('propertyDetailsActiveStep', nextStepNumber);
         pushSubStep(nextStepNumber);
-      }, 150);
+      });
     } else {
       // Show overlay for 2s before completing and showing "Basic Property Details Complete"
       setOverlayPhase('calculating');
@@ -721,8 +708,6 @@ export default function PropertyDetails() {
         navigateToStep(WIZARD_STEPS.PROPERTY, { sub: SUB_COMPLETE });
         // DON'T set propertyDetailsComplete here - let it be set in goToBuyerDetails() when user clicks Next
         // This ensures the completion page shows before transitioning to BuyerDetails
-        // Reset the executing ref
-        isExecutingRef.current = false;
 
         console.log('📊 Final Form Summary:', {
           // Property Details
@@ -790,35 +775,26 @@ export default function PropertyDetails() {
   const prevStep = () => {
     if (currentStep > 1) {
       setDirection('backward');
-      setIsTransitioning(true);
-      setTimeout(() => {
-        let prevStepNumber = currentStep - 1;
-        
-        // Handle back navigation for non-WA states
+      runTransition(() => {
+        const step = currentStepRef.current;
+        let prevStepNumber = step - 1;
+
         if (formData.selectedState !== 'WA') {
-          if (currentStep === 6) {
-            // From property price, go back to property type (step 5)
+          if (step === 6) {
             prevStepNumber = 5;
-          } else if (currentStep === 5) {
-            // From property type, go back to property category (step 4)
+          } else if (step === 5) {
             prevStepNumber = 4;
-          } else if (currentStep === 4) {
-            // From property category, go back to state selection (step 2)
+          } else if (step === 4) {
             prevStepNumber = 2;
           }
-        } else {
-          // For WA states, normal back navigation
-          if (currentStep === 4 && formData.selectedState === 'WA') {
-            prevStepNumber = 3; // Go back to WA question
-          }
+        } else if (step === 4 && formData.selectedState === 'WA') {
+          prevStepNumber = 3;
         }
-        
+
         setCurrentStep(prevStepNumber);
-        // Update the store with current step for progress tracking
         updateFormData('propertyDetailsActiveStep', prevStepNumber);
         pushSubStep(prevStepNumber);
-        setIsTransitioning(false);
-      }, 150);
+      });
     }
   };
 
@@ -1508,7 +1484,7 @@ export default function PropertyDetails() {
                 : prevStep
             }
             onNext={isComplete ? goToBuyerDetails : nextStep}
-            nextDisabled={!isComplete && !isCurrentStepValid()}
+            nextDisabled={!isComplete && (!isCurrentStepValid() || isTransitioning)}
             nextLabel={
               isComplete
                 ? 'Next'

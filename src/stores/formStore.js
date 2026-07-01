@@ -12,6 +12,7 @@ export const useFormStore = create((set, get) => ({
   // Supabase integration
   propertyId: null, // Current property record ID in Supabase
   isResumingSurvey: false, // Flag to track if we're resuming an existing survey
+  isRecalculatingResults: false, // Transient overlay when returning to Results after an edit
   propertyLinkedToUser: false, // True when loaded record belongs to a logged-in user (dashboard resume)
   
   // Welcome Page
@@ -517,6 +518,7 @@ export const useFormStore = create((set, get) => ({
     additionalQuestionsStep: 1,
     editSessionActive: false,
     editSessionSnapshot: null,
+    isRecalculatingResults: false,
     showWelcomePage: true,
     openDropdown: null,
     showUpfrontDropdown: false,

@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { User, Shield } from 'lucide-react';
 import SettingsAuroraLayout from '@/components/SettingsAuroraLayout';
 import { LOGGED_IN_HEADER_CLEARANCE_MARGIN_CLASS } from '@/lib/loggedInHeaderGlassStyle';
@@ -27,7 +28,12 @@ export default function SettingsLayout({ children }) {
             <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${LOGGED_IN_HEADER_CLEARANCE_MARGIN_CLASS} py-8`}>
                 <div className="flex flex-col md:flex-row gap-8 items-start">
                     {/* Sidebar Navigation */}
-                    <aside className="w-full md:w-64 shrink-0 bg-white border border-base-300 rounded-3xl p-5 md:p-6 shadow-sm">
+                    <motion.aside
+                        initial={{ opacity: 0, y: 24 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}
+                        className="w-full md:w-64 shrink-0 bg-white border border-base-300 rounded-3xl p-5 md:p-6 shadow-sm"
+                    >
                         {/* Brand / Logo */}
                         <div className="hidden md:block pb-5 mb-5 border-b border-base-300">
                             <span className="font-extrabold text-2xl tracking-tight select-none">
@@ -65,7 +71,7 @@ export default function SettingsLayout({ children }) {
                                 })}
                             </nav>
                         </div>
-                    </aside>
+                    </motion.aside>
 
                     {/* Main Content Area */}
                     <main className="flex-1 min-w-0 w-full">

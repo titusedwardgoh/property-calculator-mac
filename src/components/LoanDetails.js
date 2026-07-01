@@ -6,6 +6,7 @@ import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import { calculateGlobalProgress } from '../lib/progressCalculation';
 import { useWizardStep } from '../hooks/useWizardStep';
+import { useStepTransition, useCurrentStepRef } from '../hooks/useStepTransition';
 import {
   useNetStateDuty,
   LoanDepositStep,
@@ -25,6 +26,8 @@ export default function LoanDetails() {
   const { isSubComplete, subNumeric, fromReview, navigateToStep, pushSubStep, completeEditAndReturnToResults, WIZARD_STEPS, SUB_COMPLETE } = useWizardStep();
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState('forward');
+  const { isTransitioning, runTransition } = useStepTransition();
+  const currentStepRef = useCurrentStepRef(currentStep);
   const [isInitialEntry, setIsInitialEntry] = useState(true); // Track if we're on initial entry from BuyerDetails
   const [showCalculatingOverlay, setShowCalculatingOverlay] = useState(false);
   const [overlayPhase, setOverlayPhase] = useState('calculating'); // 'calculating' | 'done'
@@ -105,12 +108,12 @@ export default function LoanDetails() {
     
     if (currentStep < totalSteps) {
       setDirection('forward');
-      setTimeout(() => {
-        setCurrentStep(currentStep + 1);
-        // Update the store with current step for progress tracking
-        updateFormData('loanDetailsActiveStep', currentStep + 1);
-        pushSubStep(currentStep + 1);
-      }, 150);
+      runTransition(() => {
+        const nextStepNumber = currentStepRef.current + 1;
+        setCurrentStep(nextStepNumber);
+        updateFormData('loanDetailsActiveStep', nextStepNumber);
+        pushSubStep(nextStepNumber);
+      });
     } else if (currentStep === totalSteps) {
       // Show overlay (same as BuyerDetails) before completing
       setOverlayPhase('calculating');
@@ -173,12 +176,12 @@ export default function LoanDetails() {
   const prevStep = () => {
     if (currentStep > 1) {
       setDirection('backward');
-      setTimeout(() => {
-        setCurrentStep(currentStep - 1);
-        // Update the store with current step for progress tracking
-        updateFormData('loanDetailsActiveStep', currentStep - 1);
-        pushSubStep(currentStep - 1);
-      }, 150);
+      runTransition(() => {
+        const prevStepNumber = currentStepRef.current - 1;
+        setCurrentStep(prevStepNumber);
+        updateFormData('loanDetailsActiveStep', prevStepNumber);
+        pushSubStep(prevStepNumber);
+      });
     }
   };
 
@@ -589,7 +592,7 @@ export default function LoanDetails() {
               showBack={!(currentStep === 1 && (fromReview || formData.editingFromReview))}
               onBack={currentStep === 1 ? handleBack : prevStep}
               onNext={nextStep}
-              nextDisabled={!isCurrentStepValid()}
+              nextDisabled={!isCurrentStepValid() || isTransitioning}
               nextLabel={currentStep === totalSteps ? 'Add in loan costs' : 'Next'}
               nextClassName={
                 isCurrentStepValid()

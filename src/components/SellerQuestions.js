@@ -8,6 +8,7 @@ import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animati
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
 import { calculateGlobalProgress } from '../lib/progressCalculation';
 import { useWizardStep } from '../hooks/useWizardStep';
+import { useStepTransition, useCurrentStepRef } from '../hooks/useStepTransition';
 import QuestionInfoTooltip from './shared/QuestionInfoTooltip';
 import { QUESTION_TOOLTIPS } from '../lib/questionTooltips';
 import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
@@ -19,6 +20,8 @@ export default function SellerQuestions() {
   const { isSubComplete, subNumeric, fromReview, navigateToStep, pushSubStep, completeEditAndReturnToResults, WIZARD_STEPS, SUB_COMPLETE } = useWizardStep();
   const [currentStep, setCurrentStep] = useState(1);
   const [direction, setDirection] = useState('forward');
+  const { isTransitioning, runTransition } = useStepTransition();
+  const currentStepRef = useCurrentStepRef(currentStep);
   const [isInitialEntry, setIsInitialEntry] = useState(true);
   const [localCompletionState, setLocalCompletionState] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
@@ -213,33 +216,26 @@ export default function SellerQuestions() {
     
     // Check if we should show construction questions
     const shouldShowConstructionQuestions = formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land';
-    
-    let nextStepNumber = currentStep + 1;
-    
-    // Skip construction questions if they shouldn't be shown
-    if (!shouldShowConstructionQuestions) {
-      if (currentStep === 2) {
-        // After water rates, skip to body corporate (case 5)
-        nextStepNumber = 5;
-      }
-    } else {
-      // Skip dutiable value for off-the-plan (non-VIC)
-      if (currentStep === 3 && formData.propertyType === 'off-the-plan' && formData.selectedState !== 'VIC') {
-        // Skip from construction started to body corporate
-        nextStepNumber = 5;
-        // Auto-set dutiable value
-        updateFormData('dutiableValue', formData.propertyPrice);
-      }
-    }
-    
+
     if (currentStep < totalSteps) {
       setDirection('forward');
-      setTimeout(() => {
+      runTransition(() => {
+        const step = currentStepRef.current;
+        let nextStepNumber = step + 1;
+
+        if (!shouldShowConstructionQuestions) {
+          if (step === 2) {
+            nextStepNumber = 5;
+          }
+        } else if (step === 3 && formData.propertyType === 'off-the-plan' && formData.selectedState !== 'VIC') {
+          nextStepNumber = 5;
+          updateFormData('dutiableValue', formData.propertyPrice);
+        }
+
         setCurrentStep(nextStepNumber);
-        // Update the store with current step for progress tracking
         updateFormData('sellerQuestionsActiveStep', nextStepNumber);
         pushSubStep(nextStepNumber);
-      }, 150);
+      });
     } else if (currentStep === totalSteps) {
       // Show 4-phase overlay before completing
       setOverlayPhase(0);
@@ -298,38 +294,31 @@ export default function SellerQuestions() {
         buildingAndPestInspection: formData.buildingAndPestInspection
       });
     }
-  }, [currentStep, totalSteps, updateFormData, formData]);
+  }, [currentStep, totalSteps, updateFormData, formData, runTransition, currentStepRef, pushSubStep]);
 
   const prevStep = useCallback(() => {
     if (currentStep > 1) {
-      // Check if we should show construction questions
       const shouldShowConstructionQuestions = formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land';
-      
-      let prevStepNumber = currentStep - 1;
-      
-      // Skip construction questions if they shouldn't be shown
-      if (!shouldShowConstructionQuestions) {
-        if (currentStep === 5) {
-          // When going back from body corporate, skip to water rates (case 2)
-          prevStepNumber = 2;
-        }
-      } else {
-        // Handle back navigation for off-the-plan (non-VIC)
-        if (currentStep === 5 && formData.propertyType === 'off-the-plan' && formData.selectedState !== 'VIC') {
-          // When going back from body corporate, skip to construction started (case 3)
+
+      setDirection('backward');
+      runTransition(() => {
+        const step = currentStepRef.current;
+        let prevStepNumber = step - 1;
+
+        if (!shouldShowConstructionQuestions) {
+          if (step === 5) {
+            prevStepNumber = 2;
+          }
+        } else if (step === 5 && formData.propertyType === 'off-the-plan' && formData.selectedState !== 'VIC') {
           prevStepNumber = 3;
         }
-      }
-      
-      setDirection('backward');
-      setTimeout(() => {
+
         setCurrentStep(prevStepNumber);
-        // Update the store with current step for progress tracking
         updateFormData('sellerQuestionsActiveStep', prevStepNumber);
         pushSubStep(prevStepNumber);
-      }, 150);
+      });
     }
-  }, [currentStep, updateFormData, formData.propertyType, formData.selectedState]);
+  }, [currentStep, updateFormData, formData.propertyType, formData.selectedState, runTransition, currentStepRef, pushSubStep]);
 
   const handleBack = useCallback(() => {
     setDirection('backward');
@@ -1017,7 +1006,7 @@ export default function SellerQuestions() {
               showBack={!(currentStep === 1 && (fromReview || formData.editingFromReview))}
               onBack={currentStep === 1 ? handleBack : prevStep}
               onNext={nextStep}
-              nextDisabled={!isCurrentStepValid()}
+              nextDisabled={!isCurrentStepValid() || isTransitioning}
               nextLabel={currentStep === totalSteps ? 'Add in other costs' : 'Next'}
               nextClassName={
                 isCurrentStepValid()

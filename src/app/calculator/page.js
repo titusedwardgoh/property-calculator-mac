@@ -223,6 +223,7 @@ function CalculatorPageContent() {
         if (!urlPropertyId || !urlStep || urlStep === WIZARD_STEPS.WELCOME) return;
 
         const state = useFormStore.getState();
+        if (state.isRecalculatingResults) return;
         if (state.propertyId === urlPropertyId && hasStartedSurvey(state)) return;
         if (urlLoadHandledRef.current === urlPropertyId) return;
 
@@ -384,6 +385,27 @@ function CalculatorPageContent() {
     }, [user, handleLinkToAccount]);
 
     const showWelcomePage = step === WIZARD_STEPS.WELCOME;
+    const showResultsSummary = step === WIZARD_STEPS.RESULTS;
+    const isSurveyLoading =
+        formData.isRecalculatingResults ||
+        formData.isResumingSurvey ||
+        isLoadingResume ||
+        isReturningToDashboard ||
+        isStartingNewSurvey;
+    const surveyLoadingMessage = formData.isRecalculatingResults
+        ? 'Recalculating results...'
+        : isReturningToDashboard
+            ? 'Returning to dashboard...'
+            : formData.isResumingSurvey || isLoadingResume
+                ? 'Loading your survey...'
+                : undefined;
+    // Block main content while loading; Results mounts fresh after recalculating so entrance animations replay.
+    const blockMainContent =
+        isReturningToDashboard ||
+        isStartingNewSurvey ||
+        isLoadingResume ||
+        formData.isResumingSurvey ||
+        formData.isRecalculatingResults;
     const propertyDetailsComplete = formData.propertyDetailsComplete;
     const buyerDetailsComplete = formData.buyerDetailsComplete;
     const needsLoan = formData.needsLoan;
@@ -391,7 +413,6 @@ function CalculatorPageContent() {
     const sellerQuestionsComplete = formData.sellerQuestionsComplete;
     const allFormsComplete = formData.allFormsComplete;
     const editingFromReview = fromReview || formData.editingFromReview;
-    const showResultsSummary = step === WIZARD_STEPS.RESULTS;
     const selectedState = formData.selectedState;
     const isACT = formData.isACT;
     const propertyType = formData.propertyType;
@@ -404,6 +425,15 @@ function CalculatorPageContent() {
     const sellerQuestionsActiveStep = formData.sellerQuestionsActiveStep;
 
 
+
+    // Clear recalculating overlay on Results step (ResultsSummary stays unmounted until this clears).
+    useEffect(() => {
+        if (step !== WIZARD_STEPS.RESULTS || !formData.isRecalculatingResults) return;
+        const timer = setTimeout(() => {
+            updateFormData('isRecalculatingResults', false);
+        }, 2000);
+        return () => clearTimeout(timer);
+    }, [step, formData.isRecalculatingResults, updateFormData]);
 
     const handleStartNewSurvey = useCallback(() => {
         setIsStartingNewSurvey(true);
@@ -555,22 +585,13 @@ function CalculatorPageContent() {
             {/* Simplified header overlay - always shown on calculator route */}
             <SurveyHeaderOverlay />
 
-            {/* Loading overlay during resume auto-advance */}
-            {formData.isResumingSurvey && (
-                <SurveyLoadingScreen message="Loading your survey..." />
+            {isSurveyLoading && (
+                <SurveyLoadingScreen message={surveyLoadingMessage} />
             )}
 
-            {isReturningToDashboard && (
-                <SurveyLoadingScreen message="Returning to dashboard..." />
-            )}
-
-            {isStartingNewSurvey && <SurveyLoadingScreen />}
-
-            {showWelcomePage && !isLoadingResume ? (
+            {showWelcomePage && !blockMainContent ? (
                 <WelcomePage />
-            ) : isLoadingResume ? (
-                <SurveyLoadingScreen message="Loading your survey..." />
-            ) : (
+            ) : !blockMainContent ? (
                 <main className={`container mx-auto max-w-7xl px-3 sm:px-4 pb-4 lg:pb-10 ${showResultsSummary ? 'md:pt-35 max-md:pt-20' : 'md:pt-35 max-md:pt-30'}`}>
                     {/* Progress Bars - hidden on Results Summary */}
                     {!showResultsSummary && (
@@ -788,7 +809,7 @@ function CalculatorPageContent() {
                         </div>
                     </div>
                 </main>
-            )}
+            ) : null}
 
             {/* Email Modal */}
             <EmailModal
