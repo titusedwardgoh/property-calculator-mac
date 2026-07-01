@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { syncActivityTimestamp } from '@/lib/lastActivity';
+import { syncActivityTimestamp, syncActivityIfStaleOrMissing } from '@/lib/lastActivity';
 
 // Helper function to check if error is an invalid refresh token error
 function isRefreshTokenError(error) {
@@ -79,6 +79,9 @@ export function useAuth() {
       try {
         if (event === 'SIGNED_IN' && session) {
           syncActivityTimestamp(Date.now());
+        }
+        if (event === 'INITIAL_SESSION' && session) {
+          syncActivityIfStaleOrMissing();
         }
         // Check for token refresh errors - Supabase automatically refreshes tokens
         // If refresh fails, we'll get a TOKEN_REFRESHED event with no session or an error

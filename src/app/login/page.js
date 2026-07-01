@@ -12,6 +12,7 @@ import {
   getPendingSurveyLinkPropertyId,
   hasPendingSurveyLink,
 } from '@/lib/pendingSurveyLink';
+import { syncActivityTimestamp } from '@/lib/lastActivity';
 
 function LoginPageContent() {
   const [email, setEmail] = useState('');
@@ -124,6 +125,7 @@ function LoginPageContent() {
           }
           // Matches server-side getUser() validation — avoids redirecting when session
           // cookies are stale or only in memory (common without middleware refresh).
+          syncActivityTimestamp();
           router.replace(nextUrl);
         }
       } catch (err) {
@@ -206,6 +208,7 @@ function LoginPageContent() {
       }
       
       // Use window.location for full page reload to ensure auth state updates
+      syncActivityTimestamp();
       window.location.href = nextUrl;
     } catch (err) {
       setError('An error occurred. Please try again.');

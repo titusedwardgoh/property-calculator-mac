@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { syncActivityTimestamp } from '@/lib/lastActivity';
 import { Shield, Loader2 } from 'lucide-react';
 
 export default function Verify2FAPage() {
@@ -47,6 +48,7 @@ export default function Verify2FAPage() {
       });
       if (verifyError) throw verifyError;
 
+      syncActivityTimestamp();
       router.replace('/dashboard');
     } catch (err) {
       setError('Invalid code. Please check your authenticator app and try again.');

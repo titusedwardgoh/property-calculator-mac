@@ -10,13 +10,14 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import {
   LAST_ACTIVITY_STORAGE_KEY,
+  IDLE_TIMEOUT_MS,
   readStoredActivityMs,
   syncActivityTimestamp,
   clearActivityTimestamp,
 } from "@/lib/lastActivity";
 import { clearSurveyOnLogout } from "@/lib/clearSurveyOnLogout";
 
-const IDLE_TIMEOUT = 2 * 60 * 60 * 1000; // 2 hours
+const IDLE_TIMEOUT = IDLE_TIMEOUT_MS;
 const WARNING_TIME = 1 * 60 * 1000; // warning in the final minute before logout
 const ACTIVITY_DEBOUNCE_MS = 1500;
 const HEARTBEAT_MS = 30 * 1000;
