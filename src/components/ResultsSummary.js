@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { generateResultsPdf, PDF_CAPTURE_DELAY_MS } from '@/lib/generateResultsPdf';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, DollarSign, Download, Mail, Edit, Plus, Loader2, CheckCircle2, ChevronDown, User, Landmark, Award, Info, Receipt } from 'lucide-react';
 import Link from 'next/link';
@@ -41,6 +42,14 @@ export default function ResultsSummary({
     const [isAnnualizedCostExpanded, setIsAnnualizedCostExpanded] = useState(false);
     const [isMobileOngoingCosts, setIsMobileOngoingCosts] = useState(false);
     const [isGrantsCardExpanded, setIsGrantsCardExpanded] = useState(false);
+    const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+    const costsColumnRef = useRef(null);
+    const grantsCardRef = useRef(null);
+    const propertyCardRef = useRef(null);
+    const buyerCardRef = useRef(null);
+    const loanCardRef = useRef(null);
+    const otherCostsCardRef = useRef(null);
+    const expansionSnapshotRef = useRef(null);
 
     useEffect(() => {
         const mq = window.matchMedia('(max-width: 639px)');
@@ -95,6 +104,90 @@ export default function ResultsSummary({
     } = buildResultsSummary(formData, stateFunctions);
 
     const getGrantsAndConcessionsList = () => grantsAndConcessionsList;
+
+    const snapshotExpansionState = () => ({
+        isPropertyCardExpanded,
+        isBuyerCardExpanded,
+        isLoanCardExpanded,
+        isOtherCostsCardExpanded,
+        isUpfrontCostsExpanded,
+        isOngoingCostsExpanded,
+        isMonthlyOutflowExpanded,
+        isAnnualizedCostExpanded,
+        isGrantsCardExpanded,
+    });
+
+    const expandAllCardsForPdf = () => {
+        expansionSnapshotRef.current = snapshotExpansionState();
+        setIsPropertyCardExpanded(true);
+        setIsBuyerCardExpanded(true);
+        setIsLoanCardExpanded(true);
+        setIsOtherCostsCardExpanded(true);
+        setIsUpfrontCostsExpanded(true);
+        setIsOngoingCostsExpanded(true);
+        setIsMonthlyOutflowExpanded(true);
+        setIsAnnualizedCostExpanded(true);
+        setIsGrantsCardExpanded(true);
+    };
+
+    const restoreExpansionSnapshot = () => {
+        const snapshot = expansionSnapshotRef.current;
+        if (!snapshot) return;
+        setIsPropertyCardExpanded(snapshot.isPropertyCardExpanded);
+        setIsBuyerCardExpanded(snapshot.isBuyerCardExpanded);
+        setIsLoanCardExpanded(snapshot.isLoanCardExpanded);
+        setIsOtherCostsCardExpanded(snapshot.isOtherCostsCardExpanded);
+        setIsUpfrontCostsExpanded(snapshot.isUpfrontCostsExpanded);
+        setIsOngoingCostsExpanded(snapshot.isOngoingCostsExpanded);
+        setIsMonthlyOutflowExpanded(snapshot.isMonthlyOutflowExpanded);
+        setIsAnnualizedCostExpanded(snapshot.isAnnualizedCostExpanded);
+        setIsGrantsCardExpanded(snapshot.isGrantsCardExpanded);
+        expansionSnapshotRef.current = null;
+    };
+
+    const handleDownloadPDF = async () => {
+        const referenceCards = [
+            propertyCardRef.current,
+            buyerCardRef.current,
+            loanCardRef.current,
+            otherCostsCardRef.current,
+        ];
+
+        if (
+            isDownloadingPDF
+            || !costsColumnRef.current
+            || !grantsCardRef.current
+            || referenceCards.some((card) => !card)
+        ) return;
+
+        setIsDownloadingPDF(true);
+        expandAllCardsForPdf();
+
+        try {
+            costsColumnRef.current.scrollIntoView({ block: 'start', behavior: 'instant' });
+            await new Promise((resolve) => setTimeout(resolve, PDF_CAPTURE_DELAY_MS));
+
+            const addressSlug = (propertyDisplayAddress || 'property')
+                .replace(/[^a-z0-9]+/gi, '-')
+                .replace(/^-|-$/g, '')
+                .toLowerCase()
+                .slice(0, 40);
+
+            await generateResultsPdf({
+                costsColumnEl: costsColumnRef.current,
+                grantsCardEl: grantsCardRef.current,
+                referenceCardEls: referenceCards,
+                propertyAddress: propertyDisplayAddress,
+                filename: `property-results-${addressSlug || 'summary'}.pdf`,
+            });
+        } catch (error) {
+            console.error('PDF download failed:', error);
+            window.alert('Unable to generate the PDF. Please try again.');
+        } finally {
+            restoreExpansionSnapshot();
+            setIsDownloadingPDF(false);
+        }
+    };
 
     const doPropertyEdit = () => {
         startEditSession();
@@ -234,10 +327,21 @@ export default function ResultsSummary({
     ) : (
         <div className="flex flex-col gap-3 w-full sm:flex-row sm:w-auto sm:justify-center">
             <button
-                className="flex items-center cursor-pointer justify-center gap-2 min-h-12 w-full sm:w-auto bg-primary hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs transition-all duration-200 hover:shadow-lg"
+                onClick={handleDownloadPDF}
+                disabled={isDownloadingPDF}
+                className="flex items-center cursor-pointer justify-center gap-2 min-h-12 w-full sm:w-auto bg-primary hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                <Download className="w-4 h-4" />
-                Download Full PDF Report
+                {isDownloadingPDF ? (
+                    <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Generating PDF...
+                    </>
+                ) : (
+                    <>
+                        <Download className="w-4 h-4" />
+                        Download Full PDF Report
+                    </>
+                )}
             </button>
 
             <button
@@ -340,6 +444,7 @@ export default function ResultsSummary({
                                                             <div className="bg-base-200 border border-gray-100 rounded-2xl p-5 md:p-6 shadow-sm h-full flex flex-col justify-start gap-4">
                                                         {/* Property summary */}
                                                             <div
+                                                                ref={propertyCardRef}
                                                                 className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm shrink-0"
                                                                 onClick={() => setIsPropertyCardExpanded(!isPropertyCardExpanded)}
                                                             >
@@ -443,6 +548,7 @@ export default function ResultsSummary({
 
                                                         {/* Buyer summary */}
                                                             <div
+                                                                ref={buyerCardRef}
                                                                 className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm shrink-0"
                                                                 onClick={() => setIsBuyerCardExpanded(!isBuyerCardExpanded)}
                                                             >
@@ -499,6 +605,7 @@ export default function ResultsSummary({
 
                                                         {/* Loan summary */}
                                                                 <div
+                                                                    ref={loanCardRef}
                                                                     className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm shrink-0"
                                                                     onClick={() => setIsLoanCardExpanded(!isLoanCardExpanded)}
                                                                 >
@@ -582,6 +689,7 @@ export default function ResultsSummary({
 
                                                         {/* Other costs summary */}
                                                             <div
+                                                                ref={otherCostsCardRef}
                                                                 className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm shrink-0"
                                                                 onClick={() => setIsOtherCostsCardExpanded(!isOtherCostsCardExpanded)}
                                                             >
@@ -648,6 +756,7 @@ export default function ResultsSummary({
                                                         >
                                                             <div className="bg-base-200 border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
 
+                                                        <div ref={costsColumnRef} className="space-y-6">
                                                         {/* Settlement Section */}
                                                         <div className="space-y-6">
                                                             <div>
@@ -1046,9 +1155,12 @@ export default function ResultsSummary({
                                                             </div>
                                                         </div>
 
+                                                        </div>
+
                                                         {/* Grants and Concessions collapsible card */}
                                                         <div className="pt-6 border-t border-gray-100">
                                                             <div
+                                                                ref={grantsCardRef}
                                                                 className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm"
                                                                 onClick={() => setIsGrantsCardExpanded(!isGrantsCardExpanded)}
                                                             >
