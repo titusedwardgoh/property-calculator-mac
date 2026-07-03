@@ -6,8 +6,7 @@ import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
-import { clearSurveyOnLogout } from '@/lib/clearSurveyOnLogout';
-import { createClient } from '@/lib/supabase/client';
+import { performLogout } from '@/lib/logout';
 import { LogOut } from 'lucide-react';
 import {
     PUBLIC_HEADER_GLASS_STYLE,
@@ -23,7 +22,6 @@ export default function LoggedInHeaderOverlay() {
     const pathname = usePathname();
     const router = useRouter();
     const { user, loading } = useAuth();
-    const supabase = createClient();
 
     // Disable body scroll when menu is open
     useEffect(() => {
@@ -52,15 +50,7 @@ export default function LoggedInHeaderOverlay() {
     };
 
     const handleLogout = async () => {
-        try {
-            await fetch('/api/auth/logout', { method: 'POST' });
-            await supabase.auth.signOut();
-            clearSurveyOnLogout();
-            router.push('/');
-            router.refresh();
-        } catch (error) {
-            console.error('Logout error:', error);
-        }
+        await performLogout('/');
     };
 
     // Define public pages where normal header should show instead

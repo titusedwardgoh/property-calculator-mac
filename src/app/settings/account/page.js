@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { getRedirectForUnauthenticatedUser } from '@/lib/logout';
 import { createClient } from '@/lib/supabase/client';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Phone, MapPin, Edit2, Plus, MoreVertical, Clock, Trash2, X, Upload } from 'lucide-react';
@@ -93,7 +94,7 @@ export default function AccountSettingsPage() {
 
     useEffect(() => {
         if (!loading && !user) {
-            router.push('/login?next=/settings/account');
+            router.replace(getRedirectForUnauthenticatedUser('/settings/account'));
         } else if (user) {
             // Load user data from Supabase - only show spinner on initial load when email is not loaded yet
             const isInitial = !email;
@@ -139,9 +140,8 @@ export default function AccountSettingsPage() {
                     }
                 }
 
-                // Handle SIGNED_OUT event
+                // SIGNED_OUT is handled by the unauthenticated redirect effect above.
                 if (event === 'SIGNED_OUT') {
-                    router.push('/login?next=/settings/account');
                     return;
                 }
 

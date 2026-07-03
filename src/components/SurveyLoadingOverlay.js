@@ -12,9 +12,9 @@ export function SurveyLoadingSpinner() {
   );
 }
 
-export default function SurveyLoadingOverlay({ message, children }) {
+export default function SurveyLoadingOverlay({ message, children, overlayClassName = '' }) {
   return (
-    <div className="aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center">
+    <div className={`aurora-loading-overlay fixed inset-0 z-50 flex items-center justify-center ${overlayClassName}`}>
       <div className="px-6 text-center">
         <SurveyLoadingSpinner />
         {children ??

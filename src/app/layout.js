@@ -4,6 +4,7 @@ import Footer from '../components/Footer';
 import Header from "../components/Header";
 import LoggedInHeaderOverlay from "../components/LoggedInHeaderOverlay";
 import AuthSessionManager from "../components/AuthSessionManager";
+import LogoutOverlay from "../components/LogoutOverlay";
 import RootAuroraBackground from "../components/RootAuroraBackground";
 
 const robotoFont = Roboto({
@@ -32,6 +33,7 @@ export default function RootLayout({ children }) {
         <RootAuroraBackground />
         <div className="relative z-10 flex min-h-screen flex-col">
           <AuthSessionManager />
+          <LogoutOverlay />
           <Header />
           <LoggedInHeaderOverlay />
           {children}

@@ -1,14 +1,29 @@
 "use client";
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { User, Shield } from 'lucide-react';
+import { useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { getRedirectForUnauthenticatedUser } from '@/lib/logout';
 import SettingsAuroraLayout from '@/components/SettingsAuroraLayout';
 import { LOGGED_IN_HEADER_CLEARANCE_MARGIN_CLASS } from '@/lib/loggedInHeaderGlassStyle';
 
 export default function SettingsLayout({ children }) {
     const pathname = usePathname();
+    const router = useRouter();
+    const { user, loading } = useAuth();
+
+    useEffect(() => {
+        if (!loading && !user) {
+            router.replace(getRedirectForUnauthenticatedUser(pathname));
+        }
+    }, [loading, user, router, pathname]);
+
+    if (!loading && !user) {
+        return null;
+    }
 
     const menuItems = [
         {

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { getRedirectForUnauthenticatedUser } from '@/lib/logout';
 import { createClient } from '@/lib/supabase/client';
 import { motion } from 'framer-motion';
 import { Lock, Edit2, ExternalLink, ShieldCheck } from 'lucide-react';
@@ -34,7 +35,7 @@ export default function SecuritySettingsPage() {
     // Redirect to login if not authenticated
     useEffect(() => {
         if (!loading && !user) {
-            router.push('/login?next=/settings/security');
+            router.replace(getRedirectForUnauthenticatedUser('/settings/security'));
         }
     }, [loading, user, router]);
 

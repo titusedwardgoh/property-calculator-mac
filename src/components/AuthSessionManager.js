@@ -1,17 +1,13 @@
 "use client";
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useIdleTimeout } from '@/hooks/useIdleTimeout';
-import { createClient } from '@/lib/supabase/client';
-import { clearSurveyOnLogout } from '@/lib/clearSurveyOnLogout';
+import { performLogout } from '@/lib/logout';
 import IdleWarningModal from './IdleWarningModal';
 
 export default function AuthSessionManager() {
   const { user } = useAuth();
-  const router = useRouter();
-  const supabase = createClient();
   const [showIdleWarning, setShowIdleWarning] = useState(false);
 
   // Handle idle timeout warning
@@ -22,16 +18,7 @@ export default function AuthSessionManager() {
   // Handle immediate logout
   const handleLogoutNow = async () => {
     setShowIdleWarning(false);
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      await supabase.auth.signOut();
-      clearSurveyOnLogout();
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-      // Force redirect even if logout fails
-      router.push('/login');
-    }
+    await performLogout('/login');
   };
 
   // Use idle timeout hook

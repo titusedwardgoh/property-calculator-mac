@@ -6,8 +6,7 @@ import {
   useRef,
   useCallback,
 } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { performLogout as logoutAndRedirect } from "@/lib/logout";
 import {
   LAST_ACTIVITY_STORAGE_KEY,
   IDLE_TIMEOUT_MS,
@@ -15,7 +14,6 @@ import {
   syncActivityTimestamp,
   clearActivityTimestamp,
 } from "@/lib/lastActivity";
-import { clearSurveyOnLogout } from "@/lib/clearSurveyOnLogout";
 
 const IDLE_TIMEOUT = IDLE_TIMEOUT_MS;
 const WARNING_TIME = 1 * 60 * 1000; // warning in the final minute before logout
@@ -33,8 +31,6 @@ function debounce(func, wait) {
 }
 
 export function useIdleTimeout(user, onWarning, onLogout) {
-  const router = useRouter();
-  const supabase = createClient();
   const warningShownRef = useRef(false);
   const logoutInProgressRef = useRef(false);
   const debouncedRecordRef = useRef(null);
@@ -48,17 +44,9 @@ export function useIdleTimeout(user, onWarning, onLogout) {
     if (logoutInProgressRef.current) return;
     logoutInProgressRef.current = true;
     clearActivityTimestamp();
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      await supabase.auth.signOut();
-      clearSurveyOnLogout();
-      callbacksRef.current.onLogout?.();
-      router.push("/login");
-    } catch (error) {
-      console.error("Auto-logout error:", error);
-      router.push("/login");
-    }
-  }, [router, supabase]);
+    callbacksRef.current.onLogout?.();
+    await logoutAndRedirect('/login');
+  }, []);
 
   /**
    * Wall-clock check (localStorage). Timestamps frozen while the machine sleeps;
