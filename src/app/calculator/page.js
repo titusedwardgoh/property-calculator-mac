@@ -26,6 +26,7 @@ import {
     hasPendingSurveyLink,
 } from '../../lib/pendingSurveyLink';
 import { resetSessionAndForm, getSessionId, getDeviceId } from '../../lib/sessionManager';
+import { blobToBase64 } from '../../lib/generateResultsPdf';
 import { buildResultsSummary } from '../../lib/resultsSummary/buildResultsSummary';
 import { useWizardStep } from '../../hooks/useWizardStep';
 import {
@@ -53,7 +54,10 @@ function CalculatorPageContent() {
     const [isEmailingPDF, setIsEmailingPDF] = useState(false);
     const [showEmailModal, setShowEmailModal] = useState(false);
     const [showEmailSuccess, setShowEmailSuccess] = useState(false);
+    const resultsSummaryRef = useRef(null);
     const [emailSuccessData, setEmailSuccessData] = useState(null);
+    const [emailCooldownUntil, setEmailCooldownUntil] = useState(null);
+    const [emailCooldownRemaining, setEmailCooldownRemaining] = useState(0);
     const [isStartingNewSurvey, setIsStartingNewSurvey] = useState(false);
     const hasResumedRef = useRef(false);
     const initialWelcomeCheckedRef = useRef(false);
@@ -486,7 +490,41 @@ function CalculatorPageContent() {
         // Just close the prompt
     };
 
+    const EMAIL_SUCCESS_DISMISS_MS = 8000;
+    const EMAIL_COOLDOWN_MS = 60_000;
+
+    useEffect(() => {
+        if (!showEmailSuccess) return undefined;
+
+        const timer = setTimeout(() => {
+            setShowEmailSuccess(false);
+        }, EMAIL_SUCCESS_DISMISS_MS);
+
+        return () => clearTimeout(timer);
+    }, [showEmailSuccess]);
+
+    useEffect(() => {
+        if (!emailCooldownUntil) {
+            setEmailCooldownRemaining(0);
+            return undefined;
+        }
+
+        const updateRemaining = () => {
+            const remaining = Math.max(0, Math.ceil((emailCooldownUntil - Date.now()) / 1000));
+            setEmailCooldownRemaining(remaining);
+            if (remaining === 0) {
+                setEmailCooldownUntil(null);
+            }
+        };
+
+        updateRemaining();
+        const interval = setInterval(updateRemaining, 1000);
+        return () => clearInterval(interval);
+    }, [emailCooldownUntil]);
+
     const handleEmailPDF = async () => {
+        if (emailCooldownRemaining > 0) return;
+
         // Check if user is logged in and has email
         if (!user || !user.email) {
             // Show modal for guests
@@ -504,12 +542,21 @@ function CalculatorPageContent() {
     };
 
     const sendEmailPDF = async (userEmail, isGuest, emailExists = null) => {
+        if (emailCooldownUntil && Date.now() < emailCooldownUntil) {
+            return;
+        }
+
         setIsEmailingPDF(true);
 
         try {
-            const { calculations } = buildResultsSummary(formData, stateFunctions);
+            if (!resultsSummaryRef.current?.exportPdfBlob) {
+                throw new Error('Results summary is not ready to export');
+            }
 
-            // Send to API
+            const { blob, filename } = await resultsSummaryRef.current.exportPdfBlob();
+            const pdfBase64 = await blobToBase64(blob);
+            const { propertyDisplayAddress } = buildResultsSummary(formData, stateFunctions);
+
             const response = await fetch('/api/email-pdf', {
                 method: 'POST',
                 headers: {
@@ -517,8 +564,9 @@ function CalculatorPageContent() {
                 },
                 body: JSON.stringify({
                     userEmail,
-                    formData,
-                    calculations,
+                    pdfBase64,
+                    filename,
+                    propertyAddress: propertyDisplayAddress,
                     isGuest,
                     propertyId,
                 }),
@@ -546,6 +594,7 @@ function CalculatorPageContent() {
                 reminder: result.reminder || null,
             });
             setShowEmailSuccess(true);
+            setEmailCooldownUntil(Date.now() + EMAIL_COOLDOWN_MS);
         } catch (error) {
             console.error('Error sending email:', error);
             alert(`Failed to send email: ${error.message}. Please check the console for details.`);
@@ -789,6 +838,7 @@ function CalculatorPageContent() {
                                     case WIZARD_STEPS.RESULTS:
                                         return (
                                             <ResultsSummary
+                                                ref={resultsSummaryRef}
                                                 formData={formData}
                                                 stateFunctions={stateFunctions}
                                                 user={user}
@@ -798,6 +848,7 @@ function CalculatorPageContent() {
                                                 isEmailingPDF={isEmailingPDF}
                                                 showEmailSuccess={showEmailSuccess}
                                                 emailSuccessData={emailSuccessData}
+                                                emailCooldownRemaining={emailCooldownRemaining}
                                                 setOriginalLoadedState={setOriginalLoadedState}
                                                 onStartNewSurvey={handleStartNewSurvey}
                                             />

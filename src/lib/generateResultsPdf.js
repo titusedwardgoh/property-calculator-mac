@@ -253,17 +253,13 @@ function addCanvasToPdfPage(pdf, canvas, { isFirstPage = false, contentTop = PDF
 }
 
 /**
- * Generates a three-page PDF:
- * - Page 1: upfront + ongoing costs (with header)
- * - Page 2: grants card (with header)
- * - Page 3: reference cards in 2×2 grid (with header)
+ * Builds the three-page results PDF document.
  */
-export async function generateResultsPdf({
+export async function buildResultsPdf({
     costsColumnEl,
     grantsCardEl,
     referenceCardEls,
     propertyAddress,
-    filename = 'property-results-summary.pdf',
 }) {
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
 
@@ -284,7 +280,47 @@ export async function generateResultsPdf({
 
     addPageNumbers(pdf);
 
-    pdf.save(filename);
+    return pdf;
+}
+
+export function getResultsPdfFilename(propertyAddress) {
+    const addressSlug = (propertyAddress || 'property')
+        .replace(/[^a-z0-9]+/gi, '-')
+        .replace(/^-|-$/g, '')
+        .toLowerCase()
+        .slice(0, 40);
+
+    return `property-results-${addressSlug || 'summary'}.pdf`;
+}
+
+export function resultsPdfToBlob(pdf) {
+    return pdf.output('blob');
+}
+
+export function blobToBase64(blob) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const result = reader.result;
+            if (typeof result !== 'string') {
+                reject(new Error('Failed to encode PDF'));
+                return;
+            }
+            resolve(result.split(',')[1]);
+        };
+        reader.onerror = () => reject(reader.error ?? new Error('Failed to encode PDF'));
+        reader.readAsDataURL(blob);
+    });
+}
+
+export async function downloadResultsPdf(params) {
+    const pdf = await buildResultsPdf(params);
+    pdf.save(getResultsPdfFilename(params.propertyAddress));
+}
+
+/** @deprecated Use buildResultsPdf + downloadResultsPdf */
+export async function generateResultsPdf(params) {
+    await downloadResultsPdf(params);
 }
 
 export const PDF_CAPTURE_DELAY_MS = 450;

@@ -1,10 +1,7 @@
-import { renderToBuffer } from '@react-pdf/renderer';
 import { Resend } from 'resend';
-import SurveyPDFDocument from '@/components/SurveyPDFDocument';
-import React from 'react';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
+import { buildResultsReportEmail } from '@/lib/email/propWizResultsReportEmail';
 
-// Get API key from environment variable
 const resendApiKey = process.env.RESEND_API_KEY;
 
 if (!resendApiKey) {
@@ -12,6 +9,8 @@ if (!resendApiKey) {
 }
 
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
+
+const FROM = process.env.RESEND_FROM?.trim() || 'PropWiz <onboarding@resend.dev>';
 
 // Server-side Supabase client with service role key (for admin operations)
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -39,7 +38,7 @@ export async function POST(request) {
       );
     }
 
-    const { userEmail, formData, calculations, isGuest, propertyId } = await request.json();
+    const { userEmail, pdfBase64, filename, propertyAddress, isGuest, propertyId } = await request.json();
 
     // Validate required fields
     if (!userEmail) {
@@ -49,9 +48,9 @@ export async function POST(request) {
       );
     }
 
-    if (!formData) {
+    if (!pdfBase64) {
       return Response.json(
-        { error: 'Form data is required' },
+        { error: 'PDF attachment is required' },
         { status: 400 }
       );
     }
@@ -139,82 +138,34 @@ export async function POST(request) {
       console.warn('Guest email request without propertyId - email will be sent but survey won\'t be linked');
     }
 
-    // Generate PDF using react-pdf
     let pdfBuffer;
     try {
-      pdfBuffer = await renderToBuffer(
-        React.createElement(SurveyPDFDocument, { formData, calculations })
-      );
+      pdfBuffer = Buffer.from(pdfBase64, 'base64');
     } catch (pdfError) {
-      console.error('PDF generation error:', pdfError);
+      console.error('PDF decode error:', pdfError);
       return Response.json(
-        { error: 'Failed to generate PDF', details: pdfError.message },
-        { status: 500 }
+        { error: 'Failed to process PDF attachment', details: pdfError.message },
+        { status: 400 }
       );
     }
 
-    // Determine email content based on whether email exists
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
-    const signupLink = `${siteUrl}/signup?email=${encodeURIComponent(userEmail)}`;
-    const loginLink = `${siteUrl}/login?email=${encodeURIComponent(userEmail)}&next=/dashboard`;
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property-calculator-mac.vercel.app';
+    const { subject, html: emailHtml } = buildResultsReportEmail({
+      propertyAddress,
+      userEmail,
+      isGuest,
+      emailExists,
+      siteUrl,
+    });
 
-    let emailHtml = '';
-    if (isGuest && emailExists) {
-      // Email exists - show sign in message
-      emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1f2937;">Your Property Purchase Summary</h2>
-          <p>Thank you for using our property calculator. Please find your detailed summary attached as a PDF.</p>
-          <p style="background-color: #eff6ff; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <strong>We found an account with this email!</strong> Sign in to save these results to your profile and access your dashboard.
-          </p>
-          <p style="text-align: center; margin: 20px 0;">
-            <a href="${loginLink}" style="display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Sign In to Your Account</a>
-          </p>
-          <p>If you have any questions, please don't hesitate to reach out.</p>
-          <br>
-          <p style="color: #6b7280; font-size: 14px;">Best regards,<br>Property Calculator Team</p>
-        </div>
-      `;
-    } else if (isGuest && !emailExists) {
-      // Email doesn't exist - show signup message
-      emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1f2937;">Your Property Purchase Summary</h2>
-          <p>Thank you for using our property calculator. Please find your detailed summary attached as a PDF.</p>
-          <p style="background-color: #f0fdf4; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <strong>You're viewing a guest summary.</strong> To unlock the full dashboard and save your history, create a free account to track your progress and access more insights.
-          </p>
-          <p style="text-align: center; margin: 20px 0;">
-            <a href="${signupLink}" style="display: inline-block; background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Create My Account</a>
-          </p>
-          <p>If you have any questions, please don't hesitate to reach out.</p>
-          <br>
-          <p style="color: #6b7280; font-size: 14px;">Best regards,<br>Property Calculator Team</p>
-        </div>
-      `;
-    } else {
-      // Logged-in user - standard message
-      emailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1f2937;">Your Property Purchase Summary</h2>
-          <p>Thank you for using our property calculator. Please find your detailed summary attached as a PDF.</p>
-          <p>If you have any questions, please don't hesitate to reach out.</p>
-          <br>
-          <p style="color: #6b7280; font-size: 14px;">Best regards,<br>Property Calculator Team</p>
-        </div>
-      `;
-    }
-
-    // Send email with PDF attachment using Resend
     const emailResult = await resend.emails.send({
-      from: 'Property Calculator <onboarding@resend.dev>', // Update this with your verified domain
+      from: FROM,
       to: userEmail,
-      subject: 'Your Property Purchase Summary',
+      subject,
       html: emailHtml,
       attachments: [
         {
-          filename: 'property-purchase-summary.pdf',
+          filename: filename || 'property-results-summary.pdf',
           content: Buffer.from(pdfBuffer),
         },
       ],

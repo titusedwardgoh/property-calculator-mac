@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { generateResultsPdf, PDF_CAPTURE_DELAY_MS } from '@/lib/generateResultsPdf';
+import { useCallback, useEffect, useImperativeHandle, useRef, useState, forwardRef } from 'react';
+import {
+    buildResultsPdf,
+    getResultsPdfFilename,
+    PDF_CAPTURE_DELAY_MS,
+    resultsPdfToBlob,
+} from '@/lib/generateResultsPdf';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Home, DollarSign, Download, Mail, Edit, Plus, Loader2, CheckCircle2, ChevronDown, User, Landmark, Award, Info, Receipt } from 'lucide-react';
 import Link from 'next/link';
@@ -12,7 +17,7 @@ import { useWizardStep } from '../hooks/useWizardStep';
 import { useFormStore } from '../stores/formStore';
 import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
 
-export default function ResultsSummary({
+export default forwardRef(function ResultsSummary({
     formData,
     stateFunctions,
     user,
@@ -22,9 +27,10 @@ export default function ResultsSummary({
     isEmailingPDF,
     showEmailSuccess,
     emailSuccessData,
+    emailCooldownRemaining = 0,
     setOriginalLoadedState,
     onStartNewSurvey,
-}) {
+}, ref) {
     const { navigateToStep, WIZARD_STEPS } = useWizardStep();
     const updateFormData = useFormStore((s) => s.updateFormData);
     const startEditSession = useFormStore((s) => s.startEditSession);
@@ -42,7 +48,7 @@ export default function ResultsSummary({
     const [isAnnualizedCostExpanded, setIsAnnualizedCostExpanded] = useState(false);
     const [isMobileOngoingCosts, setIsMobileOngoingCosts] = useState(false);
     const [isGrantsCardExpanded, setIsGrantsCardExpanded] = useState(false);
-    const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+    const [isPreparingPdf, setIsPreparingPdf] = useState(false);
     const costsColumnRef = useRef(null);
     const grantsCardRef = useRef(null);
     const propertyCardRef = useRef(null);
@@ -145,7 +151,7 @@ export default function ResultsSummary({
         expansionSnapshotRef.current = null;
     };
 
-    const handleDownloadPDF = async () => {
+    const exportPdfBlob = useCallback(async () => {
         const referenceCards = [
             propertyCardRef.current,
             buyerCardRef.current,
@@ -154,38 +160,57 @@ export default function ResultsSummary({
         ];
 
         if (
-            isDownloadingPDF
-            || !costsColumnRef.current
+            !costsColumnRef.current
             || !grantsCardRef.current
             || referenceCards.some((card) => !card)
-        ) return;
+        ) {
+            throw new Error('Results content is not ready for PDF export');
+        }
 
-        setIsDownloadingPDF(true);
+        setIsPreparingPdf(true);
+        await new Promise((resolve) => {
+            requestAnimationFrame(() => requestAnimationFrame(resolve));
+        });
         expandAllCardsForPdf();
 
         try {
             costsColumnRef.current.scrollIntoView({ block: 'start', behavior: 'instant' });
             await new Promise((resolve) => setTimeout(resolve, PDF_CAPTURE_DELAY_MS));
 
-            const addressSlug = (propertyDisplayAddress || 'property')
-                .replace(/[^a-z0-9]+/gi, '-')
-                .replace(/^-|-$/g, '')
-                .toLowerCase()
-                .slice(0, 40);
-
-            await generateResultsPdf({
+            const pdf = await buildResultsPdf({
                 costsColumnEl: costsColumnRef.current,
                 grantsCardEl: grantsCardRef.current,
                 referenceCardEls: referenceCards,
                 propertyAddress: propertyDisplayAddress,
-                filename: `property-results-${addressSlug || 'summary'}.pdf`,
             });
+
+            return {
+                blob: resultsPdfToBlob(pdf),
+                filename: getResultsPdfFilename(propertyDisplayAddress),
+            };
+        } finally {
+            restoreExpansionSnapshot();
+            await new Promise((resolve) => setTimeout(resolve, PDF_CAPTURE_DELAY_MS));
+            setIsPreparingPdf(false);
+        }
+    }, [propertyDisplayAddress]);
+
+    useImperativeHandle(ref, () => ({ exportPdfBlob }), [exportPdfBlob]);
+
+    const handleDownloadPDF = async () => {
+        if (isPreparingPdf) return;
+
+        try {
+            const { blob, filename } = await exportPdfBlob();
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(url);
         } catch (error) {
             console.error('PDF download failed:', error);
             window.alert('Unable to generate the PDF. Please try again.');
-        } finally {
-            restoreExpansionSnapshot();
-            setIsDownloadingPDF(false);
         }
     };
 
@@ -283,91 +308,113 @@ export default function ResultsSummary({
         </button>
     );
 
-    const reportCtaActions = showEmailSuccess ? (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col gap-4 w-full max-w-xl"
-        >
-            <div className="bg-emerald-50/30 border-2 border-emerald-100 rounded-xl p-6 text-center">
-                <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
-                <h3 className="text-lg font-bold text-secondary mb-1">Check your inbox!</h3>
-                <p className="text-sm text-gray-600 mb-4">Your detailed property report has been dispatched to {emailSuccessData?.email}</p>
+    const reportCtaActions = (
+        <AnimatePresence mode="wait">
+            {showEmailSuccess ? (
+                <motion.div
+                    key="email-success"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex flex-col gap-4 w-full max-w-xl"
+                >
+                    <div className="bg-emerald-50/30 border-2 border-emerald-100 rounded-xl p-6 text-center">
+                        <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto mb-3" />
+                        <h3 className="text-lg font-bold text-secondary mb-1">Check your inbox!</h3>
+                        <p className="text-sm text-gray-600 mb-4">Your detailed property report has been dispatched to {emailSuccessData?.email}</p>
 
-                {emailSuccessData?.testingMode && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-left">
-                        <p className="text-xs text-yellow-800 font-semibold mb-1">📝 Developer Runtime Notice:</p>
-                        <p className="text-[11px] text-yellow-700">{emailSuccessData?.reminder || 'Resend validation protocol pending.'}</p>
+                        {emailSuccessData?.testingMode && (
+                            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4 text-left">
+                                <p className="text-xs text-yellow-800 font-semibold mb-1">📝 Developer Runtime Notice:</p>
+                                <p className="text-[11px] text-yellow-700">{emailSuccessData?.reminder || 'Resend validation protocol pending.'}</p>
+                            </div>
+                        )}
+
+                        {!user && (
+                            emailSuccessData?.emailExists ? (
+                                <>
+                                    <p className="text-xs text-gray-500 mb-4">An identified account vector exists for this address. Sign in to sync your calculation sheets.</p>
+                                    <Link href={`/login?email=${encodeURIComponent(emailSuccessData.email)}&next=/calculator`} className="inline-block">
+                                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-secondary hover:bg-secondary/90 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
+                                            Sign In to Your Account
+                                        </motion.button>
+                                    </Link>
+                                </>
+                            ) : (
+                                <>
+                                    <p className="text-xs text-gray-500 mb-4">Want to track these properties over long horizons? Open a persistent record track.</p>
+                                    <Link href={`/signup?email=${encodeURIComponent(emailSuccessData.email)}`} className="inline-block">
+                                        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
+                                            Create My Account
+                                        </motion.button>
+                                    </Link>
+                                </>
+                            )
+                        )}
                     </div>
-                )}
+                </motion.div>
+            ) : (
+                <motion.div
+                    key="email-actions"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    transition={{ duration: 0.3 }}
+                    className="flex flex-col gap-3 w-full sm:flex-row sm:w-auto sm:justify-center"
+                >
+                    <button
+                        onClick={handleDownloadPDF}
+                        disabled={isPreparingPdf}
+                        className="flex items-center cursor-pointer justify-center gap-2 min-h-12 w-full sm:w-auto bg-primary hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isPreparingPdf ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Generating PDF...
+                            </>
+                        ) : (
+                            <>
+                                <Download className="w-4 h-4" />
+                                Download Full PDF Report
+                            </>
+                        )}
+                    </button>
 
-                {!user && (
-                    emailSuccessData?.emailExists ? (
-                        <>
-                            <p className="text-xs text-gray-500 mb-4">An identified account vector exists for this address. Sign in to sync your calculation sheets.</p>
-                            <Link href={`/login?email=${encodeURIComponent(emailSuccessData.email)}&next=/calculator`} className="inline-block">
-                                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-secondary hover:bg-secondary/90 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
-                                    Sign In to Your Account
-                                </motion.button>
-                            </Link>
-                        </>
-                    ) : (
-                        <>
-                            <p className="text-xs text-gray-500 mb-4">Want to track these properties over long horizons? Open a persistent record track.</p>
-                            <Link href={`/signup?email=${encodeURIComponent(emailSuccessData.email)}`} className="inline-block">
-                                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs shadow-sm transition-colors mx-auto cursor-pointer">
-                                    Create My Account
-                                </motion.button>
-                            </Link>
-                        </>
-                    )
-                )}
-            </div>
-        </motion.div>
-    ) : (
-        <div className="flex flex-col gap-3 w-full sm:flex-row sm:w-auto sm:justify-center">
-            <button
-                onClick={handleDownloadPDF}
-                disabled={isDownloadingPDF}
-                className="flex items-center cursor-pointer justify-center gap-2 min-h-12 w-full sm:w-auto bg-primary hover:bg-primary/90 text-secondary px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                {isDownloadingPDF ? (
-                    <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Generating PDF...
-                    </>
-                ) : (
-                    <>
-                        <Download className="w-4 h-4" />
-                        Download Full PDF Report
-                    </>
-                )}
-            </button>
-
-            <button
-                onClick={onEmailPDF}
-                disabled={isEmailingPDF}
-                className="flex items-center cursor-pointer justify-center gap-2 min-h-12 w-full sm:w-auto bg-white border border-secondary text-secondary hover:bg-primary/10 px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                {isEmailingPDF ? (
-                    <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Sending...
-                    </>
-                ) : (
-                    <>
-                        <Mail className="w-4 h-4" />
-                        Email Me These Results
-                    </>
-                )}
-            </button>
-        </div>
+                    <button
+                        onClick={onEmailPDF}
+                        disabled={isPreparingPdf || isEmailingPDF || emailCooldownRemaining > 0}
+                        className="flex items-center cursor-pointer justify-center gap-2 min-h-12 w-full sm:w-auto bg-white border border-secondary text-secondary hover:bg-primary/10 px-6 py-3 rounded-full font-bold uppercase tracking-wider text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isEmailingPDF ? (
+                            <>
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                                Sending...
+                            </>
+                        ) : emailCooldownRemaining > 0 ? (
+                            <>
+                                <Mail className="w-4 h-4" />
+                                Email again in {emailCooldownRemaining}s
+                            </>
+                        ) : (
+                            <>
+                                <Mail className="w-4 h-4" />
+                                Email Me These Results
+                            </>
+                        )}
+                    </button>
+                </motion.div>
+            )}
+        </AnimatePresence>
     );
 
     return (
         <>
             {showEditSectionOverlay && (
                 <SurveyLoadingOverlay message={`Taking you back to ${editSectionLabel}`} />
+            )}
+            {isPreparingPdf && (
+                <SurveyLoadingOverlay message="Preparing your PDF…" />
             )}
             {showRemovingLoanOverlay && (
                 <SurveyLoadingOverlay>
@@ -1276,4 +1323,4 @@ export default function ResultsSummary({
                                         </AnimatePresence>
         </>
     );
-}
+});
