@@ -35,7 +35,7 @@ export default function PrivacyPage() {
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
               className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-12"
             >
-              How we collect, use, and protect your information when you use PropWiz.
+              How we collect, use, and protect your information when you use Proppers.
             </motion.p>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
@@ -61,7 +61,7 @@ export default function PrivacyPage() {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">1. Introduction</h2>
                 <p className="text-gray-700 leading-relaxed">
-                  This Privacy Policy (Policy) explains how PropWiz manages your personal information. By accessing our website or using our property calculator service, you consent to the terms of this Policy, including consenting to us collecting, using and disclosing your personal information as set out in this Policy.
+                  This Privacy Policy (Policy) explains how Proppers manages your personal information. By accessing our website or using our property calculator service, you consent to the terms of this Policy, including consenting to us collecting, using and disclosing your personal information as set out in this Policy.
                 </p>
               </div>
 
@@ -69,7 +69,7 @@ export default function PrivacyPage() {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">2. Who We Are</h2>
                 <p className="text-gray-700 leading-relaxed mb-4">
-                  PropWiz is a free property cost calculator service designed to help Australians understand the true costs associated with property purchases. We provide comprehensive calculations for stamp duty, LMI, loan repayments, and all associated expenses for properties across Australia.
+                  Proppers is a free property cost calculator service designed to help Australians understand the true costs associated with property purchases. We provide comprehensive calculations for stamp duty, LMI, loan repayments, and all associated expenses for properties across Australia.
                 </p>
                 <p className="text-gray-700 leading-relaxed">
                   Our service is designed to be simple, accurate, and completely free to use—no account required.
@@ -80,7 +80,7 @@ export default function PrivacyPage() {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">3. Application of Privacy Policy</h2>
                 <p className="text-gray-700 leading-relaxed mb-4">
-                  PropWiz operates in Australia and is bound by the Australian Privacy Principles and the Australian <em>Privacy Act 1988</em> (Cth) (Australian Privacy Laws).
+                  Proppers operates in Australia and is bound by the Australian Privacy Principles and the Australian <em>Privacy Act 1988</em> (Cth) (Australian Privacy Laws).
                 </p>
                 <p className="text-gray-700 leading-relaxed">
                   To the extent any personal information we collect relates to an EU resident or a California resident, each of the EU General Data Protection Regulation (GDPR) and California Consumer Privacy Act (CCPA) respectively apply.
@@ -95,14 +95,14 @@ export default function PrivacyPage() {
                 </p>
                 <div className="bg-base-200 rounded-lg p-4 mt-4">
                   <p className="text-gray-700 font-medium mb-1">Privacy Officer</p>
-                  <p className="text-gray-600">PropWiz</p>
+                  <p className="text-gray-600">Proppers</p>
                   <p className="text-gray-600">
                     Email:{" "}
                     <a
-                      href="mailto:privacy@propwiz.com.au"
+                      href="mailto:privacy@proppers.com.au"
                       className="text-primary hover:text-primary-focus underline"
                     >
-                      privacy@propwiz.com.au
+                      privacy@proppers.com.au
                     </a>
                   </p>
                 </div>

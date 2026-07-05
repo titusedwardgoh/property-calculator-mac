@@ -8,7 +8,7 @@ const CONTACT_TO =
   process.env.CONTACT_INBOX_EMAIL?.trim() || "titus.edward.goh@gmail.com";
 
 const FROM =
-  process.env.RESEND_FROM?.trim() || "PropWiz <onboarding@resend.dev>";
+  process.env.RESEND_FROM?.trim() || "Proppers <onboarding@resend.dev>";
 
 const MAX_MESSAGE = 8000;
 const MAX_NAME_PART = 80;
@@ -37,10 +37,10 @@ function getCategoryLabel(value) {
 }
 
 function buildContactEmail({ name, email, categoryLabel, message }) {
-  const subject = `[PropWiz contact] ${categoryLabel} — ${name}`;
+  const subject = `[Proppers contact] ${categoryLabel} — ${name}`;
 
   const text = [
-    "New message from the PropWiz contact form",
+    "New message from the Proppers contact form",
     "",
     `Name:     ${name}`,
     `Email:    ${email}`,
@@ -57,7 +57,7 @@ function buildContactEmail({ name, email, categoryLabel, message }) {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PropWiz contact</title>
+  <title>Proppers contact</title>
 </head>
 <body style="margin:0;padding:0;background-color:#f5f5f4;font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f5f5f4;padding:32px 16px;">
@@ -66,7 +66,7 @@ function buildContactEmail({ name, email, categoryLabel, message }) {
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e7e5e4;">
           <tr>
             <td style="background-color:#E29578;padding:20px 24px;">
-              <p style="margin:0;font-size:18px;font-weight:600;color:#ffffff;">PropWiz contact form</p>
+              <p style="margin:0;font-size:18px;font-weight:600;color:#ffffff;">Proppers contact form</p>
               <p style="margin:6px 0 0;font-size:13px;color:rgba(255,255,255,0.9);">New enquiry received</p>
             </td>
           </tr>

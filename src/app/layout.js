@@ -19,7 +19,7 @@ const unbounded = Unbounded({
 
 
 export const metadata = {
-  title: "PropWiz | Australian Property Cost Calculator",
+  title: "Proppers | Australian Property Cost Calculator",
   description: "Calculate your property costs",
   icons: {
     icon: "/favicon.png",

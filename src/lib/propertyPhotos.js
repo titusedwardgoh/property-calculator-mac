@@ -1,7 +1,7 @@
 const encodeSvg = (svg) =>
   `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 
-export const PROPWIZ_BRANDED_PLACEHOLDER_URL = encodeSvg(`
+export const PROPPERS_BRANDED_PLACEHOLDER_URL = encodeSvg(`
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="540" viewBox="0 0 960 540" fill="none">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="960" y2="540" gradientUnits="userSpaceOnUse">
@@ -14,13 +14,13 @@ export const PROPWIZ_BRANDED_PLACEHOLDER_URL = encodeSvg(`
   <circle cx="126" cy="460" r="220" fill="#E29578" fill-opacity="0.20"/>
   <path d="M220 344L356 238L470 320L616 210L740 312V404H220V344Z" fill="#E29578" fill-opacity="0.35"/>
   <rect x="220" y="404" width="520" height="12" rx="6" fill="#E29578" fill-opacity="0.85"/>
-  <text x="480" y="180" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="52" font-weight="700">PropWiz</text>
+  <text x="480" y="180" text-anchor="middle" fill="#ffffff" font-family="Arial, sans-serif" font-size="52" font-weight="700">Proppers</text>
   <text x="480" y="226" text-anchor="middle" fill="#ffffff" fill-opacity="0.9" font-family="Arial, sans-serif" font-size="24">Property Preview Unavailable</text>
 </svg>
 `);
 
 export const isPropertyPhotoPlaceholder = (url) =>
-  url === PROPWIZ_BRANDED_PLACEHOLDER_URL ||
+  url === PROPPERS_BRANDED_PLACEHOLDER_URL ||
   (typeof url === 'string' && url.startsWith('data:image/svg+xml'));
 
 const toFiniteNumber = (value) => {

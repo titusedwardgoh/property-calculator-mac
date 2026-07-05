@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Mail, Send, CheckCircle, ChevronDown } from "lucide-react";
+import { Send, CheckCircle, ChevronDown } from "lucide-react";
 import Link from "next/link";
 
 export default function ContactPage() {
@@ -80,12 +80,11 @@ export default function ContactPage() {
   /** Tight stagger — same order, a touch snappier */
   const t = {
     intro: 0.05,
-    email: 0.13,
-    before: 0.21,
-    names: 0.29,
-    formEmail: 0.37,
-    message: 0.45,
-    send: 0.53,
+    before: 0.13,
+    names: 0.21,
+    formEmail: 0.29,
+    message: 0.37,
+    send: 0.45,
   };
 
   return (
@@ -120,7 +119,7 @@ export default function ContactPage() {
             className="absolute inset-0 z-0 bg-white/30 backdrop-blur-md"
             aria-hidden="true"
           />
-          <div className="relative z-10 container mx-auto px-4 pt-20 pb-12 md:pt-24 md:pb-16 lg:pt-28 lg:pb-20">
+          <div className="relative z-10 container mx-auto px-4 pt-16 pb-12 md:pt-20 md:pb-16 lg:pt-24 lg:pb-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -128,7 +127,7 @@ export default function ContactPage() {
           className="max-w-5xl mx-auto bg-white/100 backdrop-blur-sm border border-white/80 rounded-3xl shadow-lg p-8 md:p-12 lg:p-14"
         >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-14 lg:items-stretch">
-            {/* Left: intro + contact — bottom card aligns with form / Send on large screens */}
+            {/* Left: intro + before-you-reach-out — card aligns with form on large screens */}
             <div className="flex flex-col gap-8 lg:h-full lg:min-h-0 lg:pr-4 text-center md:text-left">
               <motion.div {...drop(t.intro)}>
                 <h1 className="text-3xl md:text-4xl font-bold text-primary mb-2">
@@ -144,24 +143,28 @@ export default function ContactPage() {
               </motion.div>
 
               <motion.div
-                className="flex flex-col items-center text-center gap-3 sm:flex-row sm:items-start sm:text-left"
-                {...drop(t.email)}
+                className="rounded-2xl bg-primary/20 border border-warning p-5 text-center md:text-left lg:mt-auto"
+                {...drop(t.before)}
               >
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Mail className="w-5 h-5" aria-hidden />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-700 mb-1">Email</p>
-                  <a
-                    href="mailto:support@auspropertycalc.com"
-                    className="text-gray-900 hover:text-primary transition-colors break-all"
-                  >
-                    support@auspropertycalc.com
-                  </a>
-                  <p className="text-sm text-gray-500 mt-1">
-                    We typically respond within 24 hours
-                  </p>
-                </div>
+                <h2 className="text-sm font-semibold text-gray-900 mb-2">
+                  Before you reach out
+                </h2>
+                <ul className="text-gray-700 text-sm space-y-2 leading-relaxed">
+                  <li>
+                    Check the{" "}
+                    <Link
+                      href="/faq"
+                      className="text-primary hover:text-primary-focus underline"
+                    >
+                      FAQ
+                    </Link>{" "}
+                    for quick answers.
+                  </li>
+                  <li>
+                    Figures from the calculator are estimates—confirm with your
+                    conveyancer or adviser.
+                  </li>
+                </ul>
               </motion.div>
 
             </div>
@@ -334,31 +337,6 @@ export default function ContactPage() {
                   </motion.div>
                 </form>
               )}
-
-              <motion.div
-                className="rounded-2xl bg-primary/20 border border-warning p-5 mt-6 text-center md:text-left"
-                {...drop(t.before)}
-              >
-                <h2 className="text-sm font-semibold text-gray-900 mb-2">
-                  Before you reach out
-                </h2>
-                <ul className="text-gray-700 text-sm space-y-2 leading-relaxed">
-                  <li>
-                    Check the{" "}
-                    <Link
-                      href="/faq"
-                      className="text-primary hover:text-primary-focus underline"
-                    >
-                      FAQ
-                    </Link>{" "}
-                    for quick answers.
-                  </li>
-                  <li>
-                    Figures from the calculator are estimates—confirm with your
-                    conveyancer or adviser.
-                  </li>
-                </ul>
-              </motion.div>
             </div>
           </div>
         </motion.div>

@@ -97,7 +97,7 @@ export default function AboutPage() {
                             transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
                             className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-8"
                         >
-                            PropWiz combines verified data, responsive design, and a guided journey so you can plan with confidence—no spreadsheets, no jargon, no paywall.
+                            Proppers combines verified data, responsive design, and a guided journey so you can plan with confidence—no spreadsheets, no jargon, no paywall.
                         </motion.p>
 
                         <motion.div
@@ -207,7 +207,7 @@ export default function AboutPage() {
                         <div className="rounded-2xl border border-primary/40 bg-white/90 backdrop-blur-sm px-8 py-6">
                             <h3 className="text-primary font-semibold mb-2">Important disclaimer</h3>
                             <p className="text-gray-800 text-sm leading-relaxed">
-                                PropWiz delivers indicative estimates based on current public information. We recommend confirming figures with your conveyancer, lender, or licensed financial advisor before committing to any property purchase.
+                                Proppers delivers indicative estimates based on current public information. We recommend confirming figures with your conveyancer, lender, or licensed financial advisor before committing to any property purchase.
                             </p>
                         </div>
                     </div>

@@ -47,7 +47,7 @@
   padding: 0.75rem 1rem !important;
   border-top: 1px solid #e5e7eb !important;
   font-size: 0.875rem !important; /* 14px - smaller for mobile */
-  color: #001858 !important;
+  color: #453F3C !important;
   cursor: pointer !important;
   transition: all 0.2s !important;
   line-height: 1.4 !important;
@@ -68,12 +68,12 @@
 }
 
 .pac-item:hover {
-  background-color: #172c66 !important;
+  background-color: #453F3C !important;
   color: #fef6e4 !important;
 }
 
 .pac-item-selected {
-  background-color: #172c66 !important;
+  background-color: #453F3C !important;
   color: #fef6e4 !important;
 }
 

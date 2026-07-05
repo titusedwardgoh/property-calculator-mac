@@ -284,7 +284,7 @@ function LoginPageContent() {
             transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
             className="text-lg md:text-xl text-gray-600"
           >
-            New to PropWiz?{' '}
+            New to Proppers?{' '}
             <Link href="/signup" className="text-primary hover:text-primary-focus font-medium underline">
               Sign up
             </Link>

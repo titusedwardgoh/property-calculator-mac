@@ -52,8 +52,8 @@ export default function SettingsLayout({ children }) {
                         {/* Brand / Logo */}
                         <div className="hidden md:block pb-5 mb-5 border-b border-base-300">
                             <span className="font-extrabold text-2xl tracking-tight select-none">
-                                <span className="text-accent">Prop</span>
-                                <span className="text-primary">Wiz</span>
+                                <span className="text-primary">Prop</span>
+                                <span className="text-accent">pers</span>
                             </span>
                         </div>
 

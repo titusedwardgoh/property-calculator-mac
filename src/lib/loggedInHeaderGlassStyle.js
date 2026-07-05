@@ -44,6 +44,6 @@ export const MOBILE_MAP_FAB_GLASS_STYLE = {
   background: 'rgba(255, 255, 255, 0.38)',
   backdropFilter: 'blur(20px) saturate(180%)',
   WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-  border: '2px solid rgba(0, 24, 86, 0.18)',
+  border: '2px solid rgba(69, 63, 60, 0.18)',
   boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.55)',
 };

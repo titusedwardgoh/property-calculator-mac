@@ -19,17 +19,17 @@ const testimonials = [
         role: "Property Investor, Sydney"
     },
     {
-        quote: "As a first home buyer I had no idea where to start. PropWiz broke down every cost clearly — I finally felt in control of my budget.",
+        quote: "As a first home buyer I had no idea where to start. Proppers broke down every cost clearly — I finally felt in control of my budget.",
         author: "Priya S.",
         role: "First Home Buyer, Brisbane"
     },
     {
-        quote: "I used three different calculators and got three different answers. PropWiz was the only one that matched what my conveyancer quoted me.",
+        quote: "I used three different calculators and got three different answers. Proppers was the only one that matched what my conveyancer quoted me.",
         author: "David L.",
         role: "Property Investor, Perth"
     },
     {
-        quote: "The stamp duty concession calculator alone saved me hours of research. Didn't realise I qualified until PropWiz flagged it.",
+        quote: "The stamp duty concession calculator alone saved me hours of research. Didn't realise I qualified until Proppers flagged it.",
         author: "Emma T.",
         role: "First Home Buyer, Adelaide"
     },
@@ -219,7 +219,7 @@ export default function HomePage() {
                                     Stop guessing. Start knowing.
                                 </h2>
                                 <p className="text-lg md:text-xl text-white/90 leading-relaxed mb-10">
-                                    Most buyers underestimate what they&apos;ll actually spend — and overpay as a result. PropWiz gives you a complete picture of every fee, concession, and cost before you commit. One tool. Every number. Zero surprises.
+                                    Most buyers underestimate what they&apos;ll actually spend — and overpay as a result. Proppers gives you a complete picture of every fee, concession, and cost before you commit. One tool. Every number. Zero surprises.
                                 </p>
                                 <div className="flex justify-center md:justify-start">
                                     <button
@@ -331,7 +331,7 @@ export default function HomePage() {
                                 Built for Australian property buyers
                             </p>
                             <p className="text-lg text-white/90 leading-relaxed">
-                                From first home buyers navigating stamp duty concessions to investors comparing loan structures — PropWiz handles the numbers so you don&apos;t have to.
+                                From first home buyers navigating stamp duty concessions to investors comparing loan structures — Proppers handles the numbers so you don&apos;t have to.
                             </p>
                         </motion.div>
 

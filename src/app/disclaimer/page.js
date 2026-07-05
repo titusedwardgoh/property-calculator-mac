@@ -1,6 +1,6 @@
 export const metadata = {
-  title: "Disclaimer | PropWiz",
-  description: "Important information about the nature of PropWiz calculator results and the limitations of our service.",
+  title: "Disclaimer | Proppers",
+  description: "Important information about the nature of Proppers calculator results and the limitations of our service.",
 };
 
 import DisclaimerPage from "./DisclaimerPageClient";

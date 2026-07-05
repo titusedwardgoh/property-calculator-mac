@@ -58,7 +58,7 @@ function buildNoticeBox(contentHtml, backgroundColor = '#f2ffe5', borderColor = 
 </p>`;
 }
 
-function buildPropWizEmailLayout({ title, heading, bodyHtml, extraHtml = '', siteUrl }) {
+function buildProppersEmailLayout({ title, heading, bodyHtml, extraHtml = '', siteUrl }) {
     const baseUrl = siteUrl.replace(/\/$/, '');
     const year = new Date().getFullYear();
 
@@ -105,7 +105,7 @@ function buildPropWizEmailLayout({ title, heading, bodyHtml, extraHtml = '', sit
   <table id="__outer" width="520" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;width:100%;">
     <tr>
       <td align="center" style="padding:0 0 20px;">
-        <span style="font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.5px;color:#E29578;">Prop<span style="color:#439775;">Wiz</span></span>
+        <span style="font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.5px;color:#E29578;">Prop<span style="color:#439775;">pers</span></span>
       </td>
     </tr>
     <tr>
@@ -126,7 +126,7 @@ function buildPropWizEmailLayout({ title, heading, bodyHtml, extraHtml = '', sit
             <td id="__signoff" style="padding:20px 40px 28px;border-top:1px solid #f5ede6;text-align:center;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:14px;color:#7a726e;">
               <p id="__signoff-p" style="margin:0;color:#7a726e;font-size:14px;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;">
                 Happy calculating,<br>
-                <strong style="color:#453F3C;">The PropWiz Team</strong>
+                <strong style="color:#453F3C;">The Proppers Team</strong>
               </p>
             </td>
           </tr>
@@ -181,8 +181,8 @@ function buildPropWizEmailLayout({ title, heading, bodyHtml, extraHtml = '', sit
     </tr>
     <tr>
       <td style="padding:18px 24px;text-align:center;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;font-size:11px;color:#c0b8b2;line-height:1.7;">
-        You requested this report from PropWiz. If this wasn't you, you can safely ignore this email.<br>
-        © ${year} PropWiz. All rights reserved.
+        You requested this report from Proppers. If this wasn't you, you can safely ignore this email.<br>
+        © ${year} Proppers. All rights reserved.
       </td>
     </tr>
   </table>
@@ -203,12 +203,12 @@ export function buildResultsReportEmail({
     const safeAddress = escapeHtml(address);
     const baseUrl = siteUrl.replace(/\/$/, '');
     const encodedEmail = encodeURIComponent(userEmail || '');
-    const subject = `Your results for ${address} – PropWiz`;
+    const subject = `Your results for ${address} – Proppers`;
     const heading = `Results for ${safeAddress}`;
 
     const bodyHtml = `
 <p id="__body-p" style="margin:0 0 24px;font-size:15px;color:#7a726e;line-height:1.65;font-family:-apple-system,'Helvetica Neue',Arial,sans-serif;">
-  Thanks for using PropWiz. Your property results for<br>
+  Thanks for using Proppers. Your property results for<br>
   <strong style="color:#453F3C;">${safeAddress}</strong><br>
   are attached as a PDF report.
 </p>`;
@@ -221,13 +221,13 @@ ${buildNoticeBox('<strong>We found an account with this email.</strong> Sign in 
 ${buildCtaButton(`${baseUrl}/login?email=${encodedEmail}&next=/dashboard`, 'Sign in to your account')}`;
     } else if (isGuest && !emailExists) {
         extraHtml = `
-${buildNoticeBox('<strong>You viewed this as a guest.</strong> Create a free PropWiz account to save your results, track properties, and access your dashboard.', '#fef6e4', '#e8ddd5')}
+${buildNoticeBox('<strong>You viewed this as a guest.</strong> Create a free Proppers account to save your results, track properties, and access your dashboard.', '#fef6e4', '#e8ddd5')}
 ${buildCtaButton(`${baseUrl}/signup?email=${encodedEmail}`, 'Create my account')}`;
     } else {
         extraHtml = buildCtaButton(`${baseUrl}/dashboard`, 'View my dashboard');
     }
 
-    const html = buildPropWizEmailLayout({
+    const html = buildProppersEmailLayout({
         title: subject,
         heading,
         bodyHtml,

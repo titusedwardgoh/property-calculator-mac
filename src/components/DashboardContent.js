@@ -14,7 +14,7 @@ import {
   getStreetViewMetadataStatus,
   isGoogleMapsPhotoUrl,
   isPropertyPhotoPlaceholder,
-  PROPWIZ_BRANDED_PLACEHOLDER_URL,
+  PROPPERS_BRANDED_PLACEHOLDER_URL,
 } from '@/lib/propertyPhotos';
 import {
   MOBILE_MAP_FAB_GLASS_STYLE,
@@ -270,7 +270,7 @@ const buildMarkerInfoHtml = (point) => {
     point.price != null && point.price !== ''
       ? `$${Number(point.price).toLocaleString()}`
       : 'TBD';
-  const thumbnailUrl = point.photoUrl || PROPWIZ_BRANDED_PLACEHOLDER_URL;
+  const thumbnailUrl = point.photoUrl || PROPPERS_BRANDED_PLACEHOLDER_URL;
   return `
     <div style="width:400px; background:#ffffff; border-radius:12px; overflow:hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex; align-items: stretch; min-height: 140px;">
       <div style="width:151px; flex:0 0 151px; position:relative; background:#f3f4f6; overflow:hidden; line-height: 0; font-size: 0;">
@@ -1426,7 +1426,7 @@ export default function DashboardContent({
         }
 
         if (!finalUrl) {
-          finalUrl = PROPWIZ_BRANDED_PLACEHOLDER_URL;
+          finalUrl = PROPPERS_BRANDED_PLACEHOLDER_URL;
           finalSource = 'placeholder';
         }
 
@@ -1957,7 +1957,7 @@ export default function DashboardContent({
   const surveyCards = sortedSurveys.map((survey, index) => {
     const status = getCompletionStatus(survey);
     const isComplete = survey.completion_status === 'complete';
-    const cardPhotoUrl = survey.photo_url || PROPWIZ_BRANDED_PLACEHOLDER_URL;
+    const cardPhotoUrl = survey.photo_url || PROPPERS_BRANDED_PLACEHOLDER_URL;
     const isPhotoLoaded = !!imageLoadedByPropertyId[survey.id] || cardPhotoUrl.startsWith('data:image/');
 
     const handleCardClick = () => {
@@ -1975,7 +1975,7 @@ export default function DashboardContent({
           item.id === survey.id
             ? {
               ...item,
-              photo_url: PROPWIZ_BRANDED_PLACEHOLDER_URL,
+              photo_url: PROPPERS_BRANDED_PLACEHOLDER_URL,
               photo_source: 'placeholder',
             }
             : item
@@ -2214,10 +2214,10 @@ export default function DashboardContent({
 
               {/* Dynamic Metrics */}
               <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
-                className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 w-full md:w-auto shrink-0"
+                initial={false}
+                animate={loading ? { opacity: 0, y: 16 } : { opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: loading ? 0 : 0.15, ease: 'easeOut' }}
+                className={`grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 w-full md:w-auto shrink-0 ${loading ? 'pointer-events-none' : ''}`}
               >
                 {/* Surveys Metric (Total) */}
                 <button

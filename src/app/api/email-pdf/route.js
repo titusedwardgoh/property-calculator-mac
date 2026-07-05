@@ -10,7 +10,7 @@ if (!resendApiKey) {
 
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
-const FROM = process.env.RESEND_FROM?.trim() || 'PropWiz <onboarding@resend.dev>';
+const FROM = process.env.RESEND_FROM?.trim() || 'Proppers <onboarding@resend.dev>';
 
 // Server-side Supabase client with service role key (for admin operations)
 const supabaseUrl = process.env.SUPABASE_URL;

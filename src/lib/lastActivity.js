@@ -2,7 +2,7 @@
  * Persisted idle-activity timestamp for client + middleware.
  * Cookie mirrors localStorage so middleware can redirect before client hydration.
  */
-export const LAST_ACTIVITY_STORAGE_KEY = "propwiz_last_activity";
+export const LAST_ACTIVITY_STORAGE_KEY = "proppers_last_activity";
 
 /** 1 year — expiry is not the idle gate; the numeric value is. */
 const COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 365;

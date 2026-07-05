@@ -35,7 +35,7 @@ export default function TermsPage() {
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
               className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-12"
             >
-              Please read these terms carefully before using PropWiz. By accessing or using our service, you agree to be bound by them.
+              Please read these terms carefully before using Proppers. By accessing or using our service, you agree to be bound by them.
             </motion.p>
             <motion.p
               initial={{ opacity: 0, y: 16 }}
@@ -64,7 +64,7 @@ export default function TermsPage() {
                   If you browse or otherwise access any content or data on our website or use our property calculator service (together called &quot;our Platform&quot; in these terms), you agree to be bound by these terms.
                 </p>
                 <p className="text-gray-700 leading-relaxed">
-                  PropWiz reserves the right to change any or all of our terms of use or other conditions for using our Platform at any time by publishing the new terms or conditions on our website. Your use of our Platform constitutes your acceptance of those terms. Should you object to any of our terms of use or other notices on our Platform, your sole option is to immediately cease your use of our Platform.
+                  Proppers reserves the right to change any or all of our terms of use or other conditions for using our Platform at any time by publishing the new terms or conditions on our website. Your use of our Platform constitutes your acceptance of those terms. Should you object to any of our terms of use or other notices on our Platform, your sole option is to immediately cease your use of our Platform.
                 </p>
               </div>
 
@@ -83,10 +83,10 @@ export default function TermsPage() {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">3. Disclaimer of Advice</h2>
                 <p className="text-gray-700 leading-relaxed mb-4">
-                  Information on our Platform and in any PropWiz publication should not be regarded as a substitute for professional legal, financial, or real estate advice.
+                  Information on our Platform and in any Proppers publication should not be regarded as a substitute for professional legal, financial, or real estate advice.
                 </p>
                 <p className="text-gray-700 leading-relaxed mb-4">
-                  PropWiz is responsible for maintaining our Platform and makes no warranty as to the accuracy or reliability of the information contained therein (including, but not limited to, any content or information generated on our Platform by or on behalf of PropWiz, and any Third Party Content on our website).
+                  Proppers is responsible for maintaining our Platform and makes no warranty as to the accuracy or reliability of the information contained therein (including, but not limited to, any content or information generated on our Platform by or on behalf of Proppers, and any Third Party Content on our website).
                 </p>
                 <p className="text-gray-700 leading-relaxed">
                   Our property calculator provides estimates based on current rates and regulations. Actual costs may vary, and we recommend consulting with qualified professionals such as mortgage brokers, conveyancers, and financial advisors for specific advice.
@@ -127,10 +127,10 @@ export default function TermsPage() {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">5. Copyright</h2>
                 <p className="text-gray-700 leading-relaxed mb-4">
-                  The subject matter on and accessible from our Platform and publications is protected by copyright. Apart from fair dealing permitted by the Copyright Act 1968, PropWiz grants visitors to the site permission to download copyright material only for private and non-commercial purposes.
+                  The subject matter on and accessible from our Platform and publications is protected by copyright. Apart from fair dealing permitted by the Copyright Act 1968, Proppers grants visitors to the site permission to download copyright material only for private and non-commercial purposes.
                 </p>
                 <p className="text-gray-700 leading-relaxed">
-                  For reproduction or use of PropWiz copyright material beyond such use, written permission must be obtained directly from PropWiz or the relevant copyright owner. If given, permission will be subject to the requirement that the copyright owner&apos;s name and interest in the material be acknowledged when the material is reproduced or quoted, in whole or in part.
+                  For reproduction or use of Proppers copyright material beyond such use, written permission must be obtained directly from Proppers or the relevant copyright owner. If given, permission will be subject to the requirement that the copyright owner&apos;s name and interest in the material be acknowledged when the material is reproduced or quoted, in whole or in part.
                 </p>
               </div>
 
@@ -138,10 +138,10 @@ export default function TermsPage() {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">6. Third Party Links and Advertising</h2>
                 <p className="text-gray-700 leading-relaxed mb-4">
-                  Our Platform may include advertisements, hyperlinks and pointers to websites operated by third parties. Those third party websites do not form part of our Platform and are not under the control of or the responsibility of PropWiz. When you link to those websites you leave our Platform and do so entirely at your own risk.
+                  Our Platform may include advertisements, hyperlinks and pointers to websites operated by third parties. Those third party websites do not form part of our Platform and are not under the control of or the responsibility of Proppers. When you link to those websites you leave our Platform and do so entirely at your own risk.
                 </p>
                 <p className="text-gray-700 leading-relaxed">
-                  PropWiz and its related entities make no warranty as to the accuracy or reliability of the information contained on any third party websites, and PropWiz and its related entities, directors, officers and agents disclaim all liability and responsibility for any direct or indirect loss or damage which may be suffered by you through relying on anything contained on or omitted from such third party websites. A display of advertising does not imply an endorsement or recommendation by PropWiz.
+                  Proppers and its related entities make no warranty as to the accuracy or reliability of the information contained on any third party websites, and Proppers and its related entities, directors, officers and agents disclaim all liability and responsibility for any direct or indirect loss or damage which may be suffered by you through relying on anything contained on or omitted from such third party websites. A display of advertising does not imply an endorsement or recommendation by Proppers.
                 </p>
               </div>
 
@@ -170,8 +170,8 @@ export default function TermsPage() {
                 </p>
                 <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
                   <li>your use of our Platform will comply at all times with these terms and any directions we make to you in relation to your use of our Platform from time to time;</li>
-                  <li>you will make sure that you keep any username and password by which you access PropWiz confidential and secure at all times (if applicable); and</li>
-                  <li>you accept all liability for any unauthorised use of any username and password issued except for unauthorised use resulting from any negligent act or omission legally attributable to PropWiz.</li>
+                  <li>you will make sure that you keep any username and password by which you access Proppers confidential and secure at all times (if applicable); and</li>
+                  <li>you accept all liability for any unauthorised use of any username and password issued except for unauthorised use resulting from any negligent act or omission legally attributable to Proppers.</li>
                 </ul>
               </div>
 
@@ -179,7 +179,7 @@ export default function TermsPage() {
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">9. Indemnity</h2>
                 <p className="text-gray-700 leading-relaxed mb-4">
-                  You agree to indemnify and hold PropWiz and its affiliates (and their officers, agents, partners and employees) (collectively, &quot;those indemnified&quot;) harmless against any and all loss, liability, claim or demand (including reasonable attorneys&apos; fees) arising out of any third party claim against those indemnified in connection with your use of our Platform, other than to the extent that such loss, liability, claim or demand was caused by PropWiz&apos;s fraud, gross negligence or wilful default.
+                  You agree to indemnify and hold Proppers and its affiliates (and their officers, agents, partners and employees) (collectively, &quot;those indemnified&quot;) harmless against any and all loss, liability, claim or demand (including reasonable attorneys&apos; fees) arising out of any third party claim against those indemnified in connection with your use of our Platform, other than to the extent that such loss, liability, claim or demand was caused by Proppers&apos;s fraud, gross negligence or wilful default.
                 </p>
                 <p className="text-gray-700 leading-relaxed">
                   We will notify you within a reasonable period of any third party claim giving rise to a claim for indemnification and will take reasonable steps to mitigate any loss or damage. To the extent that we caused or contributed to any loss, your liability will be reduced proportionately.
@@ -193,7 +193,7 @@ export default function TermsPage() {
                   You may only link to content on our Platform if we consent. If we do allow you to link to our Platform, it is on condition that you do not:
                 </p>
                 <ul className="list-disc pl-6 space-y-2 text-gray-700 mb-4">
-                  <li>attribute a link to PropWiz content as being a link to your own or someone else&apos;s content (for example, use your own logo to link to our content);</li>
+                  <li>attribute a link to Proppers content as being a link to your own or someone else&apos;s content (for example, use your own logo to link to our content);</li>
                   <li>attribute a link to our site and then link somewhere else;</li>
                   <li>frame our content in such a way as to present it as your own or as belonging to anyone other than us or our licensors; or</li>
                   <li>link to our content as part of a website that aggregates property listings and/or information or competes with us in any manner.</li>

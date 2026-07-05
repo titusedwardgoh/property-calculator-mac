@@ -31,13 +31,16 @@ export default function Footer() {
               className="inline-flex items-center gap-2 mb-4 hover:opacity-90 transition-opacity"
             >
               <Image
-                src="/icon2.png"
-                alt="PropWiz"
-                width={40}
-                height={40}
+                src="/icon3.png"
+                alt="Proppers"
+                width={1106}
+                height={1106}
                 className="w-10 h-10 object-contain"
               />
-              <h3 className="text-xl font-bold text-secondary">PropWiz</h3>
+              <h3 className="text-xl font-bold leading-none">
+                <span className="text-primary">Prop</span>
+                <span className="text-secondary">pers</span>
+              </h3>
             </Link>
             <p className="text-gray-600 mb-4 max-w-md leading-relaxed">
               Know the true cost of any Australian property before you commit. No spreadsheets, no surprises.
@@ -120,7 +123,7 @@ export default function Footer() {
         <div className="border-t border-gray-200 mt-8 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-500 text-sm">
-              © 2025 PropWiz. All rights reserved.
+              © 2025 Proppers. All rights reserved.
             </p>
             <p className="text-gray-500 text-sm mt-2 md:mt-0">
               Built for Australian property buyers 

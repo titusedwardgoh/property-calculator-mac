@@ -64,7 +64,7 @@ export default function TwoFactorModal({ isOpen, onClose, onStatusChange }) {
     try {
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
-        friendlyName: 'PropWiz Authenticator',
+        friendlyName: 'Proppers Authenticator',
       });
       if (error) throw error;
       setQrCode(data.totp.qr_code);

@@ -98,11 +98,11 @@ export default function Header() {
             <Link href="/" className="flex items-center">
               <div className="w-28 h-9 flex items-center">
                 <Image
-                  src="/icon2.png"
-                  alt="PropWiz"
-                  width={447}
-                  height={444}
-                  className="w-full h-full object-contain object-left"
+                  src="/icon3.png"
+                  alt="Proppers"
+                  width={1106}
+                  height={1106}
+                  className="h-full w-auto object-contain object-left"
                   priority
                 />
               </div>
@@ -136,10 +136,10 @@ export default function Header() {
                 <Link href="/" className="inline-flex items-center">
                   <div className="flex h-12 items-center">
                     <Image
-                      src="/icon2.png"
-                      alt="PropWiz"
-                      width={447}
-                      height={444}
+                      src="/icon3.png"
+                      alt="Proppers"
+                      width={1106}
+                      height={1106}
                       className="h-full w-auto object-contain"
                       priority
                     />

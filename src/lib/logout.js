@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/client';
 import { clearSurveyOnLogout } from '@/lib/clearSurveyOnLogout';
 
-export const LOGOUT_REDIRECT_KEY = 'propwiz_logout_redirect';
-export const LOGOUT_OVERLAY_EVENT = 'propwiz:logout-start';
+export const LOGOUT_REDIRECT_KEY = 'proppers_logout_redirect';
+export const LOGOUT_OVERLAY_EVENT = 'proppers:logout-start';
 
 function triggerLogoutOverlay() {
   if (typeof window !== 'undefined') {
