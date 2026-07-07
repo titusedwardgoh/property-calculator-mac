@@ -149,7 +149,7 @@ export async function POST(request) {
       );
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://property-calculator-mac.vercel.app';
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://proppers.com.au';
     const { subject, html: emailHtml } = buildResultsReportEmail({
       propertyAddress,
       userEmail,

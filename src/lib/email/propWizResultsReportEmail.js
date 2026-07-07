@@ -197,7 +197,7 @@ export function buildResultsReportEmail({
     userEmail,
     isGuest,
     emailExists,
-    siteUrl = 'https://property-calculator-mac.vercel.app',
+    siteUrl = 'https://proppers.com.au',
 }) {
     const address = propertyAddress?.trim() || 'your property';
     const safeAddress = escapeHtml(address);
