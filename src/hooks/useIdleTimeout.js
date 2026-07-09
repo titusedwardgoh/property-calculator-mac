@@ -45,7 +45,7 @@ export function useIdleTimeout(user, onWarning, onLogout) {
     logoutInProgressRef.current = true;
     clearActivityTimestamp();
     callbacksRef.current.onLogout?.();
-    await logoutAndRedirect('/login');
+    await logoutAndRedirect('/login', { showOverlay: false });
   }, []);
 
   /**

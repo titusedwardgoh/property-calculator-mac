@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useImperativeHandle, useRef, useState, forwardRef } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useLayoutEffect, useRef, useState, forwardRef } from 'react';
 import {
     buildResultsPdf,
     getResultsPdfFilename,
@@ -13,9 +13,33 @@ import Link from 'next/link';
 import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { formatFieldValue } from '../lib/fieldMapping.js';
 import { buildResultsSummary } from '../lib/resultsSummary/buildResultsSummary';
+import {
+    applyDepositToForm,
+    canReduceDepositForShortfall,
+    findBestDepositForShortfall,
+} from '../lib/resultsSummary/optimizeDepositForShortfall';
 import { useWizardStep } from '../hooks/useWizardStep';
 import { useFormStore } from '../stores/formStore';
 import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
+
+const DEPOSIT_ADJUST_RESULTS_RELOAD_KEY = 'proppers:deposit-adjust-results-reload';
+
+function setDepositAdjustReloadExpansion(wasUpfrontExpanded) {
+    if (typeof window === 'undefined') return;
+    sessionStorage.setItem(
+        DEPOSIT_ADJUST_RESULTS_RELOAD_KEY,
+        wasUpfrontExpanded ? 'upfront-expanded' : 'all-collapsed'
+    );
+}
+
+function consumeDepositAdjustReloadExpansion() {
+    if (typeof window === 'undefined') return null;
+    const value = sessionStorage.getItem(DEPOSIT_ADJUST_RESULTS_RELOAD_KEY);
+    if (value !== null) {
+        sessionStorage.removeItem(DEPOSIT_ADJUST_RESULTS_RELOAD_KEY);
+    }
+    return value;
+}
 
 export default forwardRef(function ResultsSummary({
     formData,
@@ -30,10 +54,14 @@ export default forwardRef(function ResultsSummary({
     emailCooldownRemaining = 0,
     setOriginalLoadedState,
     onStartNewSurvey,
+    onSaveSurvey,
 }, ref) {
     const { navigateToStep, WIZARD_STEPS } = useWizardStep();
     const updateFormData = useFormStore((s) => s.updateFormData);
     const startEditSession = useFormStore((s) => s.startEditSession);
+    const summaryFormData = useFormStore();
+    const [resultsReady, setResultsReady] = useState(false);
+    const resultsCheckpointRef = useRef(null);
     const [showEditSectionOverlay, setShowEditSectionOverlay] = useState(false);
     const [editSectionLabel, setEditSectionLabel] = useState('');
     const [showRemovingLoanOverlay, setShowRemovingLoanOverlay] = useState(false);
@@ -49,6 +77,8 @@ export default forwardRef(function ResultsSummary({
     const [isMobileOngoingCosts, setIsMobileOngoingCosts] = useState(false);
     const [isGrantsCardExpanded, setIsGrantsCardExpanded] = useState(false);
     const [isPreparingPdf, setIsPreparingPdf] = useState(false);
+    const [isAdjustingDeposit, setIsAdjustingDeposit] = useState(false);
+    const [depositAdjustOutcome, setDepositAdjustOutcome] = useState(null);
     const costsColumnRef = useRef(null);
     const grantsCardRef = useRef(null);
     const propertyCardRef = useRef(null);
@@ -84,6 +114,38 @@ export default forwardRef(function ResultsSummary({
         }
     };
 
+    // Sync derived totals before first paint so cards never flash placeholder zeros.
+    const resultsCheckpointKey = `${propertyId ?? 'new'}:${summaryFormData.allFormsComplete}`;
+    useLayoutEffect(() => {
+        if (!summaryFormData.allFormsComplete) {
+            setResultsReady(false);
+            resultsCheckpointRef.current = null;
+            return;
+        }
+
+        if (resultsCheckpointRef.current === resultsCheckpointKey) {
+            return;
+        }
+
+        setResultsReady(false);
+        const state = useFormStore.getState();
+        state.updateOngoingCosts?.();
+        state.updateLMI?.();
+        state.updateLoanRepayments?.();
+        resultsCheckpointRef.current = resultsCheckpointKey;
+        setResultsReady(true);
+    }, [resultsCheckpointKey, summaryFormData.allFormsComplete]);
+
+    // After deposit-adjust recalc, restore only the upfront card expansion if it was open.
+    useLayoutEffect(() => {
+        if (!resultsReady) return;
+
+        const reloadExpansion = consumeDepositAdjustReloadExpansion();
+        if (reloadExpansion === 'upfront-expanded') {
+            setIsUpfrontCostsExpanded(true);
+        }
+    }, [resultsReady]);
+
     const {
         totalPurchaseCost,
         appliedConcessions,
@@ -107,7 +169,68 @@ export default forwardRef(function ResultsSummary({
         loanLvrDisplay,
         settlementOtherCostsTotal,
         otherCostsDetailRows,
-    } = buildResultsSummary(formData, stateFunctions);
+    } = buildResultsSummary(summaryFormData, stateFunctions);
+
+    const depositCanBeReduced = canReduceDepositForShortfall(summaryFormData);
+
+    const handleReduceDepositForShortfall = async () => {
+        if (isAdjustingDeposit || !hasLoan || buyerSavingsShortfall <= 0 || !depositCanBeReduced) return;
+
+        setIsAdjustingDeposit(true);
+        setDepositAdjustOutcome(null);
+
+        try {
+            const result = findBestDepositForShortfall(summaryFormData, stateFunctions);
+
+            if (!result?.improved) {
+                setDepositAdjustOutcome({
+                    type: 'none',
+                    message:
+                        "We couldn't reduce your shortfall further by lowering the deposit. You'll need more savings or consider a lower-priced property.",
+                });
+                return;
+            }
+
+            resultsCheckpointRef.current = null;
+            setResultsReady(false);
+            setDepositAdjustReloadExpansion(isUpfrontCostsExpanded);
+            updateFormData('isRecalculatingResults', true);
+
+            applyDepositToForm(result.deposit);
+
+            if (onSaveSurvey) {
+                await onSaveSurvey();
+            }
+            setOriginalLoadedState?.(useFormStore.getState());
+
+            if (result.cleared) {
+                setDepositAdjustOutcome({
+                    type: 'success',
+                    deposit: result.deposit,
+                    message: result.lmiRequired
+                        ? `Deposit adjusted to ${formatCurrency(result.deposit)}. Your savings now cover upfront costs. LMI applies at this deposit level.`
+                        : `Deposit adjusted to ${formatCurrency(result.deposit)}. Your savings now cover upfront costs.`,
+                });
+            } else {
+                setDepositAdjustOutcome({
+                    type: 'partial',
+                    deposit: result.deposit,
+                    shortfall: result.shortfall,
+                    message: `Deposit reduced to ${formatCurrency(result.deposit)}. Shortfall lowered to ${formatCurrency(result.shortfall)}. You'll still need more savings or consider a lower-priced property.`,
+                });
+            }
+        } catch (error) {
+            console.error('Deposit adjustment failed:', error);
+            setDepositAdjustOutcome({
+                type: 'none',
+                message: 'Something went wrong adjusting your deposit. Please try again.',
+            });
+            updateFormData('isRecalculatingResults', false);
+            setResultsReady(true);
+        } finally {
+            setIsAdjustingDeposit(false);
+        }
+    };
 
     const getGrantsAndConcessionsList = () => grantsAndConcessionsList;
 
@@ -416,6 +539,9 @@ export default forwardRef(function ResultsSummary({
             {isPreparingPdf && (
                 <SurveyLoadingOverlay message="Preparing your PDF…" />
             )}
+            {isAdjustingDeposit && (
+                <SurveyLoadingOverlay message="Adjusting deposit and recalculating…" />
+            )}
             {showRemovingLoanOverlay && (
                 <SurveyLoadingOverlay>
                     <div className="flex min-h-[3rem] items-center justify-center">
@@ -446,6 +572,7 @@ export default forwardRef(function ResultsSummary({
                 </SurveyLoadingOverlay>
             )}
         <AnimatePresence mode="wait">
+            {resultsReady && (
                                             <motion.div
                                                 key="all-forms-complete"
                                                 initial={{ opacity: 0, y: 20 }}
@@ -485,7 +612,7 @@ export default forwardRef(function ResultsSummary({
                                                         <motion.div
                                                             initial={{ opacity: 0, y: 20 }}
                                                             animate={{ opacity: 1, y: 0 }}
-                                                            transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
+                                                            transition={{ duration: 0.6, delay: 0.25, ease: "easeOut" }}
                                                             className="w-full lg:col-span-5 order-2 lg:h-full"
                                                         >
                                                             <div className="bg-base-200 border border-gray-100 rounded-2xl p-5 md:p-6 shadow-sm h-full flex flex-col justify-start gap-4">
@@ -798,7 +925,7 @@ export default forwardRef(function ResultsSummary({
                                                         <motion.div
                                                             initial={{ opacity: 0, y: 20 }}
                                                             animate={{ opacity: 1, y: 0 }}
-                                                            transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+                                                            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
                                                             className="w-full lg:col-span-7 order-1 lg:h-full"
                                                         >
                                                             <div className="bg-base-200 border border-gray-100 rounded-2xl p-6 md:p-8 shadow-sm space-y-6">
@@ -1053,10 +1180,39 @@ export default forwardRef(function ResultsSummary({
                                                                                                         {buyerSavingsShortfall > 0 && (
                                                                                                             <p className="text-xs text-red-600 italic bg-red-50/50 rounded-lg px-3 py-2 mt-2 border border-red-200/60">
                                                                                                                 {hasLoan ? (
-                                                                                                                    "You have a savings shortfall. Consider reducing your deposit to lower upfront cash required, or look for a lower-priced property."
+                                                                                                                    depositCanBeReduced
+                                                                                                                        ? "You have a savings shortfall. Consider reducing your deposit to lower upfront cash required, or look for a lower-priced property."
+                                                                                                                        : "You have a savings shortfall and cannot lower your deposit further (minimum 5% of property price). Consider looking for a lower-priced property or increasing your savings."
                                                                                                                 ) : (
                                                                                                                     "You have a savings shortfall. Consider obtaining a home loan to cover the gap, or look for a lower-priced property."
                                                                                                                 )}
+                                                                                                            </p>
+                                                                                                        )}
+                                                                                                        {buyerSavingsShortfall > 0 && hasLoan && depositCanBeReduced && !isPreparingPdf && (
+                                                                                                            <button
+                                                                                                                type="button"
+                                                                                                                data-pdf-exclude
+                                                                                                                onClick={(e) => {
+                                                                                                                    e.stopPropagation();
+                                                                                                                    handleReduceDepositForShortfall();
+                                                                                                                }}
+                                                                                                                disabled={isAdjustingDeposit}
+                                                                                                                className="mt-2 w-full cursor-pointer rounded-full border border-primary bg-white px-4 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-50"
+                                                                                                            >
+                                                                                                                {isAdjustingDeposit ? 'Adjusting deposit…' : 'Reduce deposit to lower shortfall'}
+                                                                                                            </button>
+                                                                                                        )}
+                                                                                                        {depositAdjustOutcome && (
+                                                                                                            <p
+                                                                                                                className={`text-xs italic rounded-lg px-3 py-2 mt-2 border ${
+                                                                                                                    depositAdjustOutcome.type === 'success'
+                                                                                                                        ? 'text-green-700 bg-green-50/70 border-green-200/70'
+                                                                                                                        : depositAdjustOutcome.type === 'partial'
+                                                                                                                            ? 'text-amber-800 bg-amber-50/70 border-amber-200/70'
+                                                                                                                            : 'text-red-600 bg-red-50/50 border-red-200/60'
+                                                                                                                }`}
+                                                                                                            >
+                                                                                                                {depositAdjustOutcome.message}
                                                                                                             </p>
                                                                                                         )}
                                                                                                     </div>
@@ -1320,6 +1476,7 @@ export default forwardRef(function ResultsSummary({
                                                     </motion.div>
                                                 </div>
                                             </motion.div>
+            )}
                                         </AnimatePresence>
         </>
     );

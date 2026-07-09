@@ -851,6 +851,7 @@ function CalculatorPageContent() {
                                                 emailCooldownRemaining={emailCooldownRemaining}
                                                 setOriginalLoadedState={setOriginalLoadedState}
                                                 onStartNewSurvey={handleStartNewSurvey}
+                                                onSaveSurvey={() => handleSave(true)}
                                             />
                                         );
                                     default:

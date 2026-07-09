@@ -15,7 +15,12 @@ export default function AuthSessionManager() {
     setShowIdleWarning(true);
   };
 
-  // Handle immediate logout
+  // Idle expiry — dismiss warning only; useIdleTimeout performs silent sign-out.
+  const handleIdleExpiry = () => {
+    setShowIdleWarning(false);
+  };
+
+  // User chose "Log out now" in the idle warning modal
   const handleLogoutNow = async () => {
     setShowIdleWarning(false);
     await performLogout('/login');
@@ -25,7 +30,7 @@ export default function AuthSessionManager() {
   const { stayLoggedIn } = useIdleTimeout(
     user,
     handleIdleWarning,
-    handleLogoutNow
+    handleIdleExpiry
   );
 
   // Window close logout is disabled - we only log out after inactivity (2 hours)

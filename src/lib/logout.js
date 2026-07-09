@@ -35,11 +35,13 @@ export function getRedirectForUnauthenticatedUser(fallbackPath = '/') {
 }
 
 /** Sign out and hard-navigate so client redirects on protected pages cannot race. */
-export async function performLogout(redirectTo = '/') {
+export async function performLogout(redirectTo = '/', { showOverlay = true } = {}) {
   if (typeof window !== 'undefined') {
     sessionStorage.setItem(LOGOUT_REDIRECT_KEY, redirectTo);
-    triggerLogoutOverlay();
-    await waitForOverlayPaint();
+    if (showOverlay) {
+      triggerLogoutOverlay();
+      await waitForOverlayPaint();
+    }
   }
 
   const supabase = createClient();

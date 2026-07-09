@@ -57,6 +57,10 @@ function stripReferenceCardActionButtons(root) {
     });
 }
 
+function stripPdfExcludedElements(root) {
+    root.querySelectorAll('[data-pdf-exclude]').forEach((el) => el.remove());
+}
+
 const INLINE_COLOR_PROPERTIES = [
     'color',
     'backgroundColor',
@@ -172,6 +176,7 @@ async function captureReferenceCardsGrid(cardEls) {
         const clone = el.cloneNode(true);
         if (clone instanceof HTMLElement) {
             stripReferenceCardActionButtons(clone);
+            stripPdfExcludedElements(clone);
             clone.style.flex = '1 1 auto';
             clone.style.width = '100%';
             clone.style.height = '100%';
@@ -207,10 +212,13 @@ async function captureStyledPanel(contentEl, { stretchContent = false, minHeight
     const host = createOffScreenHost({ minHeight, flexColumn: stretchContent });
 
     const clone = contentEl.cloneNode(true);
-    if (stretchContent && clone instanceof HTMLElement) {
-        clone.style.flex = '1 1 auto';
-        clone.style.width = '100%';
-        clone.style.minHeight = '100%';
+    if (clone instanceof HTMLElement) {
+        stripPdfExcludedElements(clone);
+        if (stretchContent) {
+            clone.style.flex = '1 1 auto';
+            clone.style.width = '100%';
+            clone.style.minHeight = '100%';
+        }
     }
 
     host.appendChild(clone);
