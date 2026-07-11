@@ -6,6 +6,9 @@ import LoggedInHeaderOverlay from "../components/LoggedInHeaderOverlay";
 import AuthSessionManager from "../components/AuthSessionManager";
 import LogoutOverlay from "../components/LogoutOverlay";
 import RootAuroraBackground from "../components/RootAuroraBackground";
+import AuthProvider from "@/contexts/AuthProvider";
+import { getInitialAuthState } from "@/lib/auth/getInitialAuthState";
+import { Analytics } from "@vercel/analytics/next";
 
 const robotoFont = Roboto({
   display: "swap",
@@ -26,19 +29,24 @@ export const metadata = {
   }
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const initialAuth = await getInitialAuthState();
+
   return (
     <html lang="en" data-theme="flyingwizard">
       <body className={`${robotoFont.className} relative min-h-screen`}>
-        <RootAuroraBackground />
-        <div className="relative z-10 flex min-h-screen flex-col">
-          <AuthSessionManager />
-          <LogoutOverlay />
-          <Header />
-          <LoggedInHeaderOverlay />
-          {children}
-          <Footer />
-        </div>
+        <AuthProvider initialAuth={initialAuth}>
+          <RootAuroraBackground />
+          <div className="relative z-10 flex min-h-screen flex-col">
+            <AuthSessionManager />
+            <LogoutOverlay />
+            <Header />
+            <LoggedInHeaderOverlay />
+            {children}
+            <Footer />
+          </div>
+        </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );

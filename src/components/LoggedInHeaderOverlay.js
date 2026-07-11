@@ -21,7 +21,7 @@ export default function LoggedInHeaderOverlay() {
     const [isNavigatingToDashboard, setIsNavigatingToDashboard] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
-    const { user, loading } = useAuth();
+    const { showLoggedInUI } = useAuth();
 
     // Disable body scroll when menu is open
     useEffect(() => {
@@ -58,7 +58,7 @@ export default function LoggedInHeaderOverlay() {
     const isPublicPage = publicPages.includes(pathname);
 
     // Only show overlay when user is logged in AND on protected pages (not public pages, not calculator)
-    if (loading || !user || pathname === '/calculator' || isPublicPage) {
+    if (!showLoggedInUI || pathname === '/calculator' || isPublicPage) {
         return null;
     }
 

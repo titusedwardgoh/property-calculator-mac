@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback, Suspense } from 'react';
+import { useEffect, useLayoutEffect, useState, useRef, useCallback, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import PropertyDetails from '../../components/PropertyDetails';
@@ -49,7 +49,11 @@ function CalculatorPageContent() {
     const setIsResumingSurvey = formData.setIsResumingSurvey;
     const { user, loading: authLoading } = useAuth();
     const searchParams = useSearchParams();
-    const [isLoadingResume, setIsLoadingResume] = useState(false);
+    const resumePropertyId =
+        searchParams.get('propertyId') ||
+        (typeof window !== 'undefined' ? sessionStorage.getItem('resumePropertyId') : null);
+    const wantsResume = searchParams.get('resume') === 'true' && Boolean(resumePropertyId);
+    const [isLoadingResume, setIsLoadingResume] = useState(wantsResume);
     const [isReturningToDashboard, setIsReturningToDashboard] = useState(false);
     const [isEmailingPDF, setIsEmailingPDF] = useState(false);
     const [showEmailModal, setShowEmailModal] = useState(false);
@@ -106,12 +110,15 @@ function CalculatorPageContent() {
         }
     }, [isStartingNewSurvey, step, isLoadingResume]);
 
+    // Show loading overlay immediately on resume navigation (before auth / fetch complete)
+    useLayoutEffect(() => {
+        if (wantsResume) {
+            setIsLoadingResume(true);
+        }
+    }, [wantsResume]);
+
     // Resume / view a saved survey from the dashboard
     useEffect(() => {
-        const resumePropertyId =
-            searchParams.get('propertyId') || sessionStorage.getItem('resumePropertyId');
-        const wantsResume = searchParams.get('resume') === 'true' && resumePropertyId;
-
         if (authLoading || !wantsResume || hasResumedRef.current) {
             return;
         }
@@ -184,7 +191,16 @@ function CalculatorPageContent() {
                 hasResumedRef.current = false;
                 setIsLoadingResume(false);
             });
-    }, [searchParams, authLoading, user?.id, hydrateFromPropertyRecord, setOriginalLoadedState, router]);
+    }, [
+        wantsResume,
+        resumePropertyId,
+        authLoading,
+        user?.id,
+        searchParams,
+        hydrateFromPropertyRecord,
+        setOriginalLoadedState,
+        router,
+    ]);
 
     // Fresh calculator visit (not resuming) — show welcome; discard stale dashboard-linked state
     useEffect(() => {
@@ -388,19 +404,21 @@ function CalculatorPageContent() {
         }
     }, [user, handleLinkToAccount]);
 
-    const showWelcomePage = step === WIZARD_STEPS.WELCOME;
+    const showWelcomePage = step === WIZARD_STEPS.WELCOME && !wantsResume;
     const showResultsSummary = step === WIZARD_STEPS.RESULTS;
+    const showResumeLoading = wantsResume && (authLoading || isLoadingResume);
     const isSurveyLoading =
         formData.isRecalculatingResults ||
         formData.isResumingSurvey ||
         isLoadingResume ||
+        showResumeLoading ||
         isReturningToDashboard ||
         isStartingNewSurvey;
     const surveyLoadingMessage = formData.isRecalculatingResults
         ? 'Recalculating results...'
         : isReturningToDashboard
             ? 'Returning to dashboard...'
-            : formData.isResumingSurvey || isLoadingResume
+            : formData.isResumingSurvey || isLoadingResume || showResumeLoading
                 ? 'Loading your survey...'
                 : undefined;
     // Block main content while loading; Results mounts fresh after recalculating so entrance animations replay.
@@ -408,6 +426,7 @@ function CalculatorPageContent() {
         isReturningToDashboard ||
         isStartingNewSurvey ||
         isLoadingResume ||
+        showResumeLoading ||
         formData.isResumingSurvey ||
         formData.isRecalculatingResults;
     const propertyDetailsComplete = formData.propertyDetailsComplete;

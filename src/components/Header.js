@@ -3,11 +3,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { performLogout } from '@/lib/logout';
-import { createClient } from '@/lib/supabase/client';
 import { User, LogOut } from 'lucide-react';
 import {
   PUBLIC_HEADER_GLASS_STYLE,
@@ -22,26 +21,9 @@ export default function Header() {
   const [isNavigatingToDashboard, setIsNavigatingToDashboard] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, loading } = useAuth();
-  const supabase = createClient();
-
-  // Re-check auth state when pathname changes (e.g., after login redirect)
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        await supabase.auth.getSession();
-        // This will trigger the useAuth hook to update via onAuthStateChange
-      } catch (err) {
-        // Ignore invalid refresh token errors - useAuth will redirect to login
-        const msg = err?.message || '';
-        if (!msg.includes('Refresh Token') && !msg.includes('refresh_token')) {
-          console.error('Auth check error:', err);
-        }
-      }
-    };
-    checkAuth();
-  }, [pathname, supabase]);
+  const { showLoggedInUI } = useAuth();
+  const showLoggedInAuth =
+    showLoggedInUI && pathname !== '/reset-password' && pathname !== '/forgot-password';
 
   // Clear loading state when navigation to dashboard completes
   useEffect(() => {
@@ -61,7 +43,7 @@ export default function Header() {
   // Hide on calculator always; hide on protected routes only after mount so SSR matches first client paint
   const shouldHideHeader =
     pathname === '/calculator' ||
-    (hasMounted && user && !isPublicPage && pathname !== '/calculator');
+    (hasMounted && showLoggedInUI && !isPublicPage && pathname !== '/calculator');
 
   useEffect(() => {
     setHasMounted(true);
@@ -175,7 +157,7 @@ export default function Header() {
               <div className="w-1/2 shrink-0 -ml-12 flex items-center justify-center">
                 <div className="flex w-full max-w-md justify-end pr-12 lg:pr-12">
                   <div className="flex shrink-0 items-center gap-3">
-                    {loading ? null : (user && pathname !== '/reset-password' && pathname !== '/forgot-password') ? (
+                    {showLoggedInAuth ? (
                       <>
                         <Link
                           href="/dashboard"
@@ -276,9 +258,7 @@ export default function Header() {
                         Contact
                       </Link>
                     </li>
-                    {!loading && (
-                      <>
-                        {(user && pathname !== '/reset-password' && pathname !== '/forgot-password') ? (
+                    {showLoggedInAuth ? (
                           // Show Account when logged in (Logout is at bottom), except on reset/forgot password pages
                           <li>
                             <Link
@@ -322,13 +302,11 @@ export default function Header() {
                             </li>
                           </>
                         )}
-                      </>
-                    )}
                   </ul>
                 </nav>
                 
                 {/* Logout at bottom - matches dashboard header style */}
-                {!loading && user && pathname !== '/reset-password' && pathname !== '/forgot-password' && (
+                {showLoggedInAuth && (
                   <div className="px-6 py-4 border-t border-gray-200">
                     <button
                       onClick={() => {

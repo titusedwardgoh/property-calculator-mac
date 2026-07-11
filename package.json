@@ -12,6 +12,7 @@
     "@react-pdf/renderer": "^4.3.2",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.76.1",
+    "@vercel/analytics": "^2.0.1",
     "daisyui": "^5.1.12",
     "framer-motion": "^12.23.22",
     "html2canvas-pro": "^2.2.1",
