@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 
-const DEFAULT_DELAY_MS = 150;
+const DEFAULT_DELAY_MS = 350;
 
 /**
  * Locks step navigation during slide transitions so rapid Next/Back clicks

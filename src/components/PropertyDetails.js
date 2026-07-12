@@ -890,7 +890,8 @@ export default function PropertyDetails() {
     onPrev: prevStep,
     onComplete: goToBuyerDetails,
     onBack: null, // No back action for PropertyDetails
-    isComplete
+    isComplete,
+    isTransitioning,
   });
 
   const renderStep = () => {

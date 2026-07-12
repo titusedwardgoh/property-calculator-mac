@@ -235,6 +235,7 @@ export default function AdditionalQuestions() {
     onNext: nextStep,
     onPrev: prevStep,
     onBack: handleBack,
+    isTransitioning,
   });
 
   if (fields.length === 0 || !config) return null;

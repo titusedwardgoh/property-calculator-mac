@@ -312,7 +312,8 @@ export default function LoanDetails() {
       }
     },
     onBack: handleBack,
-    isComplete: formData.loanDetailsComplete
+    isComplete: formData.loanDetailsComplete,
+    isTransitioning,
   });
 
   // Initialize currentStep from loanDetailsActiveStep when resuming

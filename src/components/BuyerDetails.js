@@ -434,7 +434,8 @@ export default function BuyerDetails() {
       }
     },
     onBack: handleBack,
-    isComplete: formData.buyerDetailsComplete
+    isComplete: formData.buyerDetailsComplete,
+    isTransitioning,
   });
 
   // Update FIRB fee when relevant fields change

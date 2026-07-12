@@ -534,7 +534,8 @@ export default function SellerQuestions() {
         handleBack();
       }
     }, [localCompletionState, updateFormData, handleBack]),
-    isComplete: localCompletionState
+    isComplete: localCompletionState,
+    isTransitioning,
   });
 
   const renderStep = () => {

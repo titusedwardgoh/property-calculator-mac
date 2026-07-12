@@ -8,10 +8,18 @@ export default function useFormNavigation({
   onPrev,
   onComplete,
   onBack,
-  isComplete = false
+  isComplete = false,
+  isTransitioning = false,
 }) {
   useEffect(() => {
     const handleKeyDown = (event) => {
+      if (isTransitioning) {
+        if (event.key === 'Enter' || event.key === 'Escape') {
+          event.preventDefault();
+        }
+        return;
+      }
+
       if (event.key === 'Enter') {
         event.preventDefault();
         if (isComplete) {
@@ -34,7 +42,7 @@ export default function useFormNavigation({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [currentStep, isComplete, isCurrentStepValid, onNext, onPrev, onComplete, onBack]);
+  }, [currentStep, isComplete, isCurrentStepValid, isTransitioning, onNext, onPrev, onComplete, onBack]);
 
   return null; // This is a hook, not a component
 }
