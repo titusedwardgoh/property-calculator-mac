@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
-import { X, AlertTriangle } from 'lucide-react';
-import EndOfSurveyPrompt from './EndOfSurveyPrompt';
+import { X } from 'lucide-react';
 import { setPendingSurveyLink, isAuthFlowPath } from '@/lib/pendingSurveyLink';
 
 const getPathFromUrl = (url) => {
@@ -16,26 +15,44 @@ const getPathFromUrl = (url) => {
   }
 };
 
-export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard, onLinkToAccount, propertyAddress, onReturningToDashboard, allFormsComplete, propertyId, editSessionActive, onEditSessionAbort }) {
+function startNavigationOverlay(url) {
+  if (typeof window !== 'undefined' && window.__surveyHeaderOverlay?.startLoadingState) {
+    window.__surveyHeaderOverlay.startLoadingState(url);
+  }
+}
+
+function clearNavigationOverlay() {
+  if (typeof window !== 'undefined' && window.__surveyHeaderOverlay?.clearLoadingState) {
+    window.__surveyHeaderOverlay.clearLoadingState();
+  }
+}
+
+function clearExitPendingState() {
+  if (typeof window !== 'undefined' && window.__surveyHeaderOverlay?.clearExitPending) {
+    window.__surveyHeaderOverlay.clearExitPending();
+  }
+}
+
+export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard, propertyAddress, onReturningToDashboard, propertyId, allFormsComplete }) {
   const [showWarning, setShowWarning] = useState(false);
   const [showAnonymousWarning, setShowAnonymousWarning] = useState(false);
-  const [showEndOfSurveyPrompt, setShowEndOfSurveyPrompt] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState(null);
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuth();
-  
-  // Only show warning if user is logged in AND property address is set
-  const shouldShowWarning = hasUnsavedChanges && user && propertyAddress && propertyAddress.trim() !== '';
-  
-  // Show anonymous warning if user is NOT logged in and has unsaved changes (including when survey is complete)
-  const shouldShowAnonymousWarning = hasUnsavedChanges && !user;
-  
-  // Show end-of-survey prompt if survey is complete (for both logged in and anonymous users)
-  const shouldShowEndOfSurveyPrompt = allFormsComplete;
 
+  const hasAddress = Boolean(propertyAddress && propertyAddress.trim() !== '');
+  // Logged-in: prompt for incomplete surveys (even after auto-save) or when there are real edits.
+  // Completed + no edits → silent exit to dashboard.
+  const shouldShowWarning =
+    Boolean(user) && hasAddress && (hasUnsavedChanges || !allFormsComplete);
+  // Anonymous: always prompt when there is survey progress — including Results Summary —
+  // so they can log in to save (same modal used mid-form).
+  const shouldShowAnonymousWarning = !user && hasAddress;
+  const shouldPromptOnExit = shouldShowWarning || shouldShowAnonymousWarning;
+  
   useEffect(() => {
-    if (!shouldShowWarning) return;
+    if (!shouldShowWarning && !shouldShowAnonymousWarning) return;
 
     // Handle browser back/forward and page refresh
     const handleBeforeUnload = (e) => {
@@ -49,7 +66,7 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [shouldShowWarning]);
+  }, [shouldShowWarning, shouldShowAnonymousWarning]);
 
   // Function to check navigation (called from parent component)
   const checkNavigation = (url) => {
@@ -57,22 +74,8 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
       return true;
     }
 
-    // Active edit session: discard in memory and allow navigation (no EndOfSurvey prompt)
-    if (editSessionActive && onEditSessionAbort) {
-      onEditSessionAbort();
-      return true;
-    }
-
-    // Completed survey: always prompt before leaving, even when the resume
-    // baseline matches (completion flags are excluded from change detection).
-    if (shouldShowEndOfSurveyPrompt) {
-      setPendingNavigation(url);
-      setShowEndOfSurveyPrompt(true);
-      return false;
-    }
-
-    // Silent exit if no unsaved changes
-    if (!hasUnsavedChanges) {
+    // Silent exit only when survey is complete and there are no unsaved edits
+    if (!shouldPromptOnExit) {
       return true;
     }
 
@@ -103,7 +106,7 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
     if (typeof window !== 'undefined') {
       window.__navigationWarning = { 
         checkNavigation, 
-        hasUnsavedChanges: shouldShowWarning || shouldShowAnonymousWarning || shouldShowEndOfSurveyPrompt 
+        hasUnsavedChanges: shouldShowWarning || shouldShowAnonymousWarning,
       };
     }
     return () => {
@@ -111,7 +114,7 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
         delete window.__navigationWarning;
       }
     };
-  }, [shouldShowWarning, shouldShowAnonymousWarning, shouldShowEndOfSurveyPrompt, hasUnsavedChanges, allFormsComplete, pathname]);
+  }, [shouldShowWarning, shouldShowAnonymousWarning, shouldPromptOnExit, pathname]);
 
   const handleConfirm = async () => {
     setShowWarning(false);
@@ -119,19 +122,19 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
       await onSave();
     }
     if (pendingNavigation) {
-      // Check if navigating to dashboard
-      if (pendingNavigation === '/dashboard' && onReturningToDashboard) {
+      const destination = pendingNavigation;
+      if (destination === '/dashboard' && onReturningToDashboard) {
         onReturningToDashboard();
       }
-      router.push(pendingNavigation);
+      startNavigationOverlay(destination);
+      router.push(destination);
       setPendingNavigation(null);
     } else {
-      // If no pending navigation, navigate to dashboard if logged in, home if not
       const targetUrl = user ? '/dashboard' : '/';
       if (user && onReturningToDashboard) {
-        // Show overlay when returning to dashboard
         onReturningToDashboard();
       }
+      startNavigationOverlay(targetUrl);
       router.push(targetUrl);
     }
   };
@@ -142,19 +145,19 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
       onDiscard();
     }
     if (pendingNavigation) {
-      // Check if navigating to dashboard
-      if (pendingNavigation === '/dashboard' && onReturningToDashboard) {
+      const destination = pendingNavigation;
+      if (destination === '/dashboard' && onReturningToDashboard) {
         onReturningToDashboard();
       }
-      router.push(pendingNavigation);
+      startNavigationOverlay(destination);
+      router.push(destination);
       setPendingNavigation(null);
     } else {
-      // If no pending navigation, navigate to dashboard if logged in, home if not
       const targetUrl = user ? '/dashboard' : '/';
       if (user && onReturningToDashboard) {
-        // Show overlay when returning to dashboard
         onReturningToDashboard();
       }
+      startNavigationOverlay(targetUrl);
       router.push(targetUrl);
     }
   };
@@ -162,10 +165,8 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
   const handleCancel = () => {
     setShowWarning(false);
     setPendingNavigation(null);
-    // Clear loading state in SurveyHeaderOverlay if navigation was cancelled
-    if (typeof window !== 'undefined' && window.__surveyHeaderOverlay) {
-      window.__surveyHeaderOverlay.clearLoadingState();
-    }
+    clearNavigationOverlay();
+    clearExitPendingState();
   };
 
   const handleAnonymousLoginToSave = () => {
@@ -179,17 +180,16 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
 
   const handleAnonymousDiscard = () => {
     setShowAnonymousWarning(false);
-    // Clear loading state in SurveyHeaderOverlay before navigating
-    if (typeof window !== 'undefined' && window.__surveyHeaderOverlay) {
-      window.__surveyHeaderOverlay.clearLoadingState();
-    }
     if (onDiscard) {
       onDiscard();
     }
     if (pendingNavigation) {
-      router.push(pendingNavigation);
+      const destination = pendingNavigation;
+      startNavigationOverlay(destination);
+      router.push(destination);
       setPendingNavigation(null);
     } else {
+      startNavigationOverlay('/');
       router.push('/');
     }
   };
@@ -197,73 +197,12 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
   const handleAnonymousCancel = () => {
     setShowAnonymousWarning(false);
     setPendingNavigation(null);
-    // Clear loading state in SurveyHeaderOverlay if navigation was cancelled
-    if (typeof window !== 'undefined' && window.__surveyHeaderOverlay) {
-      window.__surveyHeaderOverlay.clearLoadingState();
-    }
-  };
-
-  const handleEndOfSurveySave = async () => {
-    setShowEndOfSurveyPrompt(false);
-    if (onSave) {
-      await onSave(true); // Set user_saved = true
-    }
-    if (pendingNavigation) {
-      // Check if navigating to dashboard
-      if (pendingNavigation === '/dashboard' && onReturningToDashboard) {
-        onReturningToDashboard();
-      }
-      router.push(pendingNavigation);
-      setPendingNavigation(null);
-    } else {
-      // If no pending navigation, navigate to dashboard if logged in, home if not
-      const targetUrl = user ? '/dashboard' : '/';
-      if (user && onReturningToDashboard) {
-        // Show overlay when returning to dashboard
-        onReturningToDashboard();
-      }
-      router.push(targetUrl);
-    }
-  };
-
-  const handleEndOfSurveyDismiss = () => {
-    setShowEndOfSurveyPrompt(false);
-    if (onDiscard) {
-      onDiscard();
-    }
-    // Note: This always navigates, so don't clear loading state - it will clear when navigation completes
-    if (pendingNavigation) {
-      // Check if navigating to dashboard
-      if (pendingNavigation === '/dashboard' && onReturningToDashboard) {
-        onReturningToDashboard();
-      }
-      router.push(pendingNavigation);
-      setPendingNavigation(null);
-    } else {
-      // If no pending navigation, navigate to dashboard if logged in, home if not
-      const targetUrl = user ? '/dashboard' : '/';
-      if (user && onReturningToDashboard) {
-        // Show overlay when returning to dashboard
-        onReturningToDashboard();
-      }
-      router.push(targetUrl);
-    }
+    clearNavigationOverlay();
+    clearExitPendingState();
   };
 
   return (
     <>
-      {/* End of Survey Prompt - shown when user tries to navigate away after completion */}
-      {showEndOfSurveyPrompt && (
-        <EndOfSurveyPrompt
-          show={showEndOfSurveyPrompt}
-          onSave={handleEndOfSurveySave}
-          onDismiss={handleEndOfSurveyDismiss}
-          onLinkToAccount={onLinkToAccount}
-          onReturningToDashboard={onReturningToDashboard}
-          propertyId={propertyId}
-        />
-      )}
-      
       {/* Anonymous User Warning - shown when anonymous user tries to exit early */}
       <AnimatePresence>
         {showAnonymousWarning && (

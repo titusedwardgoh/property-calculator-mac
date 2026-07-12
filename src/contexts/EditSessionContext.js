@@ -44,6 +44,7 @@ export function EditSessionProvider({ saveToSupabase, setOriginalLoadedState, ch
     discardCallbackRef.current = null;
     if (typeof window !== 'undefined' && window.__surveyHeaderOverlay) {
       window.__surveyHeaderOverlay.clearLoadingState();
+      window.__surveyHeaderOverlay.clearExitPending?.();
     }
   }, []);
 

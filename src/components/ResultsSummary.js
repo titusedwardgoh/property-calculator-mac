@@ -134,7 +134,10 @@ export default forwardRef(function ResultsSummary({
         state.updateLoanRepayments?.();
         resultsCheckpointRef.current = resultsCheckpointKey;
         setResultsReady(true);
-    }, [resultsCheckpointKey, summaryFormData.allFormsComplete]);
+        if (setOriginalLoadedState && !state.editSessionActive) {
+            setOriginalLoadedState(state);
+        }
+    }, [resultsCheckpointKey, summaryFormData.allFormsComplete, setOriginalLoadedState]);
 
     // After deposit-adjust recalc, restore only the upfront card expansion if it was open.
     useLayoutEffect(() => {
@@ -431,6 +434,20 @@ export default forwardRef(function ResultsSummary({
         </button>
     );
 
+    const CardExpandToggle = ({ expanded, onToggle, size = 'md' }) => (
+        <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Collapse section' : 'Expand section'}
+            className={`${size === 'sm' ? 'p-1' : 'p-1.5'} hover:bg-black/5 rounded-full transition-colors shrink-0 cursor-pointer`}
+        >
+            <ChevronDown
+                className={`${size === 'sm' ? 'w-4 h-4' : 'w-5 h-5'} text-gray-500 transition-transform duration-300 ${expanded ? 'rotate-180' : ''}`}
+            />
+        </button>
+    );
+
     const reportCtaActions = (
         <AnimatePresence mode="wait">
             {showEmailSuccess ? (
@@ -619,8 +636,7 @@ export default forwardRef(function ResultsSummary({
                                                         {/* Property summary */}
                                                             <div
                                                                 ref={propertyCardRef}
-                                                                className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm shrink-0"
-                                                                onClick={() => setIsPropertyCardExpanded(!isPropertyCardExpanded)}
+                                                                className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 shadow-sm shrink-0"
                                                             >
                                                                 {/* Card Header Row */}
                                                                 <div className="flex flex-col gap-3">
@@ -645,9 +661,10 @@ export default forwardRef(function ResultsSummary({
                                                                                 {formatCurrency(propertyDisplayPrice)}
                                                                             </p>
                                                                         </div>
-                                                                        <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
-                                                                            <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isPropertyCardExpanded ? 'rotate-180' : ''}`} />
-                                                                        </div>
+                                                                        <CardExpandToggle
+                                                                            expanded={isPropertyCardExpanded}
+                                                                            onToggle={() => setIsPropertyCardExpanded(!isPropertyCardExpanded)}
+                                                                        />
                                                                     </div>
                                                                 </div>
 
@@ -723,8 +740,7 @@ export default forwardRef(function ResultsSummary({
                                                         {/* Buyer summary */}
                                                             <div
                                                                 ref={buyerCardRef}
-                                                                className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm shrink-0"
-                                                                onClick={() => setIsBuyerCardExpanded(!isBuyerCardExpanded)}
+                                                                className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 shadow-sm shrink-0"
                                                             >
                                                                 <div className="flex flex-col gap-3">
                                                                     <div className="flex items-start justify-between gap-2">
@@ -748,9 +764,10 @@ export default forwardRef(function ResultsSummary({
                                                                                 {formatCurrency(buyerSavingsAmount)}
                                                                             </p>
                                                                         </div>
-                                                                        <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
-                                                                            <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isBuyerCardExpanded ? 'rotate-180' : ''}`} />
-                                                                        </div>
+                                                                        <CardExpandToggle
+                                                                            expanded={isBuyerCardExpanded}
+                                                                            onToggle={() => setIsBuyerCardExpanded(!isBuyerCardExpanded)}
+                                                                        />
                                                                     </div>
                                                                 </div>
 
@@ -780,8 +797,7 @@ export default forwardRef(function ResultsSummary({
                                                         {/* Loan summary */}
                                                                 <div
                                                                     ref={loanCardRef}
-                                                                    className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm shrink-0"
-                                                                    onClick={() => setIsLoanCardExpanded(!isLoanCardExpanded)}
+                                                                    className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 shadow-sm shrink-0"
                                                                 >
                                                                     <div className="flex flex-col gap-3">
                                                                         <div className="flex items-start justify-between gap-2">
@@ -816,9 +832,10 @@ export default forwardRef(function ResultsSummary({
                                                                                     {hasLoan ? formatCurrency(loanAmountDisplay) : 'N/A'}
                                                                                 </p>
                                                                             </div>
-                                                                            <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
-                                                                                <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isLoanCardExpanded ? 'rotate-180' : ''}`} />
-                                                                            </div>
+                                                                            <CardExpandToggle
+                                                                                expanded={isLoanCardExpanded}
+                                                                                onToggle={() => setIsLoanCardExpanded(!isLoanCardExpanded)}
+                                                                            />
                                                                         </div>
                                                                     </div>
 
@@ -864,8 +881,7 @@ export default forwardRef(function ResultsSummary({
                                                         {/* Other costs summary */}
                                                             <div
                                                                 ref={otherCostsCardRef}
-                                                                className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm shrink-0"
-                                                                onClick={() => setIsOtherCostsCardExpanded(!isOtherCostsCardExpanded)}
+                                                                className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 shadow-sm shrink-0"
                                                             >
                                                                 <div className="flex flex-col gap-3">
                                                                     <div className="flex items-start justify-between gap-2">
@@ -889,9 +905,10 @@ export default forwardRef(function ResultsSummary({
                                                                                 {formatCurrency(settlementOtherCostsTotal)}
                                                                             </p>
                                                                         </div>
-                                                                        <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
-                                                                            <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isOtherCostsCardExpanded ? 'rotate-180' : ''}`} />
-                                                                        </div>
+                                                                        <CardExpandToggle
+                                                                            expanded={isOtherCostsCardExpanded}
+                                                                            onToggle={() => setIsOtherCostsCardExpanded(!isOtherCostsCardExpanded)}
+                                                                        />
                                                                     </div>
                                                                 </div>
 
@@ -941,8 +958,7 @@ export default forwardRef(function ResultsSummary({
                                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                                 {/* Hero: Net Upfront Costs */}
                                                                 <div
-                                                                    onClick={() => setIsUpfrontCostsExpanded(!isUpfrontCostsExpanded)}
-                                                                    className={`md:col-span-3 border-2 border-primary bg-[#E29578]/5 rounded-xl p-6 relative overflow-hidden flex flex-col justify-between cursor-pointer transition-all duration-200 hover:shadow-md select-none ${isUpfrontCostsExpanded ? 'pb-4' : 'min-h-[130px]'}`}
+                                                                    className={`md:col-span-3 border-2 border-primary bg-[#E29578]/5 rounded-xl p-6 relative overflow-hidden flex flex-col justify-between transition-all duration-200 ${isUpfrontCostsExpanded ? 'pb-4' : 'min-h-[130px]'}`}
                                                                 >
                                                                     <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-5 pointer-events-none text-primary">
                                                                         <DollarSign className="w-36 h-36" />
@@ -954,9 +970,10 @@ export default forwardRef(function ResultsSummary({
                                                                             </div>
                                                                             <span className="text-xs font-bold uppercase tracking-wider text-primary">Net Upfront Costs</span>
                                                                         </div>
-                                                                        <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
-                                                                            <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isUpfrontCostsExpanded ? 'rotate-180' : ''}`} />
-                                                                        </div>
+                                                                        <CardExpandToggle
+                                                                            expanded={isUpfrontCostsExpanded}
+                                                                            onToggle={() => setIsUpfrontCostsExpanded(!isUpfrontCostsExpanded)}
+                                                                        />
                                                                     </div>
                                                                     <div className="flex flex-col justify-between">
                                                                         <p className="text-3xl md:text-4xl font-black tracking-tight text-secondary">
@@ -1238,15 +1255,16 @@ export default forwardRef(function ResultsSummary({
                                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                                 {/* Monthly Outflow Component */}
                                                                 <div
-                                                                    className="bg-base-200 border border-gray-100 rounded-xl p-5 flex flex-col justify-between relative cursor-pointer select-none"
-                                                                    onClick={toggleMonthlyOutflow}
+                                                                    className="bg-base-200 border border-gray-100 rounded-xl p-5 flex flex-col justify-between relative"
                                                                 >
                                                                     <div>
                                                                         <div className="flex items-start justify-between gap-2 mb-1">
                                                                             <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Monthly Outflow</span>
-                                                                            <div className="p-1 hover:bg-black/5 rounded-full transition-colors shrink-0">
-                                                                                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${monthlyOutflowExpanded ? 'rotate-180' : ''}`} />
-                                                                            </div>
+                                                                            <CardExpandToggle
+                                                                                expanded={monthlyOutflowExpanded}
+                                                                                onToggle={toggleMonthlyOutflow}
+                                                                                size="sm"
+                                                                            />
                                                                         </div>
                                                                         <p className="text-2xl md:text-3xl font-black text-secondary mb-2">
                                                                             {formatCurrency(monthlyCashFlow)}<span className="text-xs font-normal text-gray-400"> /mo</span>
@@ -1298,15 +1316,16 @@ export default forwardRef(function ResultsSummary({
 
                                                                 {/* Annual Operating Cost Component */}
                                                                 <div
-                                                                    className="bg-base-200 border border-gray-100 rounded-xl p-5 flex flex-col justify-between relative cursor-pointer select-none"
-                                                                    onClick={toggleAnnualizedCost}
+                                                                    className="bg-base-200 border border-gray-100 rounded-xl p-5 flex flex-col justify-between relative"
                                                                 >
                                                                     <div>
                                                                         <div className="flex items-start justify-between gap-2 mb-1">
                                                                             <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">Annualized Cost</span>
-                                                                            <div className="p-1 hover:bg-black/5 rounded-full transition-colors shrink-0">
-                                                                                <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${annualizedCostExpanded ? 'rotate-180' : ''}`} />
-                                                                            </div>
+                                                                            <CardExpandToggle
+                                                                                expanded={annualizedCostExpanded}
+                                                                                onToggle={toggleAnnualizedCost}
+                                                                                size="sm"
+                                                                            />
                                                                         </div>
                                                                         <p className="text-2xl md:text-3xl font-black text-secondary mb-2">
                                                                             {formatCurrency(annualOperatingCost)}<span className="text-xs font-normal text-gray-400"> /yr</span>
@@ -1364,8 +1383,7 @@ export default forwardRef(function ResultsSummary({
                                                         <div className="pt-6 border-t border-gray-100">
                                                             <div
                                                                 ref={grantsCardRef}
-                                                                className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 cursor-pointer hover:bg-[#fef6e4]/70 transition-all duration-200 select-none shadow-sm"
-                                                                onClick={() => setIsGrantsCardExpanded(!isGrantsCardExpanded)}
+                                                                className="flex flex-col gap-4 bg-[#fef6e4]/45 border border-[#fef6e4] rounded-xl p-5 shadow-sm"
                                                             >
                                                                 {/* Card Header Row */}
                                                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1393,9 +1411,10 @@ export default forwardRef(function ResultsSummary({
                                                                                 {formatCurrency(grantsConcessionsTotal)}
                                                                             </p>
                                                                         </div>
-                                                                        <div className="p-1.5 hover:bg-black/5 rounded-full transition-colors shrink-0">
-                                                                            <ChevronDown className={`w-5 h-5 text-gray-500 transition-transform duration-300 ${isGrantsCardExpanded ? 'rotate-180' : ''}`} />
-                                                                        </div>
+                                                                        <CardExpandToggle
+                                                                            expanded={isGrantsCardExpanded}
+                                                                            onToggle={() => setIsGrantsCardExpanded(!isGrantsCardExpanded)}
+                                                                        />
                                                                     </div>
                                                                 </div>
 

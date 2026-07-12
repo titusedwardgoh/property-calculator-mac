@@ -10,6 +10,7 @@ import {
   buildCalculatorUrl,
   parseWizardParams,
 } from '../lib/wizardSteps';
+import { isSurveyAbandoned } from '../lib/abandonedSurvey';
 
 /**
  * Read and update wizard screen state via URL query params.
@@ -28,12 +29,9 @@ export function useWizardStep() {
     (step, options = {}) => {
       const {
         sub = 1,
-        propertyId: overridePropertyId,
         resume = parsed.resume,
         replace = true,
       } = options;
-
-      // Preserve from=review across sub-step navigation unless explicitly cleared
       const from =
         'from' in options
           ? options.from
@@ -41,10 +39,19 @@ export function useWizardStep() {
             ? 'review'
             : undefined;
 
+      let resolvedPropertyId;
+      if ('propertyId' in options) {
+        resolvedPropertyId = options.propertyId;
+      } else {
+        const fromStore = propertyId ?? parsed.propertyId;
+        resolvedPropertyId =
+          fromStore && isSurveyAbandoned(fromStore) ? null : fromStore;
+      }
+
       const url = buildCalculatorUrl({
         step,
         sub,
-        propertyId: overridePropertyId ?? propertyId ?? parsed.propertyId,
+        propertyId: resolvedPropertyId,
         resume,
         from,
       });

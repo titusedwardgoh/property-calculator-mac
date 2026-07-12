@@ -12,7 +12,6 @@ import AdditionalQuestions from '../../components/AdditionalQuestions';
 import SurveyHeaderOverlay from '../../components/SurveyHeaderOverlay';
 import SurveyLoadingScreen, { SurveyLoadingFallback } from '../../components/SurveyLoadingOverlay';
 import NavigationWarning from '../../components/NavigationWarning';
-import EndOfSurveyPrompt from '../../components/EndOfSurveyPrompt';
 import EmailModal from '../../components/EmailModal';
 import ResultsSummary from '../../components/ResultsSummary';
 import { useFormStore } from '../../stores/formStore';
@@ -26,6 +25,7 @@ import {
     hasPendingSurveyLink,
 } from '../../lib/pendingSurveyLink';
 import { resetSessionAndForm, getSessionId, getDeviceId } from '../../lib/sessionManager';
+import { markSurveyAbandoned, isSurveyAbandoned } from '../../lib/abandonedSurvey';
 import { blobToBase64 } from '../../lib/generateResultsPdf';
 import { buildResultsSummary } from '../../lib/resultsSummary/buildResultsSummary';
 import { useWizardStep } from '../../hooks/useWizardStep';
@@ -202,6 +202,13 @@ function CalculatorPageContent() {
         router,
     ]);
 
+    // Strip abandoned propertyId from URL so it cannot rehydrate a discarded survey
+    useEffect(() => {
+        const urlPropertyId = searchParams.get('propertyId');
+        if (!urlPropertyId || !isSurveyAbandoned(urlPropertyId)) return;
+        router.replace('/calculator', { scroll: false });
+    }, [searchParams, router]);
+
     // Fresh calculator visit (not resuming) — show welcome; discard stale dashboard-linked state
     useEffect(() => {
         if (authLoading) return;
@@ -216,6 +223,15 @@ function CalculatorPageContent() {
 
         // In-memory state from a resumed dashboard survey must not continue without ?resume=true
         if (state.propertyLinkedToUser) {
+            resetSessionAndForm(formData.resetForm);
+            return;
+        }
+
+        if (
+            state.propertyId &&
+            isSurveyAbandoned(state.propertyId) &&
+            !searchParams.get('step')
+        ) {
             resetSessionAndForm(formData.resetForm);
             return;
         }
@@ -241,6 +257,7 @@ function CalculatorPageContent() {
         if (authLoading) return;
         if (searchParams.get('resume') === 'true') return;
         if (!urlPropertyId || !urlStep || urlStep === WIZARD_STEPS.WELCOME) return;
+        if (isSurveyAbandoned(urlPropertyId)) return;
 
         const state = useFormStore.getState();
         if (state.isRecalculatingResults) return;
@@ -288,9 +305,10 @@ function CalculatorPageContent() {
         setIsResumingSurvey,
     ]);
 
-    // Keep propertyId in the URL once auto-save creates a record
+    // Keep propertyId in the URL once auto-save creates a record (not on welcome)
     useEffect(() => {
         if (!propertyId || isLoadingResume) return;
+        if (step === WIZARD_STEPS.WELCOME) return;
         const urlPropertyId = searchParams.get('propertyId');
         const urlStep = searchParams.get('step');
         if (urlPropertyId === propertyId && urlStep && urlStep !== WIZARD_STEPS.WELCOME) return;
@@ -473,7 +491,31 @@ function CalculatorPageContent() {
         // userSaved = true when user explicitly clicks "SAVE" in navigation warning
         // Note: saveToSupabase from useSupabaseSync uses formData from the hook's closure
         console.log('💾 handleSave called with userSaved:', userSaved);
-        await saveToSupabase(userSaved);
+        const result = await saveToSupabase(userSaved);
+        if (userSaved && useFormStore.getState().editSessionActive) {
+            useFormStore.getState().commitEditSession();
+            setOriginalLoadedState(useFormStore.getState());
+        }
+        if (userSaved && result?.propertyId && typeof window !== 'undefined') {
+            const latest = useFormStore.getState();
+            sessionStorage.setItem('dashboardSavedPropertyId', String(result.propertyId));
+            sessionStorage.setItem(
+                'dashboardSavedPropertySnapshot',
+                JSON.stringify({
+                    id: result.propertyId,
+                    property_address: latest.propertyAddress || '',
+                    property_price: latest.propertyPrice ?? null,
+                    selected_state: latest.selectedState || '',
+                    completion_status: latest.allFormsComplete ? 'complete' : 'in_progress',
+                    completion_percentage: latest.allFormsComplete ? 100 : null,
+                    user_saved: true,
+                    is_active: true,
+                    inspected: false,
+                    updated_at: new Date().toISOString(),
+                })
+            );
+        }
+        return result;
     };
 
     const handleDiscard = () => {
@@ -482,7 +524,9 @@ function CalculatorPageContent() {
             setOriginalLoadedState(useFormStore.getState());
             return;
         }
-        // Clear baseline so auto-save does not run after reset; then clear form
+        if (!user && formData.propertyId) {
+            markSurveyAbandoned(formData.propertyId);
+        }
         setOriginalLoadedState(null);
         resetSessionAndForm(formData.resetForm);
     };
@@ -498,16 +542,6 @@ function CalculatorPageContent() {
         window.addEventListener('pagehide', onPageHide);
         return () => window.removeEventListener('pagehide', onPageHide);
     }, [setOriginalLoadedState]);
-
-    const handleEditSessionAbort = useCallback(() => {
-        formData.abortEditSession();
-        setOriginalLoadedState(useFormStore.getState());
-    }, [formData, setOriginalLoadedState]);
-
-    const handleEndOfSurveyDismiss = () => {
-        // User chose not to save - data is still retained in backend
-        // Just close the prompt
-    };
 
     const EMAIL_SUCCESS_DISMISS_MS = 8000;
     const EMAIL_COOLDOWN_MS = 60_000;
@@ -633,11 +667,8 @@ function CalculatorPageContent() {
             <NavigationWarning
                 hasUnsavedChanges={hasUnsavedChanges()}
                 allFormsComplete={formData.allFormsComplete}
-                editSessionActive={formData.editSessionActive}
-                onEditSessionAbort={handleEditSessionAbort}
-                onSave={() => handleSave(true)} // Set user_saved = true when user clicks SAVE
+                onSave={() => handleSave(true)}
                 onDiscard={handleDiscard}
-                onLinkToAccount={handleLinkToAccount}
                 propertyAddress={formData.propertyAddress}
                 propertyId={propertyId}
                 onReturningToDashboard={() => {

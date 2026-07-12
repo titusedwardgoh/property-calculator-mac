@@ -41,7 +41,7 @@ export default function WelcomePage() {
 
         transitionTimeoutsRef.current.push(
             setTimeout(() => {
-                navigateToStep(WIZARD_STEPS.PROPERTY, { sub: 1 });
+                navigateToStep(WIZARD_STEPS.PROPERTY, { sub: 1, propertyId: null });
             }, LOADING_QUESTIONS_MS + HERE_WE_GO_MS)
         );
     }, [

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle, Search, ArrowUpDown, Map as MapIcon, List, MoreHorizontal, CheckCircle, MapPin } from 'lucide-react';
@@ -117,6 +118,38 @@ const MAP_CONSTRUCTOR_RETRY_DELAY_MS = 150;
 const MAP_CONSTRUCTOR_RETRY_ATTEMPTS = 20;
 const GEOCODE_CACHE_SESSION_KEY = 'dashboardGeocodeCacheV1';
 const PHOTO_CACHE_SESSION_KEY = 'dashboardPropertyPhotoCacheV1';
+const DASHBOARD_SAVED_PROPERTY_KEY = 'dashboardSavedPropertyId';
+const DASHBOARD_SAVED_PROPERTY_SNAPSHOT_KEY = 'dashboardSavedPropertySnapshot';
+const RECENTLY_SAVED_PROPERTY_TTL_MS = 60_000;
+
+const readPendingSavedPropertySnapshot = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(DASHBOARD_SAVED_PROPERTY_SNAPSHOT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed?.id) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const mergeSurveysWithPendingSaved = (incoming, pendingSavedId, optimisticSnapshot) => {
+  const serverSurveys = Array.isArray(incoming) ? incoming : [];
+  if (!pendingSavedId) return serverSurveys;
+
+  const pendingId = String(pendingSavedId);
+  if (serverSurveys.some((survey) => String(survey.id) === pendingId)) {
+    return serverSurveys;
+  }
+
+  if (optimisticSnapshot && String(optimisticSnapshot.id) === pendingId) {
+    return [optimisticSnapshot, ...serverSurveys];
+  }
+
+  return serverSurveys;
+};
 const GEOCODE_REQUEST_GAP_MS = 120;
 const PHOTO_REQUEST_GAP_MS = 150;
 
@@ -1117,12 +1150,186 @@ export default function DashboardContent({
   const geocoderForPhotosRef = useRef(null);
   const persistedPhotoKeysRef = useRef(new Set());
   const googleApiKeyRef = useRef('');
+  const loadRequestIdRef = useRef(0);
+  const surveysRef = useRef([]);
+  const loadSurveysRef = useRef(null);
+  const recentlySavedPropertyIdRef = useRef(null);
+  const optimisticSavedSnapshotRef = useRef(null);
+  const recentlySavedClearTimeoutRef = useRef(null);
+  const [surveysFetchVersion, setSurveysFetchVersion] = useState(0);
+  const pathname = usePathname();
   const { user } = useAuth();
   const resetForm = useFormStore(state => state.resetForm);
 
-  useEffect(() => {
-    loadSurveys();
+  surveysRef.current = surveys;
+
+  const markRecentlySavedProperty = useCallback((propertyId, snapshot = null) => {
+    if (!propertyId) return;
+    recentlySavedPropertyIdRef.current = String(propertyId);
+    if (snapshot) {
+      optimisticSavedSnapshotRef.current = snapshot;
+    }
+    if (recentlySavedClearTimeoutRef.current) {
+      clearTimeout(recentlySavedClearTimeoutRef.current);
+    }
+    recentlySavedClearTimeoutRef.current = setTimeout(() => {
+      recentlySavedPropertyIdRef.current = null;
+      optimisticSavedSnapshotRef.current = null;
+    }, RECENTLY_SAVED_PROPERTY_TTL_MS);
+  }, []);
+
+  const loadSurveys = useCallback(async ({ silent = false } = {}) => {
+    const userId = user?.id;
+    if (!userId) return null;
+
+    const requestId = ++loadRequestIdRef.current;
+    if (!silent) {
+      setLoading(true);
+    }
+
+    try {
+      const response = await fetch('/api/supabase', {
+        method: 'POST',
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+        body: JSON.stringify({
+          action: 'loadUserProperties',
+          userId,
+        }),
+      });
+
+      const result = await response.json();
+      if (requestId !== loadRequestIdRef.current) {
+        return null;
+      }
+
+      if (result.success) {
+        const pendingSavedId = recentlySavedPropertyIdRef.current;
+        const normalized = (result.data || []).map((survey) => {
+          const cacheKey = getPhotoCacheKey(survey);
+          const cached = propertyPhotoCacheRef.current[cacheKey];
+          const normalizedSurvey = isPropertyPhotoPlaceholder(survey.photo_url)
+            ? { ...survey, photo_url: null, photo_source: null }
+            : survey;
+          if (normalizedSurvey.photo_url) {
+            return normalizedSurvey;
+          }
+          if (!isPersistablePhotoCacheEntry(cached)) {
+            return normalizedSurvey;
+          }
+          return {
+            ...normalizedSurvey,
+            photo_url: cached.photoUrl,
+            photo_source: cached.photoSource || normalizedSurvey.photo_source || null,
+          };
+        });
+        const merged = mergeSurveysWithPendingSaved(
+          normalized,
+          pendingSavedId,
+          optimisticSavedSnapshotRef.current
+        );
+
+        if (
+          pendingSavedId &&
+          normalized.some((survey) => String(survey.id) === String(pendingSavedId))
+        ) {
+          recentlySavedPropertyIdRef.current = null;
+          optimisticSavedSnapshotRef.current = null;
+          if (typeof window !== 'undefined') {
+            sessionStorage.removeItem(DASHBOARD_SAVED_PROPERTY_SNAPSHOT_KEY);
+          }
+        }
+
+        setSurveys(merged);
+        setSurveysFetchVersion((version) => version + 1);
+        return merged;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error loading surveys:', error);
+      return null;
+    } finally {
+      if (requestId === loadRequestIdRef.current) {
+        setLoading(false);
+      }
+    }
   }, [user?.id]);
+
+  loadSurveysRef.current = loadSurveys;
+
+  useEffect(() => {
+    if (!user?.id || pathname !== '/dashboard') return;
+
+    let cancelled = false;
+
+    const loadDashboardSurveys = async () => {
+      const savedPropertyIdFromSession =
+        typeof window !== 'undefined'
+          ? sessionStorage.getItem(DASHBOARD_SAVED_PROPERTY_KEY)
+          : null;
+      const savedSnapshot = readPendingSavedPropertySnapshot();
+      const savedPropertyId =
+        savedPropertyIdFromSession ||
+        savedSnapshot?.id ||
+        recentlySavedPropertyIdRef.current;
+
+      if (savedPropertyIdFromSession && typeof window !== 'undefined') {
+        sessionStorage.removeItem(DASHBOARD_SAVED_PROPERTY_KEY);
+      }
+
+      if (savedPropertyId) {
+        markRecentlySavedProperty(savedPropertyId, savedSnapshot);
+        if (savedSnapshot) {
+          setSurveys((prev) =>
+            mergeSurveysWithPendingSaved(prev, savedPropertyId, savedSnapshot)
+          );
+          setLoading(false);
+        }
+      }
+
+      const maxAttempts = savedPropertyId ? 8 : 1;
+      for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+        if (cancelled) return;
+
+        const loadFn = loadSurveysRef.current;
+        if (!loadFn) return;
+
+        const merged = await loadFn({
+          silent: attempt > 0 || surveysRef.current.length > 0,
+        });
+        if (cancelled) return;
+
+        if (
+          !savedPropertyId ||
+          merged?.some((survey) => String(survey.id) === String(savedPropertyId))
+        ) {
+          break;
+        }
+
+        if (attempt < maxAttempts - 1) {
+          await sleep(350);
+        }
+      }
+    };
+
+    void loadDashboardSurveys();
+
+    return () => {
+      cancelled = true;
+      loadRequestIdRef.current += 1;
+    };
+  }, [user?.id, pathname, markRecentlySavedProperty]);
+
+  useEffect(() => {
+    return () => {
+      if (recentlySavedClearTimeoutRef.current) {
+        clearTimeout(recentlySavedClearTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 639px)');
@@ -1175,53 +1382,11 @@ export default function DashboardContent({
     };
   }, [openCardMenuId]);
 
-  const loadSurveys = async () => {
+  useEffect(() => {
     if (!user) return;
 
-    setLoading(true);
-    try {
-      const response = await fetch('/api/supabase', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'loadUserProperties',
-          userId: user.id,
-        }),
-      });
-
-      const result = await response.json();
-      if (result.success) {
-        const merged = (result.data || []).map((survey) => {
-          const cacheKey = getPhotoCacheKey(survey);
-          const cached = propertyPhotoCache[cacheKey];
-          const normalizedSurvey = isPropertyPhotoPlaceholder(survey.photo_url)
-            ? { ...survey, photo_url: null, photo_source: null }
-            : survey;
-          if (normalizedSurvey.photo_url) {
-            return normalizedSurvey;
-          }
-          if (!isPersistablePhotoCacheEntry(cached)) {
-            return normalizedSurvey;
-          }
-          return {
-            ...normalizedSurvey,
-            photo_url: cached.photoUrl,
-            photo_source: cached.photoSource || normalizedSurvey.photo_source || null,
-          };
-        });
-        setSurveys(merged);
-      }
-    } catch (error) {
-      console.error('Error loading surveys:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    if (!user || surveys.length === 0) return;
+    const snapshot = surveysRef.current;
+    if (snapshot.length === 0) return;
 
     let cancelled = false;
 
@@ -1473,7 +1638,7 @@ export default function DashboardContent({
     };
 
     const resolvePhotosForVisibleSurveys = async () => {
-      for (const survey of surveys) {
+      for (const survey of snapshot) {
         if (cancelled) return;
         await resolveAndPersistPhoto(survey);
         await sleep(PHOTO_REQUEST_GAP_MS);
@@ -1485,7 +1650,7 @@ export default function DashboardContent({
     return () => {
       cancelled = true;
     };
-  }, [user, surveys]);
+  }, [user?.id, surveysFetchVersion]);
 
   const handleResume = (propertyId) => {
     if (!propertyId) return;

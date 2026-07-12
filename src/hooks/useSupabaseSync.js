@@ -147,7 +147,10 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
   // Check if there are unsaved changes
   const checkHasUnsavedChanges = useCallback(() => {
     if (!originalLoadedStateRef.current) {
-      // If no baseline set, check if there's any form data
+      // Completed results with no baseline yet — auto-save owns persistence; allow silent exit
+      if (formData.allFormsComplete) {
+        return false;
+      }
       return !!(formData.propertyPrice || formData.propertyAddress || formData.selectedState);
     }
     // Compare normalized current state against baseline
@@ -498,9 +501,12 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
       }
 
       console.log(userSaved ? '✅ Manual save completed:' : '✅ Auto-save completed:', result.message)
+      return { propertyId: result.propertyId ?? currentPropertyId, success: true }
     } catch (error) {
       console.error('❌ Error saving to Supabase:', error)
-      // Don't throw error - allow form to continue working offline
+      if (userSaved) {
+        throw error
+      }
     } finally {
       isSavingRef.current = false
     }

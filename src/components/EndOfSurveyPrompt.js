@@ -10,18 +10,21 @@ import { setPendingSurveyLink } from '@/lib/pendingSurveyLink';
 export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount, show = true, onReturningToDashboard, propertyId }) {
   const [showPrompt, setShowPrompt] = useState(show);
   const [isSaving, setIsSaving] = useState(false);
-  const [initialUser, setInitialUser] = useState(null);
+  const [initialUser, setInitialUser] = useState(undefined);
   const router = useRouter();
   const { user } = useAuth();
 
-  // Track initial user state on mount
+  // Capture whether the user was already signed in when this prompt opened
   useEffect(() => {
-    setInitialUser(user);
+    setInitialUser(user ?? null);
   }, []);
 
   // Update showPrompt when show prop changes
   useEffect(() => {
     setShowPrompt(show);
+    if (show) {
+      setIsSaving(false);
+    }
   }, [show]);
 
   const handleSave = async () => {
@@ -29,14 +32,13 @@ export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount, 
     try {
       if (onSave) {
         await onSave();
+        return;
       }
       setShowPrompt(false);
       if (user) {
-        // Show overlay when returning to dashboard
         if (onReturningToDashboard) {
           onReturningToDashboard();
         }
-        // Redirect to dashboard to see saved survey
         router.push('/dashboard');
       }
     } catch (error) {
@@ -47,7 +49,7 @@ export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount, 
 
   // Listen for auth changes (when user logs in or creates account AFTER prompt appears)
   useEffect(() => {
-    // Only auto-save if user logged in AFTER prompt appeared (initialUser was null)
+    // Only auto-save if user logged in AFTER prompt appeared (was anonymous when it opened)
     if (user && !isSaving && initialUser === null && showPrompt) {
       // User just logged in/created account - link the record to their account
       if (onLinkToAccount) {
@@ -64,11 +66,10 @@ export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount, 
     setShowPrompt(false);
     if (onDismiss) {
       onDismiss();
+      return;
     }
-    // Navigate to dashboard if logged in, home if not
     const targetUrl = user ? '/dashboard' : '/';
     if (user && onReturningToDashboard) {
-      // Show overlay when returning to dashboard
       onReturningToDashboard();
     }
     router.push(targetUrl);
@@ -99,19 +100,21 @@ export default function EndOfSurveyPrompt({ onSave, onDismiss, onLinkToAccount, 
         <>
           {/* Backdrop */}
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={{ opacity: 1 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
             onClick={handleDismiss}
-            className="fixed inset-0 bg-black/50 z-50"
+            className="fixed inset-0 bg-black/50 z-[210]"
           />
-          
+
           {/* Modal */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            initial={{ opacity: 1, scale: 1, y: 0 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-[210] flex items-center justify-center p-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-base-100 rounded-2xl shadow-xl max-w-md w-full p-6">

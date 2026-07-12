@@ -24,6 +24,7 @@ export default function SurveyHeaderOverlay() {
     const { step, fromReview, navigateToStep, abortEditAndReturnToResults, WIZARD_STEPS } = useWizardStep();
     const { requestDiscardConfirm } = useEditSession();
     const [isNavigatingAway, setIsNavigatingAway] = useState(false);
+    const [isExitPending, setIsExitPending] = useState(false);
     const [navigationDestination, setNavigationDestination] = useState(null);
     const navigationTimeoutRef = useRef(null);
     const isNavigatingAwayRef = useRef(false);
@@ -47,51 +48,20 @@ export default function SurveyHeaderOverlay() {
         }
     }, [pathname, isNavigatingAway]);
 
-    // Expose function to clear loading state when navigation is cancelled
-    useEffect(() => {
-        if (typeof window !== 'undefined') {
-            window.__surveyHeaderOverlay = {
-                clearLoadingState: () => {
-                    setIsNavigatingAway(false);
-                    setNavigationDestination(null);
-                    isNavigatingAwayRef.current = false;
-                    // Clear safety timeout when manually clearing loading state
-                    if (navigationTimeoutRef.current) {
-                        clearTimeout(navigationTimeoutRef.current);
-                        navigationTimeoutRef.current = null;
-                    }
-                }
-            };
-        }
-        return () => {
-            if (typeof window !== 'undefined') {
-                delete window.__surveyHeaderOverlay;
-            }
-            // Cleanup timeout on unmount
-            if (navigationTimeoutRef.current) {
-                clearTimeout(navigationTimeoutRef.current);
-            }
-        };
-    }, []);
-
-    // Only show overlay when on calculator route
-    if (pathname !== '/calculator') {
-        return null;
-    }
-
-    const handleNavigation = (url) => {
-        // Clear any existing timeout
+    const clearNavigationTimeout = () => {
         if (navigationTimeoutRef.current) {
             clearTimeout(navigationTimeoutRef.current);
             navigationTimeoutRef.current = null;
         }
-        
-        // Set loading state and destination before checking navigation warning
+    };
+
+    const beginNavigatingAway = (url) => {
+        clearNavigationTimeout();
         setIsNavigatingAway(true);
         isNavigatingAwayRef.current = true;
         setNavigationDestination(url);
-        
-        // Set safety timeout to auto-clear loading state after 5 seconds if navigation doesn't complete
+
+        // Safety timeout if route change never completes
         navigationTimeoutRef.current = setTimeout(() => {
             if (isNavigatingAwayRef.current) {
                 console.warn('Navigation timeout: Clearing loading state after 5 seconds');
@@ -101,20 +71,51 @@ export default function SurveyHeaderOverlay() {
                 navigationTimeoutRef.current = null;
             }
         }, 5000);
-        
-        // Check if navigation warning should be shown
+    };
+
+    const clearExitPending = () => {
+        setIsExitPending(false);
+    };
+
+    // Expose loading helpers for NavigationWarning when user confirms leaving
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            window.__surveyHeaderOverlay = {
+                startLoadingState: (url) => {
+                    beginNavigatingAway(url);
+                },
+                clearLoadingState: () => {
+                    setIsNavigatingAway(false);
+                    setNavigationDestination(null);
+                    isNavigatingAwayRef.current = false;
+                    clearNavigationTimeout();
+                },
+                clearExitPending,
+            };
+        }
+        return () => {
+            if (typeof window !== 'undefined') {
+                delete window.__surveyHeaderOverlay;
+            }
+            clearNavigationTimeout();
+        };
+    }, []);
+
+    // Only show overlay when on calculator route
+    if (pathname !== '/calculator') {
+        return null;
+    }
+
+    const handleNavigation = (url) => {
         if (typeof window !== 'undefined' && window.__navigationWarning) {
             const canNavigate = window.__navigationWarning.checkNavigation(url);
             if (!canNavigate) {
-                // Navigation warning will handle showing the modal
-                // Keep loading state active - it will show when modal closes and navigation happens
-                // The loading overlay will be behind the modal (z-50 vs modal's z-[200])
-                // When user confirms/discards, navigation will happen and overlay will be visible
-                // Safety timeout will clear it if navigation doesn't happen
+                // Modal blocks exit — keep survey visible behind it
                 return;
             }
         }
-        // Navigate normally
+
+        beginNavigatingAway(url);
         router.push(url);
     };
 
@@ -137,10 +138,12 @@ export default function SurveyHeaderOverlay() {
             if (editSessionActive && step !== WIZARD_STEPS.RESULTS) {
                 requestDiscardConfirm(() => {
                     abortEditAndReturnToResults();
+                    clearExitPending();
                 });
                 return;
             }
             returnToResults();
+            clearExitPending();
             return;
         }
 
@@ -148,12 +151,18 @@ export default function SurveyHeaderOverlay() {
         handleNavigation(targetUrl);
     };
 
+    const isCloseDisabled = isExitPending || isNavigatingAway;
+
     const handleClose = () => {
+        if (isCloseDisabled) return;
+        setIsExitPending(true);
         handleExitSurvey();
     };
 
     const handleLogoClick = (e) => {
         e.preventDefault();
+        if (isCloseDisabled) return;
+        setIsExitPending(true);
         handleExitSurvey();
     };
 
@@ -180,8 +189,10 @@ export default function SurveyHeaderOverlay() {
                     </Link>
                     <button
                         onClick={handleClose}
-                        className="focus:outline-none mr-2 cursor-pointer"
+                        disabled={isCloseDisabled}
+                        className={`focus:outline-none mr-2 ${isCloseDisabled ? 'pointer-events-none cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                         aria-label="Close survey"
+                        aria-disabled={isCloseDisabled}
                     >
                         <svg
                             className="w-6 h-6 text-base-content"
@@ -224,8 +235,10 @@ export default function SurveyHeaderOverlay() {
                             <div className="flex w-full max-w-md justify-end pr-12 lg:pr-12">
                                 <button
                                     onClick={handleClose}
-                                    className="flex cursor-pointer items-center justify-center px-3 py-2 focus:outline-none"
+                                    disabled={isCloseDisabled}
+                                    className={`flex items-center justify-center px-3 py-2 focus:outline-none ${isCloseDisabled ? 'pointer-events-none cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
                                     aria-label="Close survey"
+                                    aria-disabled={isCloseDisabled}
                                 >
                                     <svg
                                         className="w-6 h-6 text-base-content"
@@ -256,6 +269,7 @@ export default function SurveyHeaderOverlay() {
                         ? 'Returning to dashboard...'
                         : 'Returning to home...'
                 }
+                overlayClassName="!z-[200]"
             />
         )}
     </>
