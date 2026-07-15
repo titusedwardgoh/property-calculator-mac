@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useFormNavigation from './shared/FormNavigation.js';
 import { useFormStore } from '../stores/formStore';
@@ -29,6 +29,14 @@ export default function SellerQuestions() {
   const [showCalculatingOverlay, setShowCalculatingOverlay] = useState(false);
   const [overlayPhase, setOverlayPhase] = useState(0); // 0–3: additional fees, property details, concessions, congratulations
   const totalSteps = 8;
+  const completionLockRef = useRef(false);
+
+  useEffect(() => {
+    if (currentStep > totalSteps) {
+      currentStepRef.current = totalSteps;
+      setCurrentStep(totalSteps);
+    }
+  }, [currentStep, totalSteps, currentStepRef]);
 
   // Calculate the starting step number based on WA, ACT selection and loan need
   const getStartingStepNumber = () => {
@@ -156,6 +164,8 @@ export default function SellerQuestions() {
   };
 
   const nextStep = useCallback(() => {
+    if (!isCurrentStepValid(currentStepRef.current)) return;
+
     // Mark that we've moved past the initial entry once we leave Q1
     if (currentStep === 1 && isInitialEntry) {
       setIsInitialEntry(false);
@@ -217,14 +227,20 @@ export default function SellerQuestions() {
     // Check if we should show construction questions
     const shouldShowConstructionQuestions = formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land';
 
-    if (currentStep < totalSteps) {
+    const stepNow = currentStepRef.current;
+    if (stepNow < totalSteps) {
       setDirection('forward');
       runTransition(() => {
         const step = currentStepRef.current;
+        if (step >= totalSteps) return;
+        if (!isCurrentStepValid(step)) return;
         let nextStepNumber = step + 1;
 
         if (!shouldShowConstructionQuestions) {
           if (step === 2) {
+            nextStepNumber = 5;
+          } else if (step === 3 || step === 4) {
+            // Recover if spam landed on a skipped construction step
             nextStepNumber = 5;
           }
         } else if (step === 3 && formData.propertyType === 'off-the-plan' && formData.selectedState !== 'VIC') {
@@ -232,11 +248,15 @@ export default function SellerQuestions() {
           updateFormData('dutiableValue', formData.propertyPrice);
         }
 
+        nextStepNumber = Math.min(nextStepNumber, totalSteps);
+        currentStepRef.current = nextStepNumber;
         setCurrentStep(nextStepNumber);
         updateFormData('sellerQuestionsActiveStep', nextStepNumber);
         pushSubStep(nextStepNumber);
       });
-    } else if (currentStep === totalSteps) {
+    } else if (stepNow >= totalSteps) {
+      if (completionLockRef.current || showCalculatingOverlay || localCompletionState) return;
+      completionLockRef.current = true;
       // Show 4-phase overlay before completing
       setOverlayPhase(0);
       setShowCalculatingOverlay(true);
@@ -313,6 +333,7 @@ export default function SellerQuestions() {
           prevStepNumber = 3;
         }
 
+        currentStepRef.current = prevStepNumber;
         setCurrentStep(prevStepNumber);
         updateFormData('sellerQuestionsActiveStep', prevStepNumber);
         pushSubStep(prevStepNumber);
@@ -338,11 +359,11 @@ export default function SellerQuestions() {
 
 
 
-  // Check if current step is valid
-  const isCurrentStepValid = useCallback(() => {
+  // Check if a step is valid (defaults to current step; pass a step for ref-based checks)
+  const isCurrentStepValid = useCallback((step = currentStep) => {
     const shouldShowConstructionQuestions = formData.propertyType === 'off-the-plan' || formData.propertyType === 'house-and-land';
     
-    switch (currentStep) {
+    switch (step) {
       case 1:
         return formData.councilRates && formData.councilRates.trim() !== '';
       case 2:
@@ -509,7 +530,7 @@ export default function SellerQuestions() {
   useFormNavigation({
     currentStep,
     totalSteps,
-    isCurrentStepValid,
+    isCurrentStepValid: () => isCurrentStepValid(currentStepRef.current),
     onNext: nextStep,
     onPrev: prevStep,
     onComplete: useCallback(() => {
@@ -962,7 +983,9 @@ export default function SellerQuestions() {
                      setDirection('backward');
                      // Small delay to ensure direction is set before state changes
                      setTimeout(() => {
+                       completionLockRef.current = false;
                        setLocalCompletionState(false);
+                       currentStepRef.current = 8;
                        setCurrentStep(8);
                        updateFormData('sellerQuestionsComplete', false);
                        pushSubStep(8);

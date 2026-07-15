@@ -56,7 +56,10 @@ export default function SurveyNavigationButtons({
 
       <button
         type="button"
-        onClick={onNext}
+        onClick={() => {
+          if (nextDisabled) return;
+          onNext?.();
+        }}
         disabled={nextDisabled}
         className={`min-w-0 flex-1 px-6 py-3 rounded-full border border-primary font-medium ${nextClassName}`}
       >

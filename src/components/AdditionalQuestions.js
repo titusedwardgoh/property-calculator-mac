@@ -140,6 +140,7 @@ export default function AdditionalQuestions() {
     if (nextStepNum <= totalSteps) {
       setDirection("forward");
       runTransition(() => {
+        currentStepRef.current = nextStepNum;
         setCurrentStep(nextStepNum);
         updateFormData("additionalQuestionsStep", nextStepNum);
       });
@@ -155,15 +156,19 @@ export default function AdditionalQuestions() {
     }
     setDirection("backward");
     runTransition(() => {
+      currentStepRef.current = prevStepNum;
       setCurrentStep(prevStepNum);
       updateFormData("additionalQuestionsStep", prevStepNum);
     });
   };
 
   const nextStep = () => {
+    if (!isCurrentStepValid()) return;
+    if (showCompletionOverlay) return;
+
     const step = currentStepRef.current;
     if (step < totalSteps) {
-      saveAndAdvance(step + 1);
+      saveAndAdvance(Math.min(step + 1, totalSteps));
     } else {
       saveAndAdvance(totalSteps + 1);
     }

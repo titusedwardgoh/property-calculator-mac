@@ -28,6 +28,7 @@ export default function PropertyDetails() {
   const [showCalculatingOverlay, setShowCalculatingOverlay] = useState(false);
   const [overlayPhase, setOverlayPhase] = useState('calculating'); // 'calculating' | 'done'
   const totalSteps = 6; // Always 6 internal steps, but step 3 is skipped for non-WA
+  const completionLockRef = useRef(false);
   const prevPropertyCategoryRef = useRef(formData.propertyCategory);
   const autocompleteRef = useRef(null);
   const autocompleteInputRef = useRef(null);
@@ -49,6 +50,19 @@ export default function PropertyDetails() {
   const scriptLoadedRef = useRef(false);
   const placeChangedFiredRef = useRef(false); // Track if place_changed has fired
   
+  // Recover if spam (or stale URL) landed past the last step / on skipped WA step
+  useEffect(() => {
+    if (currentStep > 6) {
+      currentStepRef.current = 6;
+      setCurrentStep(6);
+      pushSubStep(6);
+    } else if (formData.selectedState !== 'WA' && currentStep === 3) {
+      currentStepRef.current = 4;
+      setCurrentStep(4);
+      pushSubStep(4);
+    }
+  }, [currentStep, formData.selectedState, pushSubStep, currentStepRef]);
+
   // Clear propertyDetailsCurrentStep on mount to prevent interference with normal navigation
   useEffect(() => {
     if (formData.propertyDetailsCurrentStep) {
@@ -629,6 +643,8 @@ export default function PropertyDetails() {
   }, [formData.propertyPrice, formData.propertyType, formData.isAustralianResident, formData.updateFIRBFee]);
 
   const nextStep = () => {
+    if (!isCurrentStepValid(currentStepRef.current)) return;
+
     // Log current form entries before proceeding
   
     console.log('📋 Current Form Entries:', {
@@ -674,24 +690,32 @@ export default function PropertyDetails() {
       sellerQuestion9: formData.sellerQuestion9
     });
     
-    // Check if we're at the last step for the current state
-    const isLastStep = currentStep === 6; // Both WA and non-WA end at internal step 6
+    // Use the ref — React state can lag during spam clicks on a fully-filled edit session
+    const stepNow = currentStepRef.current;
+    const isLastStep = stepNow >= 6; // Both WA and non-WA end at internal step 6
     
     if (!isLastStep) {
       setDirection('forward');
       runTransition(() => {
         const step = currentStepRef.current;
+        if (step >= 6) return;
+        if (!isCurrentStepValid(step)) return;
+
         let nextStepNumber = step + 1;
 
         if (step === 2 && formData.selectedState !== 'WA') {
           nextStepNumber = 4;
         }
 
+        nextStepNumber = Math.min(nextStepNumber, 6);
+        currentStepRef.current = nextStepNumber;
         setCurrentStep(nextStepNumber);
         updateFormData('propertyDetailsActiveStep', nextStepNumber);
         pushSubStep(nextStepNumber);
       });
     } else {
+      if (completionLockRef.current || showCalculatingOverlay || isComplete) return;
+      completionLockRef.current = true;
       // Show overlay for 2s before completing and showing "Basic Property Details Complete"
       setOverlayPhase('calculating');
       setShowCalculatingOverlay(true);
@@ -791,6 +815,7 @@ export default function PropertyDetails() {
           prevStepNumber = 3;
         }
 
+        currentStepRef.current = prevStepNumber;
         setCurrentStep(prevStepNumber);
         updateFormData('propertyDetailsActiveStep', prevStepNumber);
         pushSubStep(prevStepNumber);
@@ -808,9 +833,9 @@ export default function PropertyDetails() {
     stateFunctions.calculateStampDuty(formData.propertyPrice, formData.selectedState);
   };
 
-  // Check if current step is valid
-  const isCurrentStepValid = () => {
-    switch (currentStep) {
+  // Check if a step is valid (defaults to current step; pass a step for ref-based checks)
+  const isCurrentStepValid = (step = currentStep) => {
+    switch (step) {
       case 1:
         // For Google Places: require hasValidAddress to be true (set by place_changed event)
         // For manual entry: use validateManualAddress (already working)
@@ -885,7 +910,7 @@ export default function PropertyDetails() {
   useFormNavigation({
     currentStep,
     totalSteps,
-    isCurrentStepValid,
+    isCurrentStepValid: () => isCurrentStepValid(currentStepRef.current),
     onNext: nextStep,
     onPrev: prevStep,
     onComplete: goToBuyerDetails,
@@ -1478,7 +1503,9 @@ export default function PropertyDetails() {
                 ? () => {
                     setDirection('backward');
                     setIsComplete(false);
+                    completionLockRef.current = false;
                     updateFormData('propertyDetailsFormComplete', false);
+                    currentStepRef.current = 6;
                     setCurrentStep(6);
                     pushSubStep(6);
                   }

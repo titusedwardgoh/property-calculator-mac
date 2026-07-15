@@ -1,12 +1,15 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const DEFAULT_DELAY_MS = 350;
+/** Extra hold after the slide so React can commit the new step / disabled Next. */
+const UNLOCK_AFTER_APPLY_MS = 80;
 
 /**
  * Locks step navigation during slide transitions so rapid Next/Back clicks
  * advance one step at a time instead of queueing stale setTimeout closures.
+ * Lock stays held after apply long enough for React to commit validity UI.
  */
 export function useStepTransition(delayMs = DEFAULT_DELAY_MS) {
   const lockRef = useRef(false);
@@ -19,8 +22,12 @@ export function useStepTransition(delayMs = DEFAULT_DELAY_MS) {
       setIsTransitioning(true);
       setTimeout(() => {
         applyStepChange();
-        lockRef.current = false;
-        setIsTransitioning(false);
+        // Hold lock after apply: context/Zustand updates can re-render before
+        // currentStep state commits; Next must stay blocked until then.
+        setTimeout(() => {
+          lockRef.current = false;
+          setIsTransitioning(false);
+        }, UNLOCK_AFTER_APPLY_MS);
       }, delayMs);
       return true;
     },
@@ -30,9 +37,16 @@ export function useStepTransition(delayMs = DEFAULT_DELAY_MS) {
   return { isTransitioning, runTransition };
 }
 
-/** Sync a ref to the latest step index — read inside runTransition after each unlock. */
+/**
+ * Step index ref for use inside runTransition.
+ * Intentionally does NOT assign on every render — that raced with updateFormData
+ * re-renders and reset the ref to the previous step while a transition applied.
+ * Sync from state in an effect (URL/resume); apply handlers write the ref first.
+ */
 export function useCurrentStepRef(currentStep) {
   const ref = useRef(currentStep);
-  ref.current = currentStep;
+  useEffect(() => {
+    ref.current = currentStep;
+  }, [currentStep]);
   return ref;
 }

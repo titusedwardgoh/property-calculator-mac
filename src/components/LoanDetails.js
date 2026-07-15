@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import useFormNavigation from './shared/FormNavigation.js';
 import { useFormStore } from '../stores/formStore';
@@ -32,9 +32,17 @@ export default function LoanDetails() {
   const [showCalculatingOverlay, setShowCalculatingOverlay] = useState(false);
   const [overlayPhase, setOverlayPhase] = useState('calculating'); // 'calculating' | 'done'
   const totalSteps = 7;
+  const completionLockRef = useRef(false);
 
   // Calculate net state duty at component level
   const netStateDuty = useNetStateDuty(formData);
+
+  useEffect(() => {
+    if (currentStep > totalSteps) {
+      currentStepRef.current = totalSteps;
+      setCurrentStep(totalSteps);
+    }
+  }, [currentStep, totalSteps, currentStepRef]);
 
   // Calculate the starting step number based on WA and ACT selection
   const getStartingStepNumber = () => {
@@ -54,6 +62,8 @@ export default function LoanDetails() {
   };
 
   const nextStep = () => {
+    if (!isCurrentStepValid(currentStepRef.current)) return;
+
     // Mark that we've moved past the initial entry once we leave Q1
     if (currentStep === 1 && isInitialEntry) {
       setIsInitialEntry(false);
@@ -106,15 +116,22 @@ export default function LoanDetails() {
       updateFormData('loanDetailsActiveStep', currentStep);
     }
     
-    if (currentStep < totalSteps) {
+    const stepNow = currentStepRef.current;
+    if (stepNow < totalSteps) {
       setDirection('forward');
       runTransition(() => {
-        const nextStepNumber = currentStepRef.current + 1;
+        const step = currentStepRef.current;
+        if (step >= totalSteps) return;
+        if (!isCurrentStepValid(step)) return;
+        const nextStepNumber = Math.min(step + 1, totalSteps);
+        currentStepRef.current = nextStepNumber;
         setCurrentStep(nextStepNumber);
         updateFormData('loanDetailsActiveStep', nextStepNumber);
         pushSubStep(nextStepNumber);
       });
-    } else if (currentStep === totalSteps) {
+    } else if (stepNow >= totalSteps) {
+      if (completionLockRef.current || showCalculatingOverlay || formData.loanDetailsComplete) return;
+      completionLockRef.current = true;
       // Show overlay (same as BuyerDetails) before completing
       setOverlayPhase('calculating');
       setShowCalculatingOverlay(true);
@@ -178,6 +195,7 @@ export default function LoanDetails() {
       setDirection('backward');
       runTransition(() => {
         const prevStepNumber = currentStepRef.current - 1;
+        currentStepRef.current = prevStepNumber;
         setCurrentStep(prevStepNumber);
         updateFormData('loanDetailsActiveStep', prevStepNumber);
         pushSubStep(prevStepNumber);
@@ -193,9 +211,9 @@ export default function LoanDetails() {
     navigateToStep(WIZARD_STEPS.BUYER, { sub: lastStep });
   };
 
-  // Check if current step is valid
-  const isCurrentStepValid = () => {
-    switch (currentStep) {
+  // Check if a step is valid (defaults to current step; pass a step for ref-based checks)
+  const isCurrentStepValid = (step = currentStep) => {
+    switch (step) {
       case 1:
         const depositAmount = parseInt(formData.loanDeposit) || 0;
         const propertyPrice = parseInt(formData.propertyPrice) || 0;
@@ -300,7 +318,7 @@ export default function LoanDetails() {
   useFormNavigation({
     currentStep,
     totalSteps,
-    isCurrentStepValid,
+    isCurrentStepValid: () => isCurrentStepValid(currentStepRef.current),
     onNext: nextStep,
     onPrev: prevStep,
     onComplete: () => {
@@ -561,7 +579,9 @@ export default function LoanDetails() {
               <motion.button
                 onClick={() => {
                   setDirection('backward');
+                  completionLockRef.current = false;
                   updateFormData('loanDetailsComplete', false);
+                  currentStepRef.current = 7;
                   setCurrentStep(7);
                   pushSubStep(7);
                 }}

@@ -33,9 +33,18 @@ export default function BuyerDetails() {
   const { user } = useAuth();
   const supabase = createClient();
   const hasPopulatedFromProfile = useRef(false); // Track if we've already populated from profile
+  const completionLockRef = useRef(false);
   
   // Get state-specific functions when state is selected
   const { stateFunctions } = useStateSelector(formData.selectedState || 'NSW');
+
+  // Recover if spam advanced past the last question (common when editing a filled survey)
+  useEffect(() => {
+    if (currentStep > totalSteps) {
+      currentStepRef.current = totalSteps;
+      setCurrentStep(totalSteps);
+    }
+  }, [currentStep, totalSteps, currentStepRef]);
   
   // Calculate the starting step number based on whether WA or ACT is selected
   const getStartingStepNumber = () => {
@@ -219,6 +228,8 @@ export default function BuyerDetails() {
   }, [user, formData.propertyDetailsComplete, formData.buyerType, formData.isAustralianResident, formData.isFirstHomeBuyer, formData.hasPensionCard, updateFormData, supabase]);
 
   const nextStep = () => {
+    if (!isCurrentStepValid(currentStepRef.current)) return;
+
     // Mark that we've moved past the initial entry once we leave Q1
     if (currentStep === 1 && isInitialEntry) {
       setIsInitialEntry(false);
@@ -269,11 +280,15 @@ export default function BuyerDetails() {
       sellerQuestion9: formData.sellerQuestion9
     });
     
-    if (currentStep < totalSteps) {
+    const stepNow = currentStepRef.current;
+    if (stepNow < totalSteps) {
       setDirection('forward');
       runTransition(() => {
         const step = currentStepRef.current;
-        const nextStepNumber = step + 1;
+        if (step >= totalSteps) return;
+        if (!isCurrentStepValid(step)) return;
+        const nextStepNumber = Math.min(step + 1, totalSteps);
+        currentStepRef.current = nextStepNumber;
         setCurrentStep(nextStepNumber);
         updateFormData('buyerDetailsActiveStep', nextStepNumber);
         pushSubStep(nextStepNumber);
@@ -286,7 +301,9 @@ export default function BuyerDetails() {
           autoSuggestLoanDecision();
         }
       });
-    } else if (currentStep === totalSteps) {
+    } else if (stepNow >= totalSteps) {
+      if (completionLockRef.current || showCalculatingOverlay || formData.buyerDetailsComplete) return;
+      completionLockRef.current = true;
       // Show overlay - match Property Details style when editing from Review (going to AdditionalQuestions)
       const isEditToAdditionalQuestions = formData.editingFromReview && formData.needsLoan === 'yes';
       setOverlayPhase('calculating');
@@ -318,6 +335,7 @@ export default function BuyerDetails() {
       setDirection('backward');
       runTransition(() => {
         const prevStepNumber = currentStepRef.current - 1;
+        currentStepRef.current = prevStepNumber;
         setCurrentStep(prevStepNumber);
         updateFormData('buyerDetailsActiveStep', prevStepNumber);
         pushSubStep(prevStepNumber);
@@ -332,9 +350,9 @@ export default function BuyerDetails() {
     navigateToStep(WIZARD_STEPS.PROPERTY, { sub: 6 });
   };
 
-  // Check if current step is valid
-  const isCurrentStepValid = () => {
-    switch (currentStep) {
+  // Check if a step is valid (defaults to current step; pass a step for ref-based checks)
+  const isCurrentStepValid = (step = currentStep) => {
+    switch (step) {
       case 1:
         return formData.buyerType && formData.buyerType.trim() !== '';
       case 2:
@@ -419,7 +437,7 @@ export default function BuyerDetails() {
   useFormNavigation({
     currentStep,
     totalSteps,
-    isCurrentStepValid,
+    isCurrentStepValid: () => isCurrentStepValid(currentStepRef.current),
     onNext: nextStep,
     onPrev: prevStep,
     onComplete: () => {
@@ -1205,8 +1223,10 @@ export default function BuyerDetails() {
               <motion.button
                 onClick={() => {
                   setDirection('backward');
+                  completionLockRef.current = false;
                   updateFormData('buyerDetailsComplete', false);
                   const lastStep = formData.isACT ? 10 : 7;
+                  currentStepRef.current = lastStep;
                   setCurrentStep(lastStep);
                   pushSubStep(lastStep);
                 }}
