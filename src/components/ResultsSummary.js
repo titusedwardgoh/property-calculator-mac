@@ -23,6 +23,49 @@ import { useFormStore } from '../stores/formStore';
 import SurveyLoadingOverlay, { SURVEY_LOADING_TEXT_CLASS } from '@/components/SurveyLoadingOverlay';
 
 const DEPOSIT_ADJUST_RESULTS_RELOAD_KEY = 'proppers:deposit-adjust-results-reload';
+const PDF_LAYOUT_WAIT_TIMEOUT_MS = 2500;
+
+const waitForAnimationFrame = () =>
+    new Promise((resolve) => requestAnimationFrame(resolve));
+
+const waitForPdfLayout = async (root) => {
+    const deadline = performance.now() + PDF_LAYOUT_WAIT_TIMEOUT_MS;
+    let upfrontDetails = null;
+
+    // Wait for React to mount the expanded section.
+    while (performance.now() < deadline) {
+        upfrontDetails = root?.querySelector('[data-pdf-upfront-details]');
+        if (upfrontDetails?.getBoundingClientRect().height > 0) break;
+        await waitForAnimationFrame();
+    }
+
+    // The first export may still be loading web fonts.
+    if (document.fonts?.ready) {
+        await Promise.race([
+            document.fonts.ready,
+            new Promise((resolve) => setTimeout(resolve, 1000)),
+        ]);
+    }
+
+    // Wait for Framer Motion's height/opacity expansion to finish.
+    const animations = upfrontDetails?.getAnimations?.({ subtree: true }) ?? [];
+    if (animations.length > 0) {
+        await Promise.race([
+            Promise.allSettled(animations.map((animation) => animation.finished)),
+            new Promise((resolve) => setTimeout(resolve, 1000)),
+        ]);
+    }
+
+    // Require two consecutive stable layouts before cloning for html2canvas.
+    let previousHeight = -1;
+    let stableFrames = 0;
+    while (stableFrames < 2 && performance.now() < deadline) {
+        await waitForAnimationFrame();
+        const height = root?.getBoundingClientRect().height ?? 0;
+        stableFrames = Math.abs(height - previousHeight) < 0.5 ? stableFrames + 1 : 0;
+        previousHeight = height;
+    }
+};
 
 function setDepositAdjustReloadExpansion(wasUpfrontExpanded) {
     if (typeof window === 'undefined') return;
@@ -299,8 +342,8 @@ export default forwardRef(function ResultsSummary({
         expandAllCardsForPdf();
 
         try {
+            await waitForPdfLayout(costsColumnRef.current);
             costsColumnRef.current.scrollIntoView({ block: 'start', behavior: 'instant' });
-            await new Promise((resolve) => setTimeout(resolve, PDF_CAPTURE_DELAY_MS));
 
             const pdf = await buildResultsPdf({
                 costsColumnEl: costsColumnRef.current,
@@ -316,6 +359,10 @@ export default forwardRef(function ResultsSummary({
         } finally {
             restoreExpansionSnapshot();
             await new Promise((resolve) => setTimeout(resolve, PDF_CAPTURE_DELAY_MS));
+            window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+            // Let the scroll position commit while the preparation overlay
+            // still covers the page.
+            await waitForAnimationFrame();
             setIsPreparingPdf(false);
         }
     }, [propertyDisplayAddress]);
@@ -841,6 +888,7 @@ export default forwardRef(function ResultsSummary({
                                                                     <AnimatePresence initial={false}>
                                                                         {isLoanCardExpanded && (
                                                                             <motion.div
+                                                                                data-pdf-upfront-details
                                                                                 initial={{ height: 0, opacity: 0 }}
                                                                                 animate={{ height: "auto", opacity: 1 }}
                                                                                 exit={{ height: 0, opacity: 0 }}
