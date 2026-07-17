@@ -9,7 +9,7 @@ import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import SurveyNavigationButtons from './shared/SurveyNavigationButtons';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
-import { calculateGlobalProgress, getMissingFields } from '../lib/progressCalculation';
+import { getMissingFields } from '../lib/progressCalculation';
 import { useWizardStep } from '../hooks/useWizardStep';
 import { useStepTransition, useCurrentStepRef } from '../hooks/useStepTransition';
 import QuestionInfoTooltip from './shared/QuestionInfoTooltip';
@@ -613,16 +613,14 @@ export default function PropertyDetails() {
   }, [isManualEntry, currentStep]);
 
   // Progress calculation - AFTER all Google Maps useEffects to prevent interference
-  // Memoized with step-based dependencies only (NOT propertyAddress or other typed fields)
+  // Keep the final increment for the completion page.
   const progressPercentage = useMemo(() => {
-    return calculateGlobalProgress(formData, {})
+    if (formData.propertyDetailsFormComplete) return 100;
+    return ((getDisplayStep() - 1) / getDisplayTotalSteps()) * 100;
   }, [
-    // Use currentStep (local state)
     currentStep,
-    formData.propertyDetailsComplete,
+    formData.propertyDetailsFormComplete,
     formData.selectedState,
-    formData.propertyType,
-    // NOT: formData.propertyAddress, autocompleteRef, etc.
   ])
 
   // Watch for property category changes and reset property type if needed
@@ -721,15 +719,15 @@ export default function PropertyDetails() {
       setShowCalculatingOverlay(true);
       setTimeout(() => setOverlayPhase('done'), 1000);
       setTimeout(() => {
-        setShowCalculatingOverlay(false);
-        // Form is complete - calculate stamp duty
         calculateAndLogStampDuty();
+        // Render the completion page beneath the overlay first.
         setIsComplete(true);
-        // Set form complete flag to show completion page
-        // propertyDetailsComplete will be set when user clicks Next on completion page (goToBuyerDetails)
-        // propertyDetailsFormComplete tracks that they reached the completion page (for resume logic)
-        updateFormData('propertyDetailsFormComplete', true);
-        navigateToStep(WIZARD_STEPS.PROPERTY, { sub: SUB_COMPLETE });
+        setTimeout(() => {
+          // Reveal it and advance progress together.
+          updateFormData('propertyDetailsFormComplete', true);
+          navigateToStep(WIZARD_STEPS.PROPERTY, { sub: SUB_COMPLETE });
+          setShowCalculatingOverlay(false);
+        }, 900);
         // DON'T set propertyDetailsComplete here - let it be set in goToBuyerDetails() when user clicks Next
         // This ensures the completion page shows before transitioning to BuyerDetails
 

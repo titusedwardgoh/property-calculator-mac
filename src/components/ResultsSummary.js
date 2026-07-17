@@ -134,10 +134,9 @@ export default forwardRef(function ResultsSummary({
         state.updateLoanRepayments?.();
         resultsCheckpointRef.current = resultsCheckpointKey;
         setResultsReady(true);
-        if (setOriginalLoadedState && !state.editSessionActive) {
-            setOriginalLoadedState(state);
-        }
-    }, [resultsCheckpointKey, summaryFormData.allFormsComplete, setOriginalLoadedState]);
+        // Do not advance the save baseline here. Reaching Results changes
+        // allFormsComplete and must remain dirty until Supabase confirms it.
+    }, [resultsCheckpointKey, summaryFormData.allFormsComplete]);
 
     // After deposit-adjust recalc, restore only the upfront card expansion if it was open.
     useLayoutEffect(() => {

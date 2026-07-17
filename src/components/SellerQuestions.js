@@ -6,7 +6,6 @@ import { formatCurrency } from '../states/shared/baseCalculations.js';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
-import { calculateGlobalProgress } from '../lib/progressCalculation';
 import { useWizardStep } from '../hooks/useWizardStep';
 import { useStepTransition, useCurrentStepRef } from '../hooks/useStepTransition';
 import QuestionInfoTooltip from './shared/QuestionInfoTooltip';
@@ -264,11 +263,18 @@ export default function SellerQuestions() {
       setTimeout(() => setOverlayPhase(2), 3000);
       setTimeout(() => setOverlayPhase(3), 4500);
       setTimeout(() => {
-        setShowCalculatingOverlay(false);
-        updateFormData('sellerQuestionsComplete', true);
         setLocalCompletionState(true);
         formData.updateOngoingCosts();
-        navigateToStep(WIZARD_STEPS.SELLER, { sub: SUB_COMPLETE });
+        setTimeout(() => {
+          updateFormData('sellerQuestionsComplete', true);
+          // Preserve the final question in browser history so Back from
+          // Results returns to seller sub-step 8 rather than sub-step 7.
+          navigateToStep(WIZARD_STEPS.SELLER, {
+            sub: SUB_COMPLETE,
+            replace: false,
+          });
+          setShowCalculatingOverlay(false);
+        }, 900);
       }, 6000);
       
       // Log final form completion
@@ -411,12 +417,26 @@ export default function SellerQuestions() {
     if (formData.sellerQuestionsComplete) {
       updateFormData('sellerQuestionsComplete', false);
     }
+    if (formData.allFormsComplete) {
+      updateFormData('allFormsComplete', false);
+    }
+    if (formData.showSummary) {
+      updateFormData('showSummary', false);
+    }
 
     if (subNumeric != null && subNumeric !== currentStep) {
       setCurrentStep(subNumeric);
       updateFormData('sellerQuestionsActiveStep', subNumeric);
     }
-  }, [isSubComplete, subNumeric, formData.sellerQuestionsComplete, currentStep, updateFormData]);
+  }, [
+    isSubComplete,
+    subNumeric,
+    formData.sellerQuestionsComplete,
+    formData.allFormsComplete,
+    formData.showSummary,
+    currentStep,
+    updateFormData,
+  ]);
 
   // Set localCompletionState when sellerQuestionsComplete becomes true
   useEffect(() => {
@@ -512,19 +532,15 @@ export default function SellerQuestions() {
     }
   }, [formData.isResumingSurvey, formData.sellerQuestionsComplete, formData.allFormsComplete, formData.sellerQuestionsActiveStep, currentStep, isCurrentStepValid, nextStep, totalSteps, updateFormData]);
 
-  // Progress calculation - memoized with step-based dependencies only
+  // Current-section progress; reserve the final increment for completion.
   const progressPercentage = useMemo(() => {
-    return calculateGlobalProgress(formData, {})
+    if (formData.sellerQuestionsComplete) return 100;
+    return ((getActualStepPosition() - 1) / getActualStepsShown()) * 100;
   }, [
-    // Step numbers
     currentStep,
-    formData.sellerQuestionsActiveStep,
-    // Completion flags
     formData.sellerQuestionsComplete,
-    // Branching decisions
     formData.selectedState,
     formData.propertyType,
-    // NOT: typed fields
   ])
 
   useFormNavigation({
@@ -548,6 +564,8 @@ export default function SellerQuestions() {
       if (localCompletionState) {
         // We're on the completion page, go back to the last question
         updateFormData('sellerQuestionsComplete', false);
+        updateFormData('allFormsComplete', false);
+        updateFormData('showSummary', false);
         setLocalCompletionState(false);
         setCurrentStep(8);
       } else {

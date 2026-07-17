@@ -731,7 +731,9 @@ function CalculatorPageContent() {
                                                         editingFromReview || isEditingCompletedSurvey
                                                     );
                                                 }
-                                                if (!propertyDetailsComplete) return 0;
+                                                // Property completion page is shown before the user clicks
+                                                // Next and sets propertyDetailsComplete.
+                                                if (!propertyDetailsComplete && !formData.propertyDetailsFormComplete) return 0;
                                                 if (!buyerDetailsComplete) return 25;
                                                 if (buyerDetailsComplete && needsLoan === 'yes' && !loanDetailsComplete) return 50;
                                                 if (buyerDetailsComplete && needsLoan === 'yes' && loanDetailsComplete && step !== WIZARD_STEPS.SELLER) return 75;

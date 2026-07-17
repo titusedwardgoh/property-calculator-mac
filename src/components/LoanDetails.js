@@ -4,7 +4,6 @@ import useFormNavigation from './shared/FormNavigation.js';
 import { useFormStore } from '../stores/formStore';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
-import { calculateGlobalProgress } from '../lib/progressCalculation';
 import { useWizardStep } from '../hooks/useWizardStep';
 import { useStepTransition, useCurrentStepRef } from '../hooks/useStepTransition';
 import {
@@ -30,6 +29,7 @@ export default function LoanDetails() {
   const currentStepRef = useCurrentStepRef(currentStep);
   const [isInitialEntry, setIsInitialEntry] = useState(true); // Track if we're on initial entry from BuyerDetails
   const [showCalculatingOverlay, setShowCalculatingOverlay] = useState(false);
+  const [localCompletionState, setLocalCompletionState] = useState(false);
   const [overlayPhase, setOverlayPhase] = useState('calculating'); // 'calculating' | 'done'
   const totalSteps = 7;
   const completionLockRef = useRef(false);
@@ -137,10 +137,13 @@ export default function LoanDetails() {
       setShowCalculatingOverlay(true);
       setTimeout(() => setOverlayPhase('done'), 2500); // Sit tight for 2.5s, then done for 1s
       setTimeout(() => {
-        setShowCalculatingOverlay(false);
-        updateFormData('loanDetailsComplete', true);
-        updateFormData('loanDetailsEverCompleted', true);
-        navigateToStep(WIZARD_STEPS.LOAN, { sub: SUB_COMPLETE });
+        setLocalCompletionState(true);
+        setTimeout(() => {
+          updateFormData('loanDetailsComplete', true);
+          updateFormData('loanDetailsEverCompleted', true);
+          navigateToStep(WIZARD_STEPS.LOAN, { sub: SUB_COMPLETE });
+          setShowCalculatingOverlay(false);
+        }, 900);
       }, 3500);
       
       // Log final form completion
@@ -299,20 +302,18 @@ export default function LoanDetails() {
     }
   }, [formData.isResumingSurvey, formData.loanDetailsComplete, formData.loanDetailsActiveStep, currentStep, isCurrentStepValid, nextStep, totalSteps, updateFormData]);
 
-  // Progress calculation - memoized with step-based dependencies only
+  // Current-section progress; reserve the final increment for completion.
   const progressPercentage = useMemo(() => {
-    return calculateGlobalProgress(formData, {})
+    if (formData.loanDetailsComplete) return 100;
+    return ((currentStep - 1) / totalSteps) * 100;
   }, [
-    // Step numbers
     currentStep,
-    formData.loanDetailsActiveStep,
-    // Completion flags
     formData.loanDetailsComplete,
-    // Branching decisions
-    formData.needsLoan,
-    formData.selectedState,
-    // NOT: typed fields
+    totalSteps,
   ])
+
+  const completionPageVisible =
+    localCompletionState || formData.loanDetailsComplete;
 
   // Use shared navigation hook
   useFormNavigation({
@@ -350,7 +351,7 @@ export default function LoanDetails() {
       return;
     }
 
-    if (formData.loanDetailsComplete) {
+    if (completionPageVisible) {
       updateFormData('loanDetailsComplete', false);
     }
 
@@ -539,12 +540,12 @@ export default function LoanDetails() {
           <span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span>
           <AnimatePresence mode="wait">
             <motion.span
-              key={`step-${formData.loanDetailsComplete ? 'complete' : currentStep}`}
+              key={`step-${completionPageVisible ? 'complete' : currentStep}`}
               {...getQuestionNumberAnimation(direction, 0.4)}
-              className={`flex items-center absolute right-0 ${formData.loanDetailsComplete ? 'text-base-100' : 'text-primary'}`}
+              className={`flex items-center absolute right-0 ${completionPageVisible ? 'text-base-100' : 'text-primary'}`}
             >
-              {formData.loanDetailsComplete ? (getStartingStepNumber() + totalSteps - 1) : (currentStep + getStartingStepNumber() - 1)}
-              <span className={`text-xs ${formData.loanDetailsComplete ? 'text-primary' : ''}`}>→</span>
+              {completionPageVisible ? (getStartingStepNumber() + totalSteps - 1) : (currentStep + getStartingStepNumber() - 1)}
+              <span className={`text-xs ${completionPageVisible ? 'text-primary' : ''}`}>→</span>
             </motion.span>
           </AnimatePresence>
         </div>
@@ -552,8 +553,8 @@ export default function LoanDetails() {
           <div className="h-100 relative">
             <AnimatePresence mode="wait">
               <motion.div
-                key={`content-${formData.loanDetailsComplete ? 'complete' : currentStep}`}
-                {...getQuestionSlideAnimation(direction, formData.loanDetailsComplete || (currentStep === 1 && isInitialEntry), 0.5, 0.3)}
+                key={`content-${completionPageVisible ? 'complete' : currentStep}`}
+                {...getQuestionSlideAnimation(direction, completionPageVisible || (currentStep === 1 && isInitialEntry), 0.5, 0.3)}
               >
                 {renderStep()}
               </motion.div>
@@ -573,13 +574,14 @@ export default function LoanDetails() {
         </div>
         
         <div className="flex justify-start mx-auto mt-4 w-full">
-          {formData.loanDetailsComplete ? (
+          {completionPageVisible ? (
             // Completion state: Back to Q7 and Next to SellerQuestions
             <>
               <motion.button
                 onClick={() => {
                   setDirection('backward');
                   completionLockRef.current = false;
+                  setLocalCompletionState(false);
                   updateFormData('loanDetailsComplete', false);
                   currentStepRef.current = 7;
                   setCurrentStep(7);

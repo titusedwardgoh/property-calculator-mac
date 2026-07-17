@@ -106,10 +106,10 @@ export function resolveWizardStep(searchParams, formData, options = {}) {
  * Infer the correct wizard step from persisted form / completion flags.
  */
 export function computeStepFromFormState(formData, options = {}) {
-  const { completionStatus } = options;
-
+  // Persisted completion_status can be stale (for example, an answered but
+  // unconfirmed final question was previously saved as 100%). The hydrated
+  // workflow flags are the source of truth for deciding whether Results is safe.
   const surveyComplete =
-    completionStatus === 'complete' ||
     formData.allFormsComplete ||
     formData.sellerQuestionsComplete;
 

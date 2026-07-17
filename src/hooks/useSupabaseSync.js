@@ -41,6 +41,9 @@ const getNormalizedData = (data) => {
     // Internal step counters (distinct from ActiveStep progress markers)
     if (key.endsWith('CurrentStep')) return true
     // Completion flags are derived from answers and can flip due to resume logic
+    // allFormsComplete is the explicit final confirmation and must remain in
+    // change detection so reaching Results is persisted.
+    if (key === 'allFormsComplete') return false
     if (key.endsWith('Complete')) return true
     if (key.endsWith('FormComplete')) return true
     if (key.endsWith('EverCompleted')) return true
@@ -119,7 +122,20 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
   const calculateCompletionPercentage = useCallback((data) => {
     // Note: getSuggestedLoanDecision is not available in this context,
     // so we pass undefined - the calculation will handle it gracefully
-    return calculateGlobalProgress(data, { forPersistence: true })
+    const percentage = calculateGlobalProgress(data, { forPersistence: true })
+
+    // An answered final question is not the same as confirming the section.
+    // If the user backs out of Seller Complete to question 8, exclude that
+    // current (unconfirmed) question instead of persisting a misleading 100%.
+    if (
+      percentage === 100 &&
+      !data.allFormsComplete &&
+      !data.sellerQuestionsComplete
+    ) {
+      return Math.min(calculateGlobalProgress(data), 99)
+    }
+
+    return percentage
   }, [])
 
   // Determine current section based on form state
@@ -147,10 +163,8 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
   // Check if there are unsaved changes
   const checkHasUnsavedChanges = useCallback(() => {
     if (!originalLoadedStateRef.current) {
-      // Completed results with no baseline yet — auto-save owns persistence; allow silent exit
-      if (formData.allFormsComplete) {
-        return false;
-      }
+      // A newly completed survey still needs its first successful persistence.
+      if (formData.allFormsComplete) return true;
       return !!(formData.propertyPrice || formData.propertyAddress || formData.selectedState);
     }
     // Compare normalized current state against baseline
@@ -415,7 +429,9 @@ export function useSupabaseSync(formData, updateFormData, propertyId, setPropert
         ? 100
         : calculateCompletionPercentage(data)
       const currentSection = getCurrentSection(data)
-      const completionStatus = isSurveyComplete || completionPercentage === 100
+      // Completion requires an explicit workflow flag. A calculated 100% can
+      // also mean the final answer is filled but has not been confirmed.
+      const completionStatus = isSurveyComplete
         ? 'complete'
         : 'in_progress'
       

@@ -10,7 +10,7 @@ import { useFormStore } from '../stores/formStore';
 import { getQuestionSlideAnimation, getQuestionNumberAnimation } from './shared/animations/questionAnimations';
 import { getBackButtonAnimation, getNextButtonAnimation } from './shared/animations/buttonAnimations';
 import { getInputButtonAnimation, getInputFieldAnimation } from './shared/animations/inputAnimations';
-import { calculateGlobalProgress, getMissingFields } from '../lib/progressCalculation';
+import { getMissingFields } from '../lib/progressCalculation';
 import { useWizardStep } from '../hooks/useWizardStep';
 import { useStepTransition, useCurrentStepRef } from '../hooks/useStepTransition';
 import QuestionInfoTooltip from './shared/QuestionInfoTooltip';
@@ -28,6 +28,7 @@ export default function BuyerDetails() {
   const currentStepRef = useCurrentStepRef(currentStep);
   const [isInitialEntry, setIsInitialEntry] = useState(true); // Track if we're on initial entry from PropertyDetails
   const [showCalculatingOverlay, setShowCalculatingOverlay] = useState(false);
+  const [localCompletionState, setLocalCompletionState] = useState(false);
   const [overlayPhase, setOverlayPhase] = useState('calculating'); // 'calculating' | 'done'
   const totalSteps = formData.isACT ? 10 : 7; // Add extra steps for ACT income, property ownership, and dependants questions
   const { user } = useAuth();
@@ -311,20 +312,26 @@ export default function BuyerDetails() {
       if (isEditToAdditionalQuestions) {
         setTimeout(() => setOverlayPhase('done'), 1000);
         setTimeout(() => {
-          setShowCalculatingOverlay(false);
-          updateFormData('buyerDetailsComplete', true);
-          updateFormData('showLoanDetails', false);
-          updateFormData('showSellerQuestions', false);
-          navigateToStep(WIZARD_STEPS.BUYER, { sub: SUB_COMPLETE });
+          setLocalCompletionState(true);
+          setTimeout(() => {
+            updateFormData('buyerDetailsComplete', true);
+            updateFormData('showLoanDetails', false);
+            updateFormData('showSellerQuestions', false);
+            navigateToStep(WIZARD_STEPS.BUYER, { sub: SUB_COMPLETE });
+            setShowCalculatingOverlay(false);
+          }, 900);
         }, 2500);
       } else {
         setTimeout(() => setOverlayPhase('done'), 2500);
         setTimeout(() => {
-          setShowCalculatingOverlay(false);
-          updateFormData('buyerDetailsComplete', true);
-          updateFormData('showLoanDetails', false);
-          updateFormData('showSellerQuestions', false);
-          navigateToStep(WIZARD_STEPS.BUYER, { sub: SUB_COMPLETE });
+          setLocalCompletionState(true);
+          setTimeout(() => {
+            updateFormData('buyerDetailsComplete', true);
+            updateFormData('showLoanDetails', false);
+            updateFormData('showSellerQuestions', false);
+            navigateToStep(WIZARD_STEPS.BUYER, { sub: SUB_COMPLETE });
+            setShowCalculatingOverlay(false);
+          }, 900);
         }, 3500);
       }
     }
@@ -494,24 +501,18 @@ export default function BuyerDetails() {
     return null;
   };
 
-  // Progress calculation - memoized with step-based dependencies only
-  // Placed after getSuggestedLoanDecision is defined
+  // Current-section progress; reserve the final increment for completion.
   const progressPercentage = useMemo(() => {
-    return calculateGlobalProgress(formData, {
-      getSuggestedLoanDecision: getSuggestedLoanDecision
-    })
+    if (formData.buyerDetailsComplete) return 100;
+    return ((currentStep - 1) / totalSteps) * 100;
   }, [
-    // Step numbers
     currentStep,
-    formData.buyerDetailsActiveStep,
-    // Completion flags
     formData.buyerDetailsComplete,
-    // Branching decisions
-    formData.needsLoan,
-    formData.selectedState,
-    // NOT: typed fields like savingsAmount, etc.
+    totalSteps,
   ])
 
+  const completionPageVisible =
+    localCompletionState || formData.buyerDetailsComplete;
 
   // Helper function to generate loan suggestion text
   const getLoanSuggestionText = () => {
@@ -535,7 +536,7 @@ export default function BuyerDetails() {
 
   const renderStep = () => {
     // Show completion message if form is complete
-    if (formData.buyerDetailsComplete) {
+    if (completionPageVisible) {
       return (
         <div className="flex flex-col mt-8 md:mt-0 pr-2">
           <h2 className="text-3xl lg:text-4xl font-base text-gray-800 mb-4 leading-tight">
@@ -1180,14 +1181,14 @@ export default function BuyerDetails() {
           <span className="text-xs text-base-100">&nbsp;&nbsp;&nbsp;</span>
           <AnimatePresence mode="wait">
             <motion.span
-              key={`step-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
+              key={`step-${completionPageVisible ? 'complete' : currentStep}`}
               {...getQuestionNumberAnimation(direction, 0.4)}
               className={`flex items-center absolute right-0 ${
-                formData.buyerDetailsComplete ? 'text-base-100' : 'text-primary'
+                completionPageVisible ? 'text-base-100' : 'text-primary'
               }`}
             >
-              {formData.buyerDetailsComplete ? getStartingStepNumber() : currentStep + getStartingStepNumber() - 1}
-              <span className={`text-xs ${formData.buyerDetailsComplete ? 'text-primary' : ''}`}>→</span>
+              {completionPageVisible ? getStartingStepNumber() : currentStep + getStartingStepNumber() - 1}
+              <span className={`text-xs ${completionPageVisible ? 'text-primary' : ''}`}>→</span>
             </motion.span>
           </AnimatePresence>
         </div>
@@ -1196,8 +1197,8 @@ export default function BuyerDetails() {
           <div className="h-100 relative">
             <AnimatePresence mode="wait">
               <motion.div
-                key={`content-${formData.buyerDetailsComplete ? 'complete' : currentStep}`}
-                {...getQuestionSlideAnimation(direction, formData.buyerDetailsComplete || (currentStep === 1 && isInitialEntry), 0.5, 0.3)}
+                key={`content-${completionPageVisible ? 'complete' : currentStep}`}
+                {...getQuestionSlideAnimation(direction, completionPageVisible || (currentStep === 1 && isInitialEntry), 0.5, 0.3)}
               >
                 {renderStep()}
               </motion.div>
@@ -1217,13 +1218,14 @@ export default function BuyerDetails() {
         </div>
         
         <div className="flex justify-start mx-auto mt-4 w-full">
-          {formData.buyerDetailsComplete ? (
+          {completionPageVisible ? (
             // Completion state: Back and Next buttons
             <>
               <motion.button
                 onClick={() => {
                   setDirection('backward');
                   completionLockRef.current = false;
+                  setLocalCompletionState(false);
                   updateFormData('buyerDetailsComplete', false);
                   const lastStep = formData.isACT ? 10 : 7;
                   currentStepRef.current = lastStep;
