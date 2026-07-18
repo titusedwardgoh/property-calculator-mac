@@ -24,9 +24,13 @@ const unbounded = Unbounded({
 export const metadata = {
   title: "Proppers | Australian Property Cost Calculator",
   description: "Calculate your property costs",
+  metadataBase: new URL("https://proppers.com.au"),
+  alternates: {
+    canonical: "./",
+  },
   icons: {
     icon: "/favicon.png",
-  }
+  },
 };
 
 export default async function RootLayout({ children }) {
