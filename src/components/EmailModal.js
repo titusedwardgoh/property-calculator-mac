@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
 
@@ -11,6 +11,16 @@ export default function EmailModal({ isOpen, onClose, onEmailSubmit }) {
   const [userId, setUserId] = useState(null);
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Parent closes this modal before the PDF send finishes. Without a reset,
+  // isSubmitting stays true and the next open is stuck on "Sending...".
+  useEffect(() => {
+    if (!isOpen) {
+      setIsChecking(false);
+      setIsSubmitting(false);
+      setError('');
+    }
+  }, [isOpen]);
 
   const validateEmail = (emailValue) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -83,6 +93,7 @@ export default function EmailModal({ isOpen, onClose, onEmailSubmit }) {
     } catch (err) {
       console.error('Error submitting email:', err);
       setError(err.message || 'Failed to submit email. Please try again.');
+    } finally {
       setIsSubmitting(false);
     }
   };
