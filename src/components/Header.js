@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { performLogout } from '@/lib/logout';
-import { User, LogOut } from 'lucide-react';
+import { User, LogOut, ChevronDown } from 'lucide-react';
 import {
   PUBLIC_HEADER_GLASS_STYLE,
   MOBILE_HEADER_MENU_TOP_CLASS,
@@ -16,14 +16,21 @@ import {
 import SiteHeaderShell from '@/components/SiteHeaderShell';
 import SurveyLoadingOverlay from '@/components/SurveyLoadingOverlay';
 
+const calculatorLinks = [
+  { href: '/stamp-duty', label: 'Stamp Duty' },
+];
+
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isCalculatorsOpen, setIsCalculatorsOpen] = useState(false);
+  const [isDesktopCalculatorsOpen, setIsDesktopCalculatorsOpen] = useState(false);
   const [isNavigatingToDashboard, setIsNavigatingToDashboard] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
   const pathname = usePathname();
   const { showLoggedInUI } = useAuth();
   const showLoggedInAuth =
     showLoggedInUI && pathname !== '/reset-password' && pathname !== '/forgot-password';
+  const isCalculatorActive = calculatorLinks.some((link) => pathname === link.href);
 
   // Clear loading state when navigation to dashboard completes
   useEffect(() => {
@@ -32,12 +39,17 @@ export default function Header() {
     }
   }, [pathname, isNavigatingToDashboard]);
 
+  useEffect(() => {
+    setIsDesktopCalculatorsOpen(false);
+    setIsCalculatorsOpen(false);
+  }, [pathname]);
+
   const handleLogout = async () => {
     await performLogout('/');
   };
   
   // Define public pages where normal header should always show (even when logged in)
-  const publicPages = ['/', '/about', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup', '/reset-password', '/forgot-password'];
+  const publicPages = ['/', '/about', '/stamp-duty', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup', '/reset-password', '/forgot-password'];
   const isPublicPage = publicPages.includes(pathname);
   
   // Hide on calculator always; hide on protected routes only after mount so SSR matches first client paint
@@ -55,6 +67,7 @@ export default function Header() {
 
   const closeMenu = () => {
     setIsMenuOpen(false);
+    setIsCalculatorsOpen(false);
   };
 
   useEffect(() => {
@@ -136,6 +149,48 @@ export default function Header() {
                   >
                     Home
                   </Link>
+                  <div
+                    className="relative"
+                    onMouseEnter={() => setIsDesktopCalculatorsOpen(true)}
+                    onMouseLeave={() => setIsDesktopCalculatorsOpen(false)}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setIsDesktopCalculatorsOpen((open) => !open)}
+                      className={`inline-flex items-center gap-1 hover:text-primary transition-colors cursor-pointer ${
+                        isCalculatorActive ? 'underline underline-offset-6 decoration-2' : ''
+                      }`}
+                      aria-haspopup="menu"
+                      aria-expanded={isDesktopCalculatorsOpen}
+                    >
+                      Calculators
+                      <ChevronDown
+                        className={`w-4 h-4 transition-transform ${isDesktopCalculatorsOpen ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                    {isDesktopCalculatorsOpen ? (
+                      <div className="absolute left-0 top-full z-50 pt-2">
+                        <div
+                          role="menu"
+                          className="min-w-[11rem] rounded-xl border border-gray-200 bg-white py-2 shadow-lg"
+                        >
+                          {calculatorLinks.map((link) => (
+                            <Link
+                              key={link.href}
+                              href={link.href}
+                              role="menuitem"
+                              onClick={() => setIsDesktopCalculatorsOpen(false)}
+                              className={`block px-4 py-2.5 text-base font-medium transition-colors hover:bg-primary/10 hover:text-primary ${
+                                pathname === link.href ? 'text-primary' : 'text-base-content'
+                              }`}
+                            >
+                              {link.label}
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
                   <Link
                     href="/about"
                     className={`hover:text-primary transition-colors ${
@@ -239,6 +294,44 @@ export default function Header() {
                       >
                         Home
                       </Link>
+                    </li>
+                    <li className="border-b border-gray-200">
+                      <button
+                        type="button"
+                        onClick={() => setIsCalculatorsOpen((open) => !open)}
+                        className="flex w-full items-center justify-between px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors"
+                        aria-expanded={isCalculatorsOpen}
+                      >
+                        Calculators
+                        <ChevronDown
+                          className={`w-5 h-5 transition-transform ${isCalculatorsOpen ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {isCalculatorsOpen ? (
+                          <motion.ul
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden bg-gray-50"
+                          >
+                            {calculatorLinks.map((link) => (
+                              <li key={link.href}>
+                                <Link
+                                  href={link.href}
+                                  onClick={closeMenu}
+                                  className={`block px-8 py-3 text-base font-medium transition-colors hover:bg-gray-100 ${
+                                    pathname === link.href ? 'text-primary' : 'text-base-content'
+                                  }`}
+                                >
+                                  {link.label}
+                                </Link>
+                              </li>
+                            ))}
+                          </motion.ul>
+                        ) : null}
+                      </AnimatePresence>
                     </li>
                     <li>
                       <Link

@@ -5,6 +5,7 @@ export default function sitemap() {
     '',
     '/calculator',
     '/about',
+    '/stamp-duty',
     '/faq',
     '/contact',
     '/terms',
