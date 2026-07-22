@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { performLogout } from '@/lib/logout';
-import { User, LogOut, ChevronDown } from 'lucide-react';
+import { User, LogOut, ChevronDown, Calculator } from 'lucide-react';
 import {
   PUBLIC_HEADER_GLASS_STYLE,
   MOBILE_HEADER_MENU_TOP_CLASS,
@@ -17,7 +17,12 @@ import SiteHeaderShell from '@/components/SiteHeaderShell';
 import SurveyLoadingOverlay from '@/components/SurveyLoadingOverlay';
 
 const calculatorLinks = [
-  { href: '/stamp-duty', label: 'Stamp Duty' },
+  {
+    href: '/stamp-duty',
+    label: 'Stamp Duty Calculator',
+    description: 'Estimate state transfer duty and see what banks leave out of settlement costs.',
+    icon: Calculator,
+  },
 ];
 
 export default function Header() {
@@ -84,7 +89,7 @@ export default function Header() {
   return (
     <>
       <header
-        className={`sticky top-0 z-100 ${shouldHideHeader ? 'hidden' : ''}`}
+        className={`sticky top-0 z-100 relative ${shouldHideHeader ? 'hidden' : ''}`}
         style={PUBLIC_HEADER_GLASS_STYLE}
       >
         <SiteHeaderShell>
@@ -150,15 +155,16 @@ export default function Header() {
                     Home
                   </Link>
                   <div
-                    className="relative"
+                    className="relative py-2"
                     onMouseEnter={() => setIsDesktopCalculatorsOpen(true)}
                     onMouseLeave={() => setIsDesktopCalculatorsOpen(false)}
                   >
                     <button
                       type="button"
-                      onClick={() => setIsDesktopCalculatorsOpen((open) => !open)}
                       className={`inline-flex items-center gap-1 hover:text-primary transition-colors cursor-pointer ${
-                        isCalculatorActive ? 'underline underline-offset-6 decoration-2' : ''
+                        isCalculatorActive || isDesktopCalculatorsOpen
+                          ? 'underline underline-offset-6 decoration-2'
+                          : ''
                       }`}
                       aria-haspopup="menu"
                       aria-expanded={isDesktopCalculatorsOpen}
@@ -172,21 +178,36 @@ export default function Header() {
                       <div className="absolute left-0 top-full z-50 pt-2">
                         <div
                           role="menu"
-                          className="min-w-[11rem] rounded-xl border border-gray-200 bg-white py-2 shadow-lg"
+                          className="w-[22rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-300 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.14),0_2px_8px_rgba(15,23,42,0.08)]"
                         >
-                          {calculatorLinks.map((link) => (
-                            <Link
-                              key={link.href}
-                              href={link.href}
-                              role="menuitem"
-                              onClick={() => setIsDesktopCalculatorsOpen(false)}
-                              className={`block px-4 py-2.5 text-base font-medium transition-colors hover:bg-primary/10 hover:text-primary ${
-                                pathname === link.href ? 'text-primary' : 'text-base-content'
-                              }`}
-                            >
-                              {link.label}
-                            </Link>
-                          ))}
+                          <div className="flex flex-col gap-2">
+                            {calculatorLinks.map((link) => {
+                              const Icon = link.icon;
+                              return (
+                                <Link
+                                  key={link.href}
+                                  href={link.href}
+                                  role="menuitem"
+                                  onClick={() => setIsDesktopCalculatorsOpen(false)}
+                                  className="group rounded-xl bg-gray-100 p-4 transition-colors"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                                      <Icon className="h-5 w-5" />
+                                    </div>
+                                    <div>
+                                      <div className="text-base font-semibold text-gray-900 group-hover:text-primary">
+                                        {link.label}
+                                      </div>
+                                      <p className="mt-1 text-sm leading-relaxed text-gray-500">
+                                        {link.description}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </Link>
+                              );
+                            })}
+                          </div>
                         </div>
                       </div>
                     ) : null}
@@ -316,19 +337,28 @@ export default function Header() {
                             transition={{ duration: 0.2 }}
                             className="overflow-hidden bg-gray-50"
                           >
-                            {calculatorLinks.map((link) => (
-                              <li key={link.href}>
-                                <Link
-                                  href={link.href}
-                                  onClick={closeMenu}
-                                  className={`block px-8 py-3 text-base font-medium transition-colors hover:bg-gray-100 ${
-                                    pathname === link.href ? 'text-primary' : 'text-base-content'
-                                  }`}
-                                >
-                                  {link.label}
-                                </Link>
-                              </li>
-                            ))}
+                            {calculatorLinks.map((link) => {
+                              const Icon = link.icon;
+                              return (
+                                <li key={link.href}>
+                                  <Link
+                                    href={link.href}
+                                    onClick={closeMenu}
+                                    className={`flex items-start gap-3 px-6 py-3 transition-colors hover:bg-gray-100 ${
+                                      pathname === link.href ? 'text-primary' : 'text-base-content'
+                                    }`}
+                                  >
+                                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                                      <Icon className="h-4 w-4" />
+                                    </span>
+                                    <span>
+                                      <span className="block text-base font-medium">{link.label}</span>
+                                      <span className="mt-0.5 block text-sm text-gray-500">{link.description}</span>
+                                    </span>
+                                  </Link>
+                                </li>
+                              );
+                            })}
                           </motion.ul>
                         ) : null}
                       </AnimatePresence>
