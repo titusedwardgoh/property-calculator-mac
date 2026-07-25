@@ -6,6 +6,7 @@ export default function sitemap() {
     '/calculator',
     '/about',
     '/stamp-duty',
+    '/home-loan',
     '/faq',
     '/contact',
     '/terms',

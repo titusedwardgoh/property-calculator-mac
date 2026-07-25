@@ -54,7 +54,7 @@ export default function LoggedInHeaderOverlay() {
     };
 
     // Define public pages where normal header should show instead
-    const publicPages = ['/', '/about', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup', '/reset-password', '/forgot-password'];
+    const publicPages = ['/', '/about', '/stamp-duty', '/home-loan', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup', '/reset-password', '/forgot-password'];
     const isPublicPage = publicPages.includes(pathname);
 
     // Only show overlay when user is logged in AND on protected pages (not public pages, not calculator)

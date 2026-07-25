@@ -138,11 +138,20 @@ export default function StampDutyPage() {
                                 className="md:col-span-6 space-y-6 text-center md:text-left"
                             >
                                 <h1 className="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">
-                                    Australian Stamp Duty &amp; Government Cost Estimator
+                                    Australian Base Stamp Duty Calculator
                                 </h1>
                                 <p className="text-lg md:text-xl text-gray-600">
-                                    Avoid hidden shocks at settlement. Get a fast breakdown of state transfer duties, then uncover the missing property purchase costs banks won&apos;t show you.
+                                Want a quick figure? Use our quick tool for an estimate. For a complete breakdown of true out-of-pocket costs at settlement, try our full calculator.
                                 </p>
+                                <div className="flex justify-center md:justify-start">
+                                    <Link
+                                        href="/calculator"
+                                        className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-secondary px-8 py-3.5 rounded-full font-medium text-base hover:shadow-lg transition-all duration-200"
+                                    >
+                                        Full Calculator
+                                        <ArrowRight className="w-5 h-5" />
+                                    </Link>
+                                </div>
                             </motion.div>
 
                             <motion.div
@@ -176,7 +185,7 @@ export default function StampDutyPage() {
                                                 id="stamp-duty-state"
                                                 value={state}
                                                 onChange={(e) => setState(e.target.value)}
-                                                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white text-gray-900"
+                                                className="w-full cursor-pointer px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white text-gray-900"
                                             >
                                                 {STATES.map((option) => (
                                                     <option key={option.value} value={option.value}>
@@ -190,7 +199,7 @@ export default function StampDutyPage() {
                                         ) : null}
                                         <button
                                             type="submit"
-                                            className="w-full bg-primary hover:bg-primary/90 text-secondary font-medium py-3 rounded-xl transition-all duration-200 hover:shadow-lg"
+                                            className="w-full cursor-pointer bg-primary hover:bg-primary/90 text-secondary font-medium py-3 rounded-xl transition-all duration-200 hover:shadow-lg"
                                         >
                                             Calculate Base Stamp Duty
                                         </button>

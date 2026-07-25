@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { performLogout } from '@/lib/logout';
-import { User, LogOut, ChevronDown, Calculator } from 'lucide-react';
+import { User, LogOut, ChevronDown, Calculator, Landmark } from 'lucide-react';
 import {
   PUBLIC_HEADER_GLASS_STYLE,
   MOBILE_HEADER_MENU_TOP_CLASS,
@@ -22,6 +22,12 @@ const calculatorLinks = [
     label: 'Stamp Duty Calculator',
     description: 'Estimate state transfer duty and see what banks leave out of settlement costs.',
     icon: Calculator,
+  },
+  {
+    href: '/home-loan',
+    label: 'Home Loan Calculator',
+    description: 'Estimate monthly repayments, then uncover the full purchase costs banks leave out.',
+    icon: Landmark,
   },
 ];
 
@@ -54,7 +60,7 @@ export default function Header() {
   };
   
   // Define public pages where normal header should always show (even when logged in)
-  const publicPages = ['/', '/about', '/stamp-duty', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup', '/reset-password', '/forgot-password'];
+  const publicPages = ['/', '/about', '/stamp-duty', '/home-loan', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup', '/reset-password', '/forgot-password'];
   const isPublicPage = publicPages.includes(pathname);
   
   // Hide on calculator always; hide on protected routes only after mount so SSR matches first client paint
@@ -91,6 +97,7 @@ export default function Header() {
       <header
         className={`sticky top-0 z-100 relative ${shouldHideHeader ? 'hidden' : ''}`}
         style={PUBLIC_HEADER_GLASS_STYLE}
+        onMouseLeave={() => setIsDesktopCalculatorsOpen(false)}
       >
         <SiteHeaderShell>
           {/* Mobile */}
@@ -148,72 +155,32 @@ export default function Header() {
                 <nav className="flex items-center gap-8 lg:gap-10 font-medium text-md lg:text-lg">
                   <Link
                     href="/"
+                    onMouseEnter={() => setIsDesktopCalculatorsOpen(false)}
                     className={`hover:text-primary transition-colors ${
                       pathname === '/' ? 'underline underline-offset-6 decoration-2' : ''
                     }`}
                   >
                     Home
                   </Link>
-                  <div
-                    className="relative py-2"
+                  <button
+                    type="button"
                     onMouseEnter={() => setIsDesktopCalculatorsOpen(true)}
-                    onMouseLeave={() => setIsDesktopCalculatorsOpen(false)}
+                    className={`inline-flex items-center gap-1 hover:text-primary transition-colors cursor-pointer ${
+                      isCalculatorActive || isDesktopCalculatorsOpen
+                        ? 'underline underline-offset-6 decoration-2'
+                        : ''
+                    }`}
+                    aria-haspopup="menu"
+                    aria-expanded={isDesktopCalculatorsOpen}
                   >
-                    <button
-                      type="button"
-                      className={`inline-flex items-center gap-1 hover:text-primary transition-colors cursor-pointer ${
-                        isCalculatorActive || isDesktopCalculatorsOpen
-                          ? 'underline underline-offset-6 decoration-2'
-                          : ''
-                      }`}
-                      aria-haspopup="menu"
-                      aria-expanded={isDesktopCalculatorsOpen}
-                    >
-                      Calculators
-                      <ChevronDown
-                        className={`w-4 h-4 transition-transform ${isDesktopCalculatorsOpen ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-                    {isDesktopCalculatorsOpen ? (
-                      <div className="absolute left-0 top-full z-50 pt-2">
-                        <div
-                          role="menu"
-                          className="w-[22rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-300 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.14),0_2px_8px_rgba(15,23,42,0.08)]"
-                        >
-                          <div className="flex flex-col gap-2">
-                            {calculatorLinks.map((link) => {
-                              const Icon = link.icon;
-                              return (
-                                <Link
-                                  key={link.href}
-                                  href={link.href}
-                                  role="menuitem"
-                                  onClick={() => setIsDesktopCalculatorsOpen(false)}
-                                  className="group rounded-xl bg-gray-100 p-4 transition-colors"
-                                >
-                                  <div className="flex items-start gap-3">
-                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                                      <Icon className="h-5 w-5" />
-                                    </div>
-                                    <div>
-                                      <div className="text-base font-semibold text-gray-900 group-hover:text-primary">
-                                        {link.label}
-                                      </div>
-                                      <p className="mt-1 text-sm leading-relaxed text-gray-500">
-                                        {link.description}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
+                    Calculators
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform ${isDesktopCalculatorsOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
                   <Link
                     href="/about"
+                    onMouseEnter={() => setIsDesktopCalculatorsOpen(false)}
                     className={`hover:text-primary transition-colors ${
                       pathname === '/about' ? 'underline underline-offset-6 decoration-2' : ''
                     }`}
@@ -222,6 +189,7 @@ export default function Header() {
                   </Link>
                   <Link
                     href="/contact"
+                    onMouseEnter={() => setIsDesktopCalculatorsOpen(false)}
                     className={`hover:text-primary transition-colors ${
                       pathname === '/contact' ? 'underline underline-offset-6 decoration-2' : ''
                     }`}
@@ -278,6 +246,51 @@ export default function Header() {
             </div>
           </div>
         </SiteHeaderShell>
+
+        {isDesktopCalculatorsOpen ? (
+          <div
+            className="absolute top-full left-0 right-0 z-50 hidden md:block"
+            onMouseEnter={() => setIsDesktopCalculatorsOpen(true)}
+          >
+            <div className="md:ml-10">
+              <div className="container mx-auto max-w-7xl px-4 pt-3 pb-4">
+                <div
+                  role="menu"
+                  className="w-[44rem] max-w-full rounded-2xl border border-gray-300 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.14),0_2px_8px_rgba(15,23,42,0.08)]"
+                >
+                  <div className="flex flex-row gap-2">
+                    {calculatorLinks.map((link) => {
+                      const Icon = link.icon;
+                      return (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          role="menuitem"
+                          onClick={() => setIsDesktopCalculatorsOpen(false)}
+                          className="group min-w-0 flex-1 rounded-xl bg-gray-100 p-4 transition-colors"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                              <Icon className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <div className="text-base font-semibold text-gray-900 group-hover:text-primary">
+                                {link.label}
+                              </div>
+                              <p className="mt-1 text-sm leading-relaxed text-gray-500">
+                                {link.description}
+                              </p>
+                            </div>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </header>
 
       {/* Mobile menu overlay */}
