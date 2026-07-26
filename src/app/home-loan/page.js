@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { calculateMonthlyRepayment } from '@/states/shared/loanCalculations';
 import { formatCurrency } from '@/states/shared/baseCalculations';
+import { saveSurveyReturnPath } from '@/lib/surveyReturnPath';
 
 const miniCalculators = [
     {
@@ -939,6 +940,7 @@ function MortgageCalculatorPanel({ mode }) {
                         </p>
                         <Link
                             href="/calculator"
+                            onClick={() => saveSurveyReturnPath('/home-loan')}
                             className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-secondary transition-all hover:bg-primary/90 hover:shadow-md"
                         >
                             Get a full picture of all your other Costs
@@ -1284,6 +1286,7 @@ function LmiCalculatorPanel() {
                         </p>
                         <Link
                             href="/calculator"
+                            onClick={() => saveSurveyReturnPath('/home-loan')}
                             className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-secondary transition-all hover:bg-primary/90 hover:shadow-md"
                         >
                             Get a full picture of all your other Costs
@@ -1715,6 +1718,7 @@ function RepaySoonerPanel() {
                         </p>
                         <Link
                             href="/calculator"
+                            onClick={() => saveSurveyReturnPath('/home-loan')}
                             className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-secondary transition-all hover:bg-primary/90 hover:shadow-md"
                         >
                             Get a full picture of all your other Costs
@@ -1796,6 +1800,7 @@ export default function HomeLoanPage() {
                                 <div className="flex justify-center md:justify-start">
                                     <Link
                                         href="/calculator"
+                                        onClick={() => saveSurveyReturnPath('/home-loan')}
                                         className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-secondary px-8 py-3.5 rounded-full font-medium text-base hover:shadow-lg transition-all duration-200"
                                     >
                                         Full Calculator

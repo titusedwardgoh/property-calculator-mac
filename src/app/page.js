@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useFormStore } from '../stores/formStore';
+import { saveSurveyReturnPath } from '@/lib/surveyReturnPath';
 
 const testimonials = [
     {
@@ -102,6 +103,7 @@ export default function HomePage() {
     }, [visibleCount]);
 
     const handleGetStarted = () => {
+        saveSurveyReturnPath('/');
         router.push('/calculator');
     };
 

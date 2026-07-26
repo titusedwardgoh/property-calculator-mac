@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
+import { saveSurveyReturnPath } from "@/lib/surveyReturnPath";
 
 export default function NotFound() {
   return (
@@ -40,6 +41,7 @@ export default function NotFound() {
           </Link>
           <Link
             href="/calculator?fresh=true"
+            onClick={() => saveSurveyReturnPath('/')}
             className="w-full sm:w-auto inline-flex items-center justify-center bg-[#D47A5B] hover:bg-[#C3694A] text-white font-medium text-base rounded-full px-8 py-3.5 transition-all duration-200 shadow-sm active:scale-[0.98]"
           >
             Start New Survey

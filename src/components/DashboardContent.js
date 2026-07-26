@@ -9,6 +9,7 @@ import { User, Play, Eye, Trash2, FileText, Loader2, X, AlertTriangle, Search, A
 import { useAuth } from '@/hooks/useAuth';
 import { useFormStore } from '@/stores/formStore';
 import { resetSessionAndForm } from '@/lib/sessionManager';
+import { saveSurveyReturnPath } from '@/lib/surveyReturnPath';
 import {
   getPropertyPhotoUrl,
   getStreetViewPhotoUrl,
@@ -1655,6 +1656,7 @@ export default function DashboardContent({
   const handleResume = (propertyId) => {
     if (!propertyId) return;
     setOpenCardMenuId(null);
+    saveSurveyReturnPath('/dashboard');
     sessionStorage.setItem('resumePropertyId', String(propertyId));
   };
 
@@ -2565,6 +2567,7 @@ export default function DashboardContent({
                       <Link
                         href="/calculator?fresh=true"
                         onClick={() => {
+                          saveSurveyReturnPath('/dashboard');
                           resetSessionAndForm(resetForm);
                           if (typeof window !== 'undefined') {
                             sessionStorage.removeItem('resumePropertyId');
@@ -2699,6 +2702,7 @@ export default function DashboardContent({
                     <Link
                       href="/calculator?fresh=true"
                       onClick={() => {
+                        saveSurveyReturnPath('/dashboard');
                         resetSessionAndForm(resetForm);
                         if (typeof window !== 'undefined') {
                           sessionStorage.removeItem('resumePropertyId');

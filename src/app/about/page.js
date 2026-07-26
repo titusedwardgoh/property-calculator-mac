@@ -8,6 +8,7 @@ import {
     Users,
     Sparkles
 } from 'lucide-react';
+import { saveSurveyReturnPath } from '@/lib/surveyReturnPath';
 
 const featureCards = [
     {
@@ -108,6 +109,7 @@ export default function AboutPage() {
                         >
                             <Link
                                 href="/calculator"
+                                onClick={() => saveSurveyReturnPath('/about')}
                                 className="bg-primary hover:bg-primary/90 text-secondary px-8 py-4 rounded-full font-medium text-base hover:shadow-lg transition-all duration-200 w-full sm:w-auto"
                             >
                                 Start the free calculator

@@ -24,6 +24,7 @@ import {
     getPendingSurveyLinkPropertyId,
     hasPendingSurveyLink,
 } from '../../lib/pendingSurveyLink';
+import { getSurveyReturnPath, saveSurveyReturnPath } from '../../lib/surveyReturnPath';
 import { resetSessionAndForm, getSessionId, getDeviceId } from '../../lib/sessionManager';
 import { markSurveyAbandoned, isSurveyAbandoned } from '../../lib/abandonedSurvey';
 import { blobToBase64 } from '../../lib/generateResultsPdf';
@@ -90,6 +91,20 @@ function CalculatorPageContent() {
             authLoading,
         }
     );
+
+    // Capture where the user came from so quit can return there (CTA handlers also set this)
+    useEffect(() => {
+        if (getSurveyReturnPath()) return;
+        try {
+            const referrer = document.referrer;
+            if (!referrer) return;
+            const url = new URL(referrer);
+            if (url.origin !== window.location.origin) return;
+            saveSurveyReturnPath(url.pathname);
+        } catch {
+            // Ignore malformed referrers
+        }
+    }, []);
 
     // Dashboard "Start New Survey" — reset on mount even if onClick ran before navigation
     useEffect(() => {

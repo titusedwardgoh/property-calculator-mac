@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { X } from 'lucide-react';
 import { setPendingSurveyLink, isAuthFlowPath } from '@/lib/pendingSurveyLink';
+import { clearSurveyReturnPath, resolveSurveyExitPath } from '@/lib/surveyReturnPath';
 
 const getPathFromUrl = (url) => {
   try {
@@ -116,26 +117,25 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
     };
   }, [shouldShowWarning, shouldShowAnonymousWarning, shouldPromptOnExit, pathname]);
 
+  const navigateAway = (destination) => {
+    if (destination === '/dashboard' && onReturningToDashboard) {
+      onReturningToDashboard();
+    }
+    startNavigationOverlay(destination);
+    clearSurveyReturnPath();
+    router.push(destination);
+  };
+
   const handleConfirm = async () => {
     setShowWarning(false);
     if (onSave) {
       await onSave();
     }
     if (pendingNavigation) {
-      const destination = pendingNavigation;
-      if (destination === '/dashboard' && onReturningToDashboard) {
-        onReturningToDashboard();
-      }
-      startNavigationOverlay(destination);
-      router.push(destination);
+      navigateAway(pendingNavigation);
       setPendingNavigation(null);
     } else {
-      const targetUrl = user ? '/dashboard' : '/';
-      if (user && onReturningToDashboard) {
-        onReturningToDashboard();
-      }
-      startNavigationOverlay(targetUrl);
-      router.push(targetUrl);
+      navigateAway(resolveSurveyExitPath(user));
     }
   };
 
@@ -145,20 +145,10 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
       onDiscard();
     }
     if (pendingNavigation) {
-      const destination = pendingNavigation;
-      if (destination === '/dashboard' && onReturningToDashboard) {
-        onReturningToDashboard();
-      }
-      startNavigationOverlay(destination);
-      router.push(destination);
+      navigateAway(pendingNavigation);
       setPendingNavigation(null);
     } else {
-      const targetUrl = user ? '/dashboard' : '/';
-      if (user && onReturningToDashboard) {
-        onReturningToDashboard();
-      }
-      startNavigationOverlay(targetUrl);
-      router.push(targetUrl);
+      navigateAway(resolveSurveyExitPath(user));
     }
   };
 
@@ -184,13 +174,10 @@ export default function NavigationWarning({ hasUnsavedChanges, onSave, onDiscard
       onDiscard();
     }
     if (pendingNavigation) {
-      const destination = pendingNavigation;
-      startNavigationOverlay(destination);
-      router.push(destination);
+      navigateAway(pendingNavigation);
       setPendingNavigation(null);
     } else {
-      startNavigationOverlay('/');
-      router.push('/');
+      navigateAway(resolveSurveyExitPath(user));
     }
   };
 

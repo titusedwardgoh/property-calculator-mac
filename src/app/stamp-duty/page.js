@@ -7,6 +7,7 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { Home, MapPin, FileText, TrendingUp, CircleDollarSign, Calculator, ArrowRight } from 'lucide-react';
 import { useStateSelector } from '@/states/useStateSelector';
 import { formatCurrency } from '@/states/shared/baseCalculations';
+import { saveSurveyReturnPath } from '@/lib/surveyReturnPath';
 
 const featureCards = [
     {
@@ -95,6 +96,7 @@ export default function StampDutyPage() {
 
     const handleProceedToFullSurvey = () => {
         setIsSubmitting(true);
+        saveSurveyReturnPath('/stamp-duty');
         router.push('/calculator');
     };
 
@@ -146,6 +148,7 @@ export default function StampDutyPage() {
                                 <div className="flex justify-center md:justify-start">
                                     <Link
                                         href="/calculator"
+                                        onClick={() => saveSurveyReturnPath('/stamp-duty')}
                                         className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-secondary px-8 py-3.5 rounded-full font-medium text-base hover:shadow-lg transition-all duration-200"
                                     >
                                         Full Calculator
@@ -319,6 +322,7 @@ export default function StampDutyPage() {
                             <div className="mt-10 flex justify-center md:justify-start">
                                 <Link
                                     href="/calculator"
+                                    onClick={() => saveSurveyReturnPath('/stamp-duty')}
                                     className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-secondary px-8 py-4 rounded-full font-medium text-base hover:shadow-lg transition-all duration-200"
                                 >
                                     Get Your Exact Number

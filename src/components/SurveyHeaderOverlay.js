@@ -8,6 +8,11 @@ import { useFormStore } from '../stores/formStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useWizardStep } from '@/hooks/useWizardStep';
 import { shouldReturnToResultsOnClose } from '@/lib/wizardSteps';
+import {
+    clearSurveyReturnPath,
+    getSurveyExitLoadingMessage,
+    resolveSurveyExitPath,
+} from '@/lib/surveyReturnPath';
 import { useEditSession } from '@/contexts/EditSessionContext';
 import SiteHeaderShell from '@/components/SiteHeaderShell';
 import { PUBLIC_HEADER_GLASS_STYLE } from '@/lib/loggedInHeaderGlassStyle';
@@ -116,6 +121,7 @@ export default function SurveyHeaderOverlay() {
         }
 
         beginNavigatingAway(url);
+        clearSurveyReturnPath();
         router.push(url);
     };
 
@@ -147,7 +153,7 @@ export default function SurveyHeaderOverlay() {
             return;
         }
 
-        const targetUrl = user ? '/dashboard' : '/';
+        const targetUrl = resolveSurveyExitPath(user);
         handleNavigation(targetUrl);
     };
 
@@ -264,11 +270,7 @@ export default function SurveyHeaderOverlay() {
         {/* Loading overlay when navigating away from survey */}
         {isNavigatingAway && (
             <SurveyLoadingOverlay
-                message={
-                    navigationDestination === '/dashboard'
-                        ? 'Returning to dashboard...'
-                        : 'Returning to home...'
-                }
+                message={getSurveyExitLoadingMessage(navigationDestination)}
                 overlayClassName="!z-[200]"
             />
         )}
