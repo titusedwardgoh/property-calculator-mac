@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { performLogout } from '@/lib/logout';
-import { User, LogOut, ChevronDown, Calculator, Landmark } from 'lucide-react';
+import { User, LogOut, ChevronDown, Calculator, Landmark, Gift } from 'lucide-react';
 import {
   PUBLIC_HEADER_GLASS_STYLE,
   MOBILE_HEADER_MENU_TOP_CLASS,
@@ -22,6 +22,12 @@ const calculatorLinks = [
     label: 'Stamp Duty Calculator',
     description: 'Estimate state transfer duty and see what banks leave out of settlement costs.',
     icon: Calculator,
+  },
+  {
+    href: '/grants-and-concessions',
+    label: 'Grants and Concessions',
+    description: 'Check eligibility for first home grants and stamp duty concessions.',
+    icon: Gift,
   },
   {
     href: '/home-loan',
@@ -60,7 +66,7 @@ export default function Header() {
   };
   
   // Define public pages where normal header should always show (even when logged in)
-  const publicPages = ['/', '/about', '/stamp-duty', '/home-loan', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup', '/reset-password', '/forgot-password'];
+  const publicPages = ['/', '/about', '/stamp-duty', '/home-loan', '/grants-and-concessions', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup', '/reset-password', '/forgot-password'];
   const isPublicPage = publicPages.includes(pathname);
   
   // Hide on calculator always; hide on protected routes only after mount so SSR matches first client paint
@@ -256,7 +262,7 @@ export default function Header() {
               <div className="container mx-auto max-w-7xl px-4 pt-3 pb-4">
                 <div
                   role="menu"
-                  className="w-[44rem] max-w-full rounded-2xl border border-gray-300 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.14),0_2px_8px_rgba(15,23,42,0.08)]"
+                  className="w-[56rem] max-w-full rounded-2xl border border-gray-300 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.14),0_2px_8px_rgba(15,23,42,0.08)]"
                 >
                   <div className="flex flex-row gap-2">
                     {calculatorLinks.map((link) => {

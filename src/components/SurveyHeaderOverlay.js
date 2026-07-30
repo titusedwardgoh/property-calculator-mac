@@ -216,7 +216,7 @@ export default function SurveyHeaderOverlay() {
                     </button>
                 </div>
 
-                {/* Desktop — mirror WelcomePage columns so X aligns with illustration right edge */}
+                {/* Desktop — X lines up with floor plan right edge */}
                 <div className="hidden md:flex min-h-12 w-full items-center">
                     <div className="flex w-full flex-row items-center">
                         <div className="w-3/5 shrink-0">
@@ -237,30 +237,28 @@ export default function SurveyHeaderOverlay() {
                                 </div>
                             </Link>
                         </div>
-                        <div className="w-1/2 shrink-0 -ml-12 flex items-center justify-center">
-                            <div className="flex w-full max-w-md justify-end pr-12 lg:pr-12">
-                                <button
-                                    onClick={handleClose}
-                                    disabled={isCloseDisabled}
-                                    className={`flex items-center justify-center px-3 py-2 focus:outline-none ${isCloseDisabled ? 'pointer-events-none cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-                                    aria-label="Close survey"
-                                    aria-disabled={isCloseDisabled}
+                        <div className="flex w-2/5 shrink-0 items-center justify-end pr-12">
+                            <button
+                                onClick={handleClose}
+                                disabled={isCloseDisabled}
+                                className={`flex items-center justify-center px-3 py-2 focus:outline-none ${isCloseDisabled ? 'pointer-events-none cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                                aria-label="Close survey"
+                                aria-disabled={isCloseDisabled}
+                            >
+                                <svg
+                                    className="w-6 h-6 text-base-content"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
                                 >
-                                    <svg
-                                        className="w-6 h-6 text-base-content"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M6 18L18 6M6 6l12 12"
-                                        />
-                                    </svg>
-                                </button>
-                            </div>
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                </svg>
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -295,7 +295,7 @@ export default function StampDutyPage() {
                                 `,
                             }}
                         >
-                            <div className="max-w-3xl mx-auto md:mx-0 text-center md:text-left">
+                            <div className="mx-auto text-center md:mx-0 md:text-left">
                                 <h2 className="text-3xl font-bold text-gray-900 mb-4">
                                     Bank Calculators Are Guessing. You Need The Real Number.
                                 </h2>

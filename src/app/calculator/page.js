@@ -14,8 +14,8 @@ import SurveyLoadingScreen, { SurveyLoadingFallback } from '../../components/Sur
 import NavigationWarning from '../../components/NavigationWarning';
 import EmailModal from '../../components/EmailModal';
 import ResultsSummary from '../../components/ResultsSummary';
+import SurveyFloorPlanProgress from '../../components/SurveyFloorPlanProgress';
 import { useFormStore } from '../../stores/formStore';
-import { calculateGlobalProgress, calculateEditModeOverallProgress } from '../../lib/progressCalculation';
 import { useSupabaseSync } from '../../hooks/useSupabaseSync';
 import { useAuth } from '../../hooks/useAuth';
 import { useStateSelector } from '../../states/useStateSelector.js';
@@ -707,60 +707,15 @@ function CalculatorPageContent() {
                 <WelcomePage />
             ) : !blockMainContent ? (
                 <main className={`container mx-auto max-w-7xl px-3 sm:px-4 pb-4 lg:pb-10 ${showResultsSummary ? 'md:pt-35 max-md:pt-20' : 'md:pt-35 max-md:pt-30'}`}>
-                    {/* Progress Bars - hidden on Results Summary */}
+                    {/* Progress Bars - Current Form only on desktop; overall replaced by floor plan */}
                     {!showResultsSummary && (
                     <div className="hidden md:block mb-0 md:w-[57%]">
-                        <div className="space-y-4 ml-10">
-                            {/* Overall Progress */}
-                            <motion.div
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.5, delay: 0.2 }}
-                            >
-                                <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2">Overall Progress</h4>
-                                <div className="w-full bg-gray-100 h-1">
-                                    <motion.div
-                                        initial={{ opacity: 0, scaleY: 0 }}
-                                        animate={{ opacity: 1, scaleY: 1 }}
-                                        transition={{ duration: 0.5, delay: 0.4 }}
-                                        className="bg-primary h-1 transition-all duration-300 origin-top"
-                                        style={{
-                                            width: `${(() => {
-                                                const isEditingCompletedSurvey =
-                                                    allFormsComplete && !showResultsSummary;
-
-                                                if (
-                                                    editingFromReview ||
-                                                    step === WIZARD_STEPS.ADDITIONAL ||
-                                                    isEditingCompletedSurvey
-                                                ) {
-                                                    if (step === WIZARD_STEPS.ADDITIONAL) {
-                                                        const aqFields = formData.additionalQuestionsFields || [];
-                                                        const frozen = { ...formData };
-                                                        aqFields.forEach(k => { frozen[k] = ''; });
-                                                        return calculateGlobalProgress(frozen, {});
-                                                    }
-                                                    return calculateEditModeOverallProgress(
-                                                        step,
-                                                        formData,
-                                                        editingFromReview || isEditingCompletedSurvey
-                                                    );
-                                                }
-                                                // Property completion page is shown before the user clicks
-                                                // Next and sets propertyDetailsComplete.
-                                                if (!propertyDetailsComplete && !formData.propertyDetailsFormComplete) return 0;
-                                                if (!buyerDetailsComplete) return 25;
-                                                if (buyerDetailsComplete && needsLoan === 'yes' && !loanDetailsComplete) return 50;
-                                                if (buyerDetailsComplete && needsLoan === 'yes' && loanDetailsComplete && step !== WIZARD_STEPS.SELLER) return 75;
-                                                if (buyerDetailsComplete && step === WIZARD_STEPS.SELLER && !sellerQuestionsComplete) return 75;
-                                                if (buyerDetailsComplete && sellerQuestionsComplete) return 100;
-                                                if (buyerDetailsComplete && needsLoan !== 'yes') return 75;
-                                                return 0;
-                                            })()}%`
-                                        }}
-                                    ></motion.div>
-                                </div>
-                            </motion.div>
+                        <div className="ml-10 space-y-4 md:pt-2">
+                            {/* Spacer replaces removed Overall Progress so content stays lower */}
+                            <div aria-hidden="true" className="invisible select-none">
+                                <h4 className="mb-2 text-sm font-medium lg:text-base">Overall Progress</h4>
+                                <div className="h-1 w-full" />
+                            </div>
 
                             {/* Current Form Progress */}
                             <motion.div
@@ -926,6 +881,16 @@ function CalculatorPageContent() {
                                 }
                             })()}
                         </div>
+
+                        {!showResultsSummary &&
+                        (step === WIZARD_STEPS.PROPERTY ||
+                            step === WIZARD_STEPS.BUYER ||
+                            step === WIZARD_STEPS.LOAN ||
+                            step === WIZARD_STEPS.SELLER) ? (
+                            <div className="order-1 mb-8 hidden md:sticky md:top-40 md:order-2 md:mb-0 md:mt-8 md:flex md:w-2/5 md:justify-end md:pl-16 md:pr-12 lg:pl-24">
+                                <SurveyFloorPlanProgress className="shrink-0" />
+                            </div>
+                        ) : null}
                     </div>
                 </main>
             ) : null}

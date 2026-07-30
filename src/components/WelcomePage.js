@@ -100,20 +100,20 @@ export default function WelcomePage() {
                 </SurveyLoadingOverlay>
             )}
             <main className="container mx-auto max-w-7xl px-3 sm:px-4 max-md:pt-30 md:pt-35 pb-4 lg:pb-10">
-                {/* Spacer — matches survey progress bars height so heading aligns with step questions */}
+                {/* Spacer — matches progress area height so heading aligns with step questions */}
                 <div className="hidden md:block mb-0 md:w-[57%]" aria-hidden="true">
-                    <div className="space-y-4 ml-10">
+                    <div className="ml-10 space-y-4 md:pt-2">
                         <div>
-                            <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2 invisible">
+                            <h4 className="mb-2 text-sm font-medium text-gray-700 invisible lg:text-base">
                                 Overall Progress
                             </h4>
-                            <div className="w-full h-1" />
+                            <div className="h-1 w-full" />
                         </div>
                         <div>
-                            <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2 invisible">
+                            <h4 className="mb-2 text-sm font-medium text-gray-700 invisible lg:text-base">
                                 Current Form Progress
                             </h4>
-                            <div className="w-full h-1" />
+                            <div className="h-1 w-full" />
                         </div>
                     </div>
                 </div>
@@ -178,8 +178,8 @@ export default function WelcomePage() {
                         </AnimatePresence>
                     </div>
                     
-                    {/* Image section - hidden on mobile, shown on md+ */}
-                    <div className="order-1 md:order-2 md:w-1/2 md:-mt-10 md:-ml-12 flex items-center justify-center mb-8 md:mb-0 hidden md:flex">
+                    {/* Image section - hidden on mobile, shown on md+; right-aligned toward header X */}
+                    <div className="order-1 md:order-2 md:w-2/5 md:-mt-2 mb-8 md:mb-0 hidden md:flex md:justify-end md:pl-16 md:pr-12 lg:pl-24">
                         <AnimatePresence>
                             {!isExiting && (
                                 <motion.div
@@ -187,15 +187,16 @@ export default function WelcomePage() {
                                     animate={{ opacity: 1, x: 0 }}
                                     exit={{ opacity: 0, x: 20 }}
                                     transition={{ duration: 0.5, ease: "easeInOut" }}
-                                    className="relative w-full max-w-md"
+                                    className="relative w-full max-w-xs shrink-0"
                                 >
                                     <Image
-                                        src="/welcome.png"
-                                        alt="Property planning illustration"
+                                        src="/surveypic.png"
+                                        alt="Property survey floor plan"
                                         width={500}
                                         height={500}
                                         priority
-                                        className="object-contain "
+                                        unoptimized
+                                        className="object-contain"
                                     />
                                 </motion.div>
                             )}
