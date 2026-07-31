@@ -69,6 +69,7 @@ function CalculatorPageContent() {
     const freshStartHandledRef = useRef(false);
     const urlLoadHandledRef = useRef(false);
     const stepRedirectHandledRef = useRef(false);
+    const dashboardPromotedRef = useRef(null);
 
     const { step, fromReview, navigateToStep } = useWizardStep();
 
@@ -106,7 +107,7 @@ function CalculatorPageContent() {
         }
     }, []);
 
-    // Dashboard "Start New Survey" — reset on mount even if onClick ran before navigation
+    // Dashboard / Results "Start New Survey" — reset on mount even if onClick ran before navigation
     useEffect(() => {
         if (freshStartHandledRef.current) return;
         if (searchParams.get('fresh') !== 'true') return;
@@ -114,6 +115,8 @@ function CalculatorPageContent() {
         freshStartHandledRef.current = true;
         hasResumedRef.current = false;
         initialWelcomeCheckedRef.current = false;
+        stepRedirectHandledRef.current = false;
+        urlLoadHandledRef.current = null;
         setOriginalLoadedState(null);
         resetSessionAndForm(formData.resetForm);
         router.replace('/calculator', { scroll: false });
@@ -271,6 +274,7 @@ function CalculatorPageContent() {
 
         if (authLoading) return;
         if (searchParams.get('resume') === 'true') return;
+        if (searchParams.get('fresh') === 'true') return;
         if (!urlPropertyId || !urlStep || urlStep === WIZARD_STEPS.WELCOME) return;
         if (isSurveyAbandoned(urlPropertyId)) return;
 
@@ -491,20 +495,10 @@ function CalculatorPageContent() {
         return () => clearTimeout(timer);
     }, [step, formData.isRecalculatingResults, updateFormData]);
 
-    const handleStartNewSurvey = useCallback(() => {
-        setIsStartingNewSurvey(true);
-        requestAnimationFrame(() => {
-            setOriginalLoadedState(null);
-            resetSessionAndForm(formData.resetForm);
-            router.replace('/calculator', { scroll: false });
-        });
-    }, [formData.resetForm, router, setOriginalLoadedState]);
-
-    const handleSave = async (userSaved = false) => {
+    const handleSave = useCallback(async (userSaved = false) => {
         // Save will automatically link to user's account if logged in
         // (user_id is already set in saveToSupabase via getSupabaseUserId)
         // userSaved = true when user explicitly clicks "SAVE" in navigation warning
-        // Note: saveToSupabase from useSupabaseSync uses formData from the hook's closure
         console.log('💾 handleSave called with userSaved:', userSaved);
         const result = await saveToSupabase(userSaved);
         if (userSaved && useFormStore.getState().editSessionActive) {
@@ -512,6 +506,7 @@ function CalculatorPageContent() {
             setOriginalLoadedState(useFormStore.getState());
         }
         if (userSaved && result?.propertyId && typeof window !== 'undefined') {
+            dashboardPromotedRef.current = String(result.propertyId);
             const latest = useFormStore.getState();
             sessionStorage.setItem('dashboardSavedPropertyId', String(result.propertyId));
             sessionStorage.setItem(
@@ -531,7 +526,88 @@ function CalculatorPageContent() {
             );
         }
         return result;
-    };
+    }, [saveToSupabase, setOriginalLoadedState]);
+
+    // Logged-in users: promote a completed survey to the dashboard (auto-save alone stays anonymous)
+    useEffect(() => {
+        if (authLoading || !user) return;
+        if (isLoadingResume || isStartingNewSurvey) return;
+        if (step !== WIZARD_STEPS.RESULTS) return;
+        if (!formData.allFormsComplete && !formData.sellerQuestionsComplete) return;
+
+        const currentId = formData.propertyId ? String(formData.propertyId) : null;
+        if (currentId && dashboardPromotedRef.current === currentId) return;
+
+        // Already a dashboard-owned record with no pending edits — just mark promoted
+        if (formData.propertyLinkedToUser && !hasUnsavedChanges()) {
+            if (currentId) dashboardPromotedRef.current = currentId;
+            return;
+        }
+
+        // Avoid repeat calls while the first promote is in flight (propertyId may still be null)
+        if (!currentId && dashboardPromotedRef.current === 'pending') return;
+
+        dashboardPromotedRef.current = currentId || 'pending';
+        handleSave(true).catch((error) => {
+            console.error('Failed to save completed survey to dashboard:', error);
+            dashboardPromotedRef.current = null;
+        });
+    }, [
+        authLoading,
+        user,
+        isLoadingResume,
+        isStartingNewSurvey,
+        step,
+        formData.allFormsComplete,
+        formData.sellerQuestionsComplete,
+        formData.propertyId,
+        formData.propertyLinkedToUser,
+        handleSave,
+        hasUnsavedChanges,
+    ]);
+
+    const beginFreshSurvey = useCallback(() => {
+        const currentPropertyId = useFormStore.getState().propertyId;
+        if (currentPropertyId) {
+            urlLoadHandledRef.current = currentPropertyId;
+            // Guests only — logged-in surveys stay on the dashboard
+            if (!user) {
+                markSurveyAbandoned(currentPropertyId);
+            }
+        }
+        freshStartHandledRef.current = false;
+        hasResumedRef.current = false;
+        initialWelcomeCheckedRef.current = false;
+        stepRedirectHandledRef.current = false;
+        dashboardPromotedRef.current = null;
+
+        setOriginalLoadedState(null);
+        resetSessionAndForm(formData.resetForm);
+        router.replace(buildCalculatorUrl({ fresh: true }), { scroll: false });
+    }, [formData.resetForm, router, setOriginalLoadedState, user]);
+
+    const handleStartNewSurvey = useCallback(async () => {
+        setIsStartingNewSurvey(true);
+
+        const state = useFormStore.getState();
+        // Persist to dashboard before clearing so a completed survey is not lost
+        if (user && hasStartedSurvey(state)) {
+            const alreadyPromoted =
+                state.propertyId &&
+                dashboardPromotedRef.current === String(state.propertyId);
+            if (!alreadyPromoted || hasUnsavedChanges()) {
+                try {
+                    await handleSave(true);
+                } catch (error) {
+                    console.error('Failed to save before starting new survey:', error);
+                    setIsStartingNewSurvey(false);
+                    return;
+                }
+            }
+        }
+
+        beginFreshSurvey();
+    }, [user, handleSave, hasUnsavedChanges, beginFreshSurvey]);
 
     const handleDiscard = () => {
         if (formData.editSessionActive) {
@@ -717,11 +793,12 @@ function CalculatorPageContent() {
                                 <div className="h-1 w-full" />
                             </div>
 
-                            {/* Current Form Progress */}
+                            {/* Current Form Progress — relative offset so questions/floor plan stay put */}
                             <motion.div
                                 initial={{ opacity: 0, y: -10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5, delay: 0.3 }}
+                                className="relative -top-3"
                             >
                                 <h4 className="text-sm lg:text-base font-medium text-gray-700 mb-2">Current Form Progress</h4>
                                 <div className="w-full bg-gray-100 h-1">
