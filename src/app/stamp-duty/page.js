@@ -3,8 +3,8 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import { Home, MapPin, FileText, TrendingUp, CircleDollarSign, Calculator, ArrowRight } from 'lucide-react';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
+import { Home, TrendingUp, CircleDollarSign, ArrowRight, ChevronDown } from 'lucide-react';
 import { useStateSelector } from '@/states/useStateSelector';
 import { formatCurrency } from '@/states/shared/baseCalculations';
 import { saveSurveyReturnPath } from '@/lib/surveyReturnPath';
@@ -27,21 +27,34 @@ const featureCards = [
     }
 ];
 
-const pillars = [
+const faqs = [
     {
-        title: "Your Real Purchase Price",
-        copy: "Get this wrong and you're short at the worst possible moment — settlement.",
-        icon: Calculator
+        question: "What is stamp duty and how is it calculated?",
+        answer: "Stamp duty (or land transfer duty) is a tax charged by state and territory governments when you buy property. It's calculated on either the purchase price of the property or its current market value, whichever is higher. Each state uses a sliding scale where higher-priced properties pay higher rates."
     },
     {
-        title: "Your State, Your Rate",
-        copy: "VIC, NSW and QLD don't play by the same rules. Generic tools guess. We don't.",
-        icon: MapPin
+        question: "Are first home buyers exempt from stamp duty?",
+        answer: (
+            <>
+                In many Australian states and territories, first home buyers are eligible for full exemptions or discounted rates on stamp duty, provided the purchase price falls under specific state thresholds (e.g., $800,000 in NSW or $600,000 in VIC for full exemptions). Rules vary significantly depending on where you are buying. See our{' '}
+                <Link href="/grants-and-concessions" className="text-primary font-medium underline underline-offset-2 hover:text-primary/80">
+                    grants and concessions guide
+                </Link>
+                {' '}for state-by-state details.
+            </>
+        ),
     },
     {
-        title: "Every Extra Cost, Covered",
-        copy: "Stamp duty is just one bill. Titles, searches, registration — we count them all.",
-        icon: FileText
+        question: "When do I need to pay stamp duty?",
+        answer: "Payment deadlines differ by state. In general, stamp duty must be paid either on or before settlement day, or within a set period after signing contracts (typically 30 to 90 days depending on the state). Your conveyancer or solicitor will usually manage this payment as part of the settlement process."
+    },
+    {
+        question: "What additional government fees should I expect?",
+        answer: "On top of transfer duty, most states charge mandatory Transfer Registration Fees and Mortgage Registration Fees to register the title change. These fees are usually flat or variable administrative costs charged by the land registry office."
+    },
+    {
+        question: "Is stamp duty different for investors vs owner-occupiers?",
+        answer: "Yes. Many state revenue offices offer principal place of residence (PPR) concessions for buyers who intend to live in the home. Investors typically pay standard duty rates without PPR discounts and may also face additional surcharges if purchasing as a foreign buyer."
     }
 ];
 
@@ -66,6 +79,7 @@ export default function StampDutyPage() {
     const [teaserResults, setTeaserResults] = useState(null);
     const [formError, setFormError] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [openFaqIndex, setOpenFaqIndex] = useState(null);
 
     const { stateFunctions } = useStateSelector(state);
 
@@ -103,6 +117,10 @@ export default function StampDutyPage() {
     const handleResetTeaser = () => {
         setTeaserResults(null);
         setFormError('');
+    };
+
+    const toggleFaq = (index) => {
+        setOpenFaqIndex(openFaqIndex === index ? null : index);
     };
 
     return (
@@ -277,6 +295,7 @@ export default function StampDutyPage() {
                     </div>
                 </section>
 
+                {/* FAQ Accordion Section */}
                 <section className="relative z-10 w-full bg-base-200 py-16">
                     <div className="container mx-auto px-4">
                         <motion.div
@@ -284,7 +303,7 @@ export default function StampDutyPage() {
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.6, ease: "easeOut" }}
-                            className="border border-base-200 rounded-3xl shadow-md p-8 md:p-12"
+                            className="border border-base-200 rounded-3xl shadow-md p-6 md:p-12"
                             style={{
                                 background: `
                                     radial-gradient(ellipse 98% 74% at 10% 24%, rgba(152, 233, 201, 0.26), transparent 74%),
@@ -295,39 +314,68 @@ export default function StampDutyPage() {
                                 `,
                             }}
                         >
-                            <div className="mx-auto text-center md:mx-0 md:text-left">
-                                <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                                    Bank Calculators Are Guessing. You Need The Real Number.
-                                </h2>
-                                <p className="text-lg text-gray-600 leading-relaxed mb-6">
-                                    A rough estimate feels fine — until settlement day, when the gap between &apos;guess&apos; and &apos;owed&apos; comes out of your pocket.
-                                </p>
-                            </div>
+                            <div className="grid gap-10 md:grid-cols-12 md:gap-12 lg:gap-16">
+                                <div className="text-center md:col-span-4 md:text-left">
+                                    <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                                        Frequently Asked Questions
+                                    </h2>
+                                    <p className="text-base md:text-lg text-gray-600">
+                                        Everything you need to know about stamp duty, concessions, and property purchasing fees across Australia.
+                                    </p>
+                                </div>
 
-                            <div className="grid gap-8 md:grid-cols-3 mt-12">
-                                {pillars.map((pillar) => {
-                                    const Icon = pillar.icon;
-                                    return (
-                                        <div key={pillar.title} className="rounded-2xl bg-base-200/80 border border-base-300 p-6 text-center md:text-left">
-                                            <div className="flex flex-col md:flex-row items-center md:items-center justify-center md:justify-start gap-2 md:gap-3 mb-3">
-                                                <Icon className="w-6 h-6 text-primary shrink-0" />
-                                                <h3 className="text-lg font-semibold text-gray-900">{pillar.title}</h3>
+                                <div className="md:col-span-8 space-y-4">
+                                    {faqs.map((faq, index) => {
+                                        const isOpen = openFaqIndex === index;
+                                        return (
+                                            <div
+                                                key={index}
+                                                className="border border-gray-200/80 rounded-2xl bg-white/80 overflow-hidden backdrop-blur-sm transition-all duration-200"
+                                            >
+                                                <button
+                                                    type="button"
+                                                    onClick={() => toggleFaq(index)}
+                                                    className="w-full flex items-center justify-between p-5 text-left font-semibold text-gray-900 hover:text-primary transition-colors duration-150 cursor-pointer"
+                                                >
+                                                    <span className="text-base md:text-lg pr-4">{faq.question}</span>
+                                                    <ChevronDown
+                                                        className={`w-5 h-5 shrink-0 text-gray-500 transition-transform duration-300 ${
+                                                            isOpen ? 'rotate-180 text-primary' : ''
+                                                        }`}
+                                                    />
+                                                </button>
+                                                <AnimatePresence initial={false}>
+                                                    {isOpen && (
+                                                        <motion.div
+                                                            initial={{ height: 0, opacity: 0 }}
+                                                            animate={{ height: 'auto', opacity: 1 }}
+                                                            exit={{ height: 0, opacity: 0 }}
+                                                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                                        >
+                                                            <div className="px-5 pb-5 pt-1 text-gray-600 text-sm md:text-base leading-relaxed border-t border-gray-100">
+                                                                {faq.answer}
+                                                            </div>
+                                                        </motion.div>
+                                                    )}
+                                                </AnimatePresence>
                                             </div>
-                                            <p className="text-gray-600 text-sm leading-relaxed">{pillar.copy}</p>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                        );
+                                    })}
 
-                            <div className="mt-10 flex justify-center md:justify-start">
-                                <Link
-                                    href="/calculator"
-                                    onClick={() => saveSurveyReturnPath('/stamp-duty')}
-                                    className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-secondary px-8 py-4 rounded-full font-medium text-base hover:shadow-lg transition-all duration-200"
-                                >
-                                    Get Your Exact Number
-                                    <ArrowRight className="w-5 h-5" />
-                                </Link>
+                                    <div className="pt-8 flex flex-col items-center md:items-start text-center md:text-left">
+                                        <p className="text-gray-600 mb-4 font-medium">
+                                            Ready to get an exact calculation including exemptions and hidden fees?
+                                        </p>
+                                        <Link
+                                            href="/calculator"
+                                            onClick={() => saveSurveyReturnPath('/stamp-duty')}
+                                            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-secondary px-8 py-3.5 rounded-full font-medium text-base hover:shadow-lg transition-all duration-200"
+                                        >
+                                            Get Your Exact Number
+                                            <ArrowRight className="w-5 h-5" />
+                                        </Link>
+                                    </div>
+                                </div>
                             </div>
                         </motion.div>
                     </div>
