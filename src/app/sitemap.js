@@ -8,6 +8,7 @@ export default function sitemap() {
     '/stamp-duty',
     '/home-loan',
     '/grants-and-concessions',
+    '/guides/stamp-duty',
     '/faq',
     '/contact',
     '/terms',

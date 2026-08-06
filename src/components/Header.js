@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/hooks/useAuth';
 import { performLogout } from '@/lib/logout';
-import { User, LogOut, ChevronDown, Calculator, Landmark, Gift } from 'lucide-react';
+import { User, LogOut, ChevronDown, Calculator, BookOpen } from 'lucide-react';
 import {
   PUBLIC_HEADER_GLASS_STYLE,
   MOBILE_HEADER_MENU_TOP_CLASS,
@@ -27,27 +27,48 @@ const calculatorLinks = [
     href: '/grants-and-concessions',
     label: 'Grants and Concessions',
     description: 'Check eligibility for first home grants and stamp duty concessions.',
-    icon: Gift,
+    icon: Calculator,
   },
   {
     href: '/home-loan',
     label: 'Home Loan Calculator',
     description: 'Estimate monthly repayments, then uncover the full purchase costs banks leave out.',
-    icon: Landmark,
+    icon: Calculator,
   },
 ];
+
+const guideLinks = [
+  {
+    href: '/guides/stamp-duty',
+    label: 'Stamp Duty',
+    description: 'What is stamp duty and rates by state.',
+    icon: BookOpen,
+  },
+];
+
+// Match Calculators panel: 56rem wide, p-4, gap-2 across N cards
+const DESKTOP_NAV_CARD_WIDTH =
+  'w-[calc((56rem-2rem-0.5rem*2)/3)] max-w-[calc((56rem-2rem-0.5rem*2)/3)]';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isCalculatorsOpen, setIsCalculatorsOpen] = useState(false);
+  const [isGuidesOpen, setIsGuidesOpen] = useState(false);
   const [isDesktopCalculatorsOpen, setIsDesktopCalculatorsOpen] = useState(false);
+  const [isDesktopGuidesOpen, setIsDesktopGuidesOpen] = useState(false);
   const [isNavigatingToDashboard, setIsNavigatingToDashboard] = useState(false);
   const [hasMounted, setHasMounted] = useState(false);
+  const [calculatorsMenuLeft, setCalculatorsMenuLeft] = useState(0);
+  const [guidesMenuLeft, setGuidesMenuLeft] = useState(0);
+  const headerRef = useRef(null);
+  const calculatorsTriggerRef = useRef(null);
+  const guidesTriggerRef = useRef(null);
   const pathname = usePathname();
   const { showLoggedInUI } = useAuth();
   const showLoggedInAuth =
     showLoggedInUI && pathname !== '/reset-password' && pathname !== '/forgot-password';
   const isCalculatorActive = calculatorLinks.some((link) => pathname === link.href);
+  const isGuideActive = guideLinks.some((link) => pathname === link.href) || pathname.startsWith('/guides');
 
   // Clear loading state when navigation to dashboard completes
   useEffect(() => {
@@ -58,7 +79,9 @@ export default function Header() {
 
   useEffect(() => {
     setIsDesktopCalculatorsOpen(false);
+    setIsDesktopGuidesOpen(false);
     setIsCalculatorsOpen(false);
+    setIsGuidesOpen(false);
   }, [pathname]);
 
   const handleLogout = async () => {
@@ -67,7 +90,7 @@ export default function Header() {
   
   // Define public pages where normal header should always show (even when logged in)
   const publicPages = ['/', '/about', '/stamp-duty', '/home-loan', '/grants-and-concessions', '/contact', '/faq', '/privacy', '/terms', '/login', '/signup', '/reset-password', '/forgot-password'];
-  const isPublicPage = publicPages.includes(pathname);
+  const isPublicPage = publicPages.includes(pathname) || pathname.startsWith('/guides');
   
   // Hide on calculator always; hide on protected routes only after mount so SSR matches first client paint
   const shouldHideHeader =
@@ -85,7 +108,49 @@ export default function Header() {
   const closeMenu = () => {
     setIsMenuOpen(false);
     setIsCalculatorsOpen(false);
+    setIsGuidesOpen(false);
   };
+
+  const closeDesktopMenus = () => {
+    setIsDesktopCalculatorsOpen(false);
+    setIsDesktopGuidesOpen(false);
+  };
+
+  const syncMenuPositions = () => {
+    const headerEl = headerRef.current;
+    if (!headerEl) return;
+    const headerLeft = headerEl.getBoundingClientRect().left;
+
+    if (calculatorsTriggerRef.current) {
+      setCalculatorsMenuLeft(
+        calculatorsTriggerRef.current.getBoundingClientRect().left - headerLeft
+      );
+    }
+    if (guidesTriggerRef.current) {
+      setGuidesMenuLeft(guidesTriggerRef.current.getBoundingClientRect().left - headerLeft);
+    }
+  };
+
+  const openDesktopCalculators = () => {
+    setIsDesktopGuidesOpen(false);
+    setIsDesktopCalculatorsOpen(true);
+  };
+
+  const openDesktopGuides = () => {
+    setIsDesktopCalculatorsOpen(false);
+    setIsDesktopGuidesOpen(true);
+  };
+
+  useLayoutEffect(() => {
+    if (!isDesktopCalculatorsOpen && !isDesktopGuidesOpen) return;
+    syncMenuPositions();
+  }, [isDesktopCalculatorsOpen, isDesktopGuidesOpen]);
+
+  useEffect(() => {
+    if (!isDesktopCalculatorsOpen && !isDesktopGuidesOpen) return;
+    window.addEventListener('resize', syncMenuPositions);
+    return () => window.removeEventListener('resize', syncMenuPositions);
+  }, [isDesktopCalculatorsOpen, isDesktopGuidesOpen]);
 
   useEffect(() => {
     if (isMenuOpen) {
@@ -101,9 +166,10 @@ export default function Header() {
   return (
     <>
       <header
+        ref={headerRef}
         className={`sticky top-0 z-100 relative ${shouldHideHeader ? 'hidden' : ''}`}
         style={PUBLIC_HEADER_GLASS_STYLE}
-        onMouseLeave={() => setIsDesktopCalculatorsOpen(false)}
+        onMouseLeave={closeDesktopMenus}
       >
         <SiteHeaderShell>
           {/* Mobile */}
@@ -161,32 +227,58 @@ export default function Header() {
                 <nav className="flex items-center gap-8 lg:gap-10 font-medium text-md lg:text-lg">
                   <Link
                     href="/"
-                    onMouseEnter={() => setIsDesktopCalculatorsOpen(false)}
+                    onMouseEnter={closeDesktopMenus}
                     className={`hover:text-primary transition-colors ${
                       pathname === '/' ? 'underline underline-offset-6 decoration-2' : ''
                     }`}
                   >
                     Home
                   </Link>
-                  <button
-                    type="button"
-                    onMouseEnter={() => setIsDesktopCalculatorsOpen(true)}
-                    className={`inline-flex items-center gap-1 hover:text-primary transition-colors cursor-pointer ${
-                      isCalculatorActive || isDesktopCalculatorsOpen
-                        ? 'underline underline-offset-6 decoration-2'
-                        : ''
-                    }`}
-                    aria-haspopup="menu"
-                    aria-expanded={isDesktopCalculatorsOpen}
+                  <div
+                    ref={calculatorsTriggerRef}
+                    className="relative"
+                    onMouseEnter={openDesktopCalculators}
                   >
-                    Calculators
-                    <ChevronDown
-                      className={`w-4 h-4 transition-transform ${isDesktopCalculatorsOpen ? 'rotate-180' : ''}`}
-                    />
-                  </button>
+                    <button
+                      type="button"
+                      className={`inline-flex items-center gap-1 hover:text-primary transition-colors cursor-pointer ${
+                        isCalculatorActive || isDesktopCalculatorsOpen
+                          ? 'underline underline-offset-6 decoration-2'
+                          : ''
+                      }`}
+                      aria-haspopup="menu"
+                      aria-expanded={isDesktopCalculatorsOpen}
+                    >
+                      Calculators
+                      <ChevronDown
+                        className={`w-4 h-4 transition-transform ${isDesktopCalculatorsOpen ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                  </div>
+                  <div
+                    ref={guidesTriggerRef}
+                    className="relative"
+                    onMouseEnter={openDesktopGuides}
+                  >
+                    <button
+                      type="button"
+                      className={`inline-flex items-center gap-1 hover:text-primary transition-colors cursor-pointer ${
+                        isGuideActive || isDesktopGuidesOpen
+                          ? 'underline underline-offset-6 decoration-2'
+                          : ''
+                      }`}
+                      aria-haspopup="menu"
+                      aria-expanded={isDesktopGuidesOpen}
+                    >
+                      Guides
+                      <ChevronDown
+                        className={`w-4 h-4 transition-transform ${isDesktopGuidesOpen ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                  </div>
                   <Link
                     href="/about"
-                    onMouseEnter={() => setIsDesktopCalculatorsOpen(false)}
+                    onMouseEnter={closeDesktopMenus}
                     className={`hover:text-primary transition-colors ${
                       pathname === '/about' ? 'underline underline-offset-6 decoration-2' : ''
                     }`}
@@ -195,7 +287,7 @@ export default function Header() {
                   </Link>
                   <Link
                     href="/contact"
-                    onMouseEnter={() => setIsDesktopCalculatorsOpen(false)}
+                    onMouseEnter={closeDesktopMenus}
                     className={`hover:text-primary transition-colors ${
                       pathname === '/contact' ? 'underline underline-offset-6 decoration-2' : ''
                     }`}
@@ -255,44 +347,83 @@ export default function Header() {
 
         {isDesktopCalculatorsOpen ? (
           <div
-            className="absolute top-full left-0 right-0 z-50 hidden md:block"
-            onMouseEnter={() => setIsDesktopCalculatorsOpen(true)}
+            className="absolute top-full z-50 hidden pt-3 md:block"
+            style={{ left: calculatorsMenuLeft }}
+            onMouseEnter={openDesktopCalculators}
           >
-            <div className="md:ml-10">
-              <div className="container mx-auto max-w-7xl px-4 pt-3 pb-4">
-                <div
-                  role="menu"
-                  className="w-[56rem] max-w-full rounded-2xl border border-gray-300 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.14),0_2px_8px_rgba(15,23,42,0.08)]"
-                >
-                  <div className="flex flex-row gap-2">
-                    {calculatorLinks.map((link) => {
-                      const Icon = link.icon;
-                      return (
-                        <Link
-                          key={link.href}
-                          href={link.href}
-                          role="menuitem"
-                          onClick={() => setIsDesktopCalculatorsOpen(false)}
-                          className="group min-w-0 flex-1 rounded-xl bg-gray-100 p-4 transition-colors"
-                        >
-                          <div className="flex items-start gap-3">
-                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
-                              <Icon className="h-5 w-5" />
-                            </div>
-                            <div>
-                              <div className="text-base font-semibold text-gray-900 group-hover:text-primary">
-                                {link.label}
-                              </div>
-                              <p className="mt-1 text-sm leading-relaxed text-gray-500">
-                                {link.description}
-                              </p>
-                            </div>
+            <div
+              role="menu"
+              className="w-[56rem] max-w-[min(56rem,calc(100vw-2rem))] rounded-2xl border border-gray-300 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.14),0_2px_8px_rgba(15,23,42,0.08)]"
+            >
+              <div className="flex flex-row gap-2">
+                {calculatorLinks.map((link) => {
+                  const Icon = link.icon;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      role="menuitem"
+                      onClick={closeDesktopMenus}
+                      className={`group min-w-0 shrink-0 rounded-xl bg-gray-100 p-4 transition-colors ${DESKTOP_NAV_CARD_WIDTH}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <div className="text-base font-semibold text-gray-900 group-hover:text-primary">
+                            {link.label}
                           </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
+                          <p className="mt-1 text-sm leading-relaxed text-gray-500">
+                            {link.description}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {isDesktopGuidesOpen ? (
+          <div
+            className="absolute top-full z-50 hidden pt-3 md:block"
+            style={{ left: guidesMenuLeft }}
+            onMouseEnter={openDesktopGuides}
+          >
+            <div
+              role="menu"
+              className="w-max max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-300 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.14),0_2px_8px_rgba(15,23,42,0.08)]"
+            >
+              <div className="flex flex-col gap-2">
+                {guideLinks.map((link) => {
+                  const Icon = link.icon;
+                  return (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      role="menuitem"
+                      onClick={closeDesktopMenus}
+                      className={`group shrink-0 rounded-xl bg-gray-100 p-4 transition-colors ${DESKTOP_NAV_CARD_WIDTH}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <div className="text-base font-semibold text-gray-900 group-hover:text-primary">
+                            {link.label}
+                          </div>
+                          <p className="mt-1 text-sm leading-relaxed text-gray-500">
+                            {link.description}
+                          </p>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -338,7 +469,10 @@ export default function Header() {
                     <li className="border-b border-gray-200">
                       <button
                         type="button"
-                        onClick={() => setIsCalculatorsOpen((open) => !open)}
+                        onClick={() => {
+                          setIsGuidesOpen(false);
+                          setIsCalculatorsOpen((open) => !open);
+                        }}
                         className="flex w-full items-center justify-between px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors"
                         aria-expanded={isCalculatorsOpen}
                       >
@@ -357,6 +491,56 @@ export default function Header() {
                             className="overflow-hidden bg-gray-50"
                           >
                             {calculatorLinks.map((link) => {
+                              const Icon = link.icon;
+                              return (
+                                <li key={link.href}>
+                                  <Link
+                                    href={link.href}
+                                    onClick={closeMenu}
+                                    className={`flex items-start gap-3 px-6 py-3 transition-colors hover:bg-gray-100 ${
+                                      pathname === link.href ? 'text-primary' : 'text-base-content'
+                                    }`}
+                                  >
+                                    <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                                      <Icon className="h-4 w-4" />
+                                    </span>
+                                    <span>
+                                      <span className="block text-base font-medium">{link.label}</span>
+                                      <span className="mt-0.5 block text-sm text-gray-500">{link.description}</span>
+                                    </span>
+                                  </Link>
+                                </li>
+                              );
+                            })}
+                          </motion.ul>
+                        ) : null}
+                      </AnimatePresence>
+                    </li>
+                    <li className="border-b border-gray-200">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsCalculatorsOpen(false);
+                          setIsGuidesOpen((open) => !open);
+                        }}
+                        className="flex w-full items-center justify-between px-4 py-4 text-lg font-medium text-base hover:bg-gray-100 transition-colors"
+                        aria-expanded={isGuidesOpen}
+                      >
+                        Guides
+                        <ChevronDown
+                          className={`w-5 h-5 transition-transform ${isGuidesOpen ? 'rotate-180' : ''}`}
+                        />
+                      </button>
+                      <AnimatePresence initial={false}>
+                        {isGuidesOpen ? (
+                          <motion.ul
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden bg-gray-50"
+                          >
+                            {guideLinks.map((link) => {
                               const Icon = link.icon;
                               return (
                                 <li key={link.href}>
