@@ -274,7 +274,7 @@ export default function StampDutyGuidePage() {
                     <span className="leading-[1.15]">What is Stamp Duty?</span>
                   </h2>
                   <p className="text-base leading-relaxed md:text-lg">
-                    Stamp duty in Australia is a tax levied by state and territory governments on the transfer of physical assets, most commonly residential real estate and vacant land. Officially termed "transfer duty" (in states like NSW and Queensland) or "land transfer duty" (in Victoria), this is an upfront settlement fee paid solely by the purchaser.
+                    Stamp duty in Australia is a tax levied by state and territory governments on the transfer of physical assets, most commonly residential real estate and vacant land. Officially termed &quot;transfer duty&quot; (in states like NSW and Queensland) or &quot;land transfer duty&quot; (in Victoria), this is an upfront settlement fee paid solely by the purchaser.
                   </p>
                   <p className="text-base leading-relaxed md:text-lg">
                     Because this is an upfront cost, the buyer must settle the tax in cash out of their savings unless they are eligible for complete exemptions or choose to capitalized the fee into their overall home loan amount.
@@ -403,9 +403,9 @@ export default function StampDutyGuidePage() {
                     Deadlines vary by state and territory:
                   </p>
                   <ul className="list-disc space-y-2 pl-5 text-base leading-relaxed md:text-lg">
-                    <li>"NSW &amp; Victoria": Stamp duty is usually due within 30 days from the settlement date.</li>
-                    <li>"Queensland": You must pay within 30 days from the date of the contract becoming unconditional.</li>
-                    <li>"Western Australia &amp; South Australia": Paid directly at or shortly before settlement to ensure registration of transfer of land occurs.</li>
+                    <li>&quot;NSW &amp; Victoria&quot;: Stamp duty is usually due within 30 days from the settlement date.</li>
+                    <li>&quot;Queensland&quot;: You must pay within 30 days from the date of the contract becoming unconditional.</li>
+                    <li>&quot;Western Australia &amp; South Australia&quot;: Paid directly at or shortly before settlement to ensure registration of transfer of land occurs.</li>
                   </ul>
                   <p className="text-base leading-relaxed md:text-lg">
                     Most transactions are handled digitally. Your mortgage broker and conveyancer coordinate with the lender through electronic platforms (such as PEXA) to lodge the necessary declarations and transfer the tax amount from your loan or savings account to the Revenue Office at settlement.
