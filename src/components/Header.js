@@ -41,7 +41,19 @@ const guideLinks = [
   {
     href: '/guides/stamp-duty',
     label: 'Stamp Duty',
-    description: 'What is stamp duty and rates by state.',
+    description: 'What is stamp duty and how much you pay by state.',
+    icon: BookOpen,
+  },
+  {
+    href: '/guides/grants-and-concessions',
+    label: 'Grants & Concessions',
+    description: 'First-home grants, deposit schemes, and duty concessions.',
+    icon: BookOpen,
+  },
+  {
+    href: '/guides/choosing-a-home-loan',
+    label: 'Choosing a Home Loan',
+    description: 'Rates, repayments, fees, and features to compare.',
     icon: BookOpen,
   },
 ];
@@ -395,9 +407,9 @@ export default function Header() {
           >
             <div
               role="menu"
-              className="w-max max-w-[calc(100vw-2rem)] rounded-2xl border border-gray-300 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.14),0_2px_8px_rgba(15,23,42,0.08)]"
+              className="w-[56rem] max-w-[min(56rem,calc(100vw-2rem))] rounded-2xl border border-gray-300 bg-white p-4 shadow-[0_12px_40px_rgba(15,23,42,0.14),0_2px_8px_rgba(15,23,42,0.08)]"
             >
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-row gap-2">
                 {guideLinks.map((link) => {
                   const Icon = link.icon;
                   return (
@@ -406,7 +418,7 @@ export default function Header() {
                       href={link.href}
                       role="menuitem"
                       onClick={closeDesktopMenus}
-                      className={`group shrink-0 rounded-xl bg-gray-100 p-4 transition-colors ${DESKTOP_NAV_CARD_WIDTH}`}
+                      className={`group min-w-0 shrink-0 rounded-xl bg-gray-100 p-4 transition-colors ${DESKTOP_NAV_CARD_WIDTH}`}
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">

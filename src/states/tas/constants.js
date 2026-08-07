@@ -12,7 +12,7 @@ export const TAS_STAMP_DUTY_RATES = [
 
 export const TAS_FOREIGN_BUYER_RATE = 0.08; // 8% additional duty for foreign buyers
 export const TAS_STATE_AVERAGE = 450000;
-export const TAS_FIRST_HOME_OWNERS_GRANT = 10000; // $10,000 for eligible first home buyers
+export const TAS_FIRST_HOME_OWNERS_GRANT = 20000; // $20,000 for eligible first home buyers (FY 2026-27)
 export const TAS_FHOG_PROPERTY_CAP = 999999999; // No price cap (effectively unlimited)
 
 // TAS First Home Duty Relief (stamp duty concession)

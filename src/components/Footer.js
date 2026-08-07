@@ -22,9 +22,9 @@ export default function Footer() {
   return (
     <footer className="relative z-20 w-full bg-gray-100 border-t border-gray-200">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="flex flex-col gap-10 lg:flex-row lg:items-start lg:justify-between">
           {/* Brand Section */}
-          <div className="col-span-1 md:col-span-2">
+          <div className="max-w-sm shrink-0 lg:max-w-xs xl:max-w-sm">
             <Link
               href="/"
               onClick={(e) => handleLinkClick(e, '/')}
@@ -42,11 +42,13 @@ export default function Footer() {
                 <span className="text-secondary">pers</span>
               </h3>
             </Link>
-            <p className="text-gray-600 mb-4 max-w-md leading-relaxed">
+            <p className="text-gray-600 mb-4 leading-relaxed">
               Know the true cost of any Australian property before you commit. No spreadsheets, no surprises.
             </p>
           </div>
 
+          {/* Link columns — grouped tighter, pulled away from brand */}
+          <div className="grid grid-cols-2 gap-x-8 gap-y-8 sm:grid-cols-4 sm:gap-x-10 lg:gap-x-12">
           {/* Quick Links */}
           <div>
             <h4 className="text-lg font-semibold text-secondary mb-4">Quick Links</h4>
@@ -84,6 +86,74 @@ export default function Footer() {
             </ul>
           </div>
 
+          {/* Calculators */}
+          <div>
+            <h4 className="text-lg font-semibold text-secondary mb-4">Calculators</h4>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/stamp-duty"
+                  onClick={(e) => handleLinkClick(e, '/stamp-duty')}
+                  className="text-gray-600 hover:text-primary transition-colors"
+                >
+                  Stamp Duty
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/grants-and-concessions"
+                  onClick={(e) => handleLinkClick(e, '/grants-and-concessions')}
+                  className="text-gray-600 hover:text-primary transition-colors"
+                >
+                  Grants and Concessions
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/home-loan"
+                  onClick={(e) => handleLinkClick(e, '/home-loan')}
+                  className="text-gray-600 hover:text-primary transition-colors"
+                >
+                  Home Loan
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          {/* Guides */}
+          <div>
+            <h4 className="text-lg font-semibold text-secondary mb-4">Guides</h4>
+            <ul className="space-y-2">
+              <li>
+                <Link
+                  href="/guides/stamp-duty"
+                  onClick={(e) => handleLinkClick(e, '/guides/stamp-duty')}
+                  className="text-gray-600 hover:text-primary transition-colors"
+                >
+                  Stamp Duty
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/guides/grants-and-concessions"
+                  onClick={(e) => handleLinkClick(e, '/guides/grants-and-concessions')}
+                  className="text-gray-600 hover:text-primary transition-colors"
+                >
+                  Grants &amp; Concessions
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/guides/choosing-a-home-loan"
+                  onClick={(e) => handleLinkClick(e, '/guides/choosing-a-home-loan')}
+                  className="text-gray-600 hover:text-primary transition-colors"
+                >
+                  Choosing a Home Loan
+                </Link>
+              </li>
+            </ul>
+          </div>
+
           {/* Legal */}
           <div>
             <h4 className="text-lg font-semibold text-secondary mb-4">Legal</h4>
@@ -116,6 +186,7 @@ export default function Footer() {
                 </Link>
               </li>
             </ul>
+          </div>
           </div>
         </div>
 

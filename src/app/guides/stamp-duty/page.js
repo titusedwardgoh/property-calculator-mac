@@ -6,7 +6,6 @@ import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import {
   ArrowRight,
   CheckCircle2,
-  HelpCircle,
   Building2,
   Globe,
   Sparkles,
@@ -19,14 +18,6 @@ import {
 } from 'lucide-react';
 import { saveSurveyReturnPath } from '@/lib/surveyReturnPath';
 import { useStateSelector } from '@/states/useStateSelector';
-
-// Helper to map UI property type selection to the exact string states calculations expect
-const mapPropertyType = (state, type) => {
-  if (type === 'established') {
-    return state === 'QLD' ? 'existing' : 'established';
-  }
-  return type; // 'new', 'off-the-plan', 'vacant-land-only', 'house-and-land'
-};
 
 const FAQ_ITEMS = [
   {
@@ -117,7 +108,7 @@ export default function StampDutyGuidePage() {
         },
         {
           propertyPrice: price,
-          propertyType: compState === 'QLD' ? 'existing' : 'established',
+          propertyType: 'existing',
           propertyCategory: 'residential',
           isWA: 'south',
           isWAMetro: 'metro',
@@ -138,7 +129,7 @@ export default function StampDutyGuidePage() {
         },
         {
           propertyPrice: price,
-          propertyType: compState === 'QLD' ? 'existing' : 'established',
+          propertyType: 'existing',
           propertyCategory: 'residential',
           isWA: 'south',
           isWAMetro: 'metro',
@@ -159,7 +150,7 @@ export default function StampDutyGuidePage() {
         },
         {
           propertyPrice: price,
-          propertyType: compState === 'QLD' ? 'existing' : 'established',
+          propertyType: 'existing',
           propertyCategory: 'residential',
           isWA: 'south',
           isWAMetro: 'metro',
@@ -203,26 +194,67 @@ export default function StampDutyGuidePage() {
       />
 
       <main className="relative z-10">
-        {/* Hero Section */}
-        <section className="relative z-10 w-full bg-base-200 border-b border-gray-200/50 pb-12 pt-16 md:pb-16 md:pt-24">
-          <div className="container mx-auto max-w-6xl px-4 text-center md:text-left">
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="space-y-4"
-            >
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-primary">
-                <Sparkles className="h-3.5 w-3.5" /> 2026 Policy Reference &amp; Calculator
-              </span>
-              <h1 className="text-4xl font-extrabold leading-tight text-gray-900 md:text-6xl">
-                What is Stamp Duty and Rates by State?
-              </h1>
-              <p className="max-w-3xl text-lg leading-relaxed text-gray-600 md:text-xl">
-                An expert-guided breakdown of transfer duty rates, concessions, and exemptions.
-                Learn about policy exemptions, check payment deadlines, and view rate guidelines across Australia.
-              </p>
-            </motion.div>
+        {/* Hero Section — matches calculator landing layout */}
+        <section className="relative z-10 w-full bg-base-200">
+          <div className="container mx-auto px-4 py-16 md:px-16 md:py-24 lg:px-24 lg:py-24">
+            <div className="grid items-center gap-12 md:grid-cols-12">
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease: 'easeOut' }}
+                className="space-y-6 text-center md:col-span-6 md:text-left"
+              >
+               
+                <h1 className="text-4xl font-bold leading-tight text-gray-900 md:text-5xl">
+                  What is Stamp Duty and Rates by State?
+                </h1>
+                <p className="text-lg leading-relaxed text-gray-600 md:text-xl">
+                  An expert-guided breakdown of transfer duty rates, concessions, and exemptions.
+                  Learn about policy exemptions, check payment deadlines, and view rate guidelines across Australia.
+                </p>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1, ease: 'easeOut' }}
+                className="rounded-3xl border border-gray-200 bg-white p-6 text-gray-900 shadow-xl md:col-span-6 md:p-8"
+              >
+                <h2 className="mb-2 text-xl font-bold md:text-2xl">Get your stamp duty estimate</h2>
+                <p className="mb-6 text-base leading-relaxed text-gray-600">
+                  Try our{' '}
+                  <Link
+                    href="/stamp-duty"
+                    className="font-semibold text-primary underline transition-colors hover:text-primary/80"
+                  >
+                    easy calculator
+                  </Link>{' '}
+                  to quickly check your rates, or use our comprehensive calculator to include
+                  government concessions, bank fees, and other details so you can plan your budget
+                  with confidence.
+                </p>
+
+                <Link
+                  href="/calculator"
+                  onClick={() => saveSurveyReturnPath('/guides/stamp-duty')}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-base font-medium text-secondary transition-all hover:bg-primary/90 hover:shadow-lg"
+                >
+                  Launch Full Calculator
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+
+                <div className="mt-4 space-y-2 border-t border-gray-100 pt-4 text-sm text-gray-500">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                    <span>Concessions &amp; first home grants</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                    <span>Conveyancing, registration &amp; bank fees</span>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
           </div>
         </section>
 
@@ -236,56 +268,58 @@ export default function StampDutyGuidePage() {
               <div className="space-y-6 lg:col-span-8">
 
                 {/* What is Stamp Duty Section */}
-                <article id="what-is-stamp-duty" className="prose max-w-none text-gray-700 space-y-6 rounded-3xl border border-white/85 bg-white/90 p-6 md:p-8 shadow-md backdrop-blur-sm">
-                  <h2 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
-                    <span className="text-primary">1.</span> What is Stamp Duty?
+                <article id="what-is-stamp-duty" className="prose prose-base max-w-none text-gray-700 space-y-6 rounded-3xl border border-white/85 bg-white/90 p-6 md:p-8 shadow-md backdrop-blur-sm">
+                  <h2 className="flex items-start gap-3 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+                    <span className="shrink-0 leading-[1.15] text-primary">1.</span>
+                    <span className="leading-[1.15]">What is Stamp Duty?</span>
                   </h2>
-                  <p className="leading-relaxed">
-                    Stamp duty in Australia is a tax levied by state and territory governments on the transfer of physical assets, most commonly residential real estate and vacant land. Officially termed **transfer duty** (in states like NSW and Queensland) or **land transfer duty** (in Victoria), this is an upfront settlement fee paid solely by the purchaser.
+                  <p className="text-base leading-relaxed md:text-lg">
+                    Stamp duty in Australia is a tax levied by state and territory governments on the transfer of physical assets, most commonly residential real estate and vacant land. Officially termed "transfer duty" (in states like NSW and Queensland) or "land transfer duty" (in Victoria), this is an upfront settlement fee paid solely by the purchaser.
                   </p>
-                  <p className="leading-relaxed">
+                  <p className="text-base leading-relaxed md:text-lg">
                     Because this is an upfront cost, the buyer must settle the tax in cash out of their savings unless they are eligible for complete exemptions or choose to capitalized the fee into their overall home loan amount.
                   </p>
                 </article>
 
                 {/* How is Stamp Duty Calculated Section */}
-                <article id="how-calculated" className="prose max-w-none text-gray-700 space-y-6 rounded-3xl border border-white/85 bg-white/90 p-6 md:p-8 shadow-md backdrop-blur-sm">
-                  <h2 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
-                    <span className="text-primary">2.</span> How is Stamp Duty Calculated?
+                <article id="how-calculated" className="prose prose-base max-w-none text-gray-700 space-y-6 rounded-3xl border border-white/85 bg-white/90 p-6 md:p-8 shadow-md backdrop-blur-sm">
+                  <h2 className="flex items-start gap-3 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+                    <span className="shrink-0 leading-[1.15] text-primary">2.</span>
+                    <span className="leading-[1.15]">How is Stamp Duty Calculated?</span>
                   </h2>
-                  <p className="leading-relaxed">
+                  <p className="text-base leading-relaxed md:text-lg">
                     Instead of a flat percentage rate, stamp duty uses a progressive sliding bracket scale. This means the higher the property&apos;s purchase price or market value, the higher the tax rate applied to each additional bracket.
                   </p>
-                  <p className="font-semibold text-gray-800 mb-2">
+                  <p className="mb-2 text-base font-semibold text-gray-800 md:text-lg">
                     Your final stamp duty calculations depend on several critical factors:
                   </p>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm flex items-start gap-3">
                       <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold block text-gray-900">State / Territory Rules</span>
-                        <span className="text-xs text-gray-500">Each jurisdiction administers its own rate brackets, which change frequently with state budgets.</span>
+                        <span className="font-bold block text-base text-gray-900">State / Territory Rules</span>
+                        <span className="text-sm text-gray-500 leading-relaxed">Each jurisdiction administers its own rate brackets, which change frequently with state budgets.</span>
                       </div>
                     </div>
                     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm flex items-start gap-3">
                       <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold block text-gray-900">Buyer Residency</span>
-                        <span className="text-xs text-gray-500">Foreign purchasers face heavy surcharges (typically +7% to +8% on top of normal rates).</span>
+                        <span className="font-bold block text-base text-gray-900">Buyer Residency</span>
+                        <span className="text-sm text-gray-500 leading-relaxed">Foreign purchasers face heavy surcharges (typically +7% to +8% on top of normal rates).</span>
                       </div>
                     </div>
                     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm flex items-start gap-3">
                       <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold block text-gray-900">Buyer Status</span>
-                        <span className="text-xs text-gray-500">First-home buyers often pay $0 or discounted concessional rates up to statutory limits.</span>
+                        <span className="font-bold block text-base text-gray-900">Buyer Status</span>
+                        <span className="text-sm text-gray-500 leading-relaxed">First-home buyers often pay $0 or discounted concessional rates up to statutory limits.</span>
                       </div>
                     </div>
                     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm flex items-start gap-3">
                       <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-bold block text-gray-900">Property Usage</span>
-                        <span className="text-xs text-gray-500">Buying an investment property frequently attracts higher rates or excludes you from concessions.</span>
+                        <span className="font-bold block text-base text-gray-900">Property Usage</span>
+                        <span className="text-sm text-gray-500 leading-relaxed">Buying an investment property frequently attracts higher rates or excludes you from concessions.</span>
                       </div>
                     </div>
                   </div>
@@ -295,9 +329,12 @@ export default function StampDutyGuidePage() {
                 <div id="calculations-matrix" className="rounded-3xl border border-white/80 bg-white/95 p-6 shadow-xl backdrop-blur-md">
                   <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900">Live Bracket Calculations Matrix</h3>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        Compare stamp duty payable for owner-occupiers vs investors at typical purchase brackets.
+                      <h2 className="flex items-start gap-3 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+                        <span className="shrink-0 leading-[1.15] text-primary">3.</span>
+                        <span className="leading-[1.15]">Live Bracket Calculations Matrix</span>
+                      </h2>
+                      <p className="text-sm text-gray-500 mt-1 md:text-base">
+                        Compare net stamp duty for an existing home across typical purchase brackets, including concessions where they apply.
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-1 rounded-xl bg-gray-100 p-1 border border-gray-200">
@@ -306,7 +343,7 @@ export default function StampDutyGuidePage() {
                           key={st}
                           type="button"
                           onClick={() => setCompState(st)}
-                          className={`cursor-pointer rounded-lg px-3 py-1 text-xs font-bold transition-all ${compState === st
+                          className={`cursor-pointer rounded-lg px-3 py-1.5 text-sm font-bold transition-all ${compState === st
                             ? 'bg-primary text-secondary shadow-sm'
                             : 'text-gray-600 hover:bg-gray-200'
                             }`}
@@ -318,8 +355,8 @@ export default function StampDutyGuidePage() {
                   </div>
 
                   <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white">
-                    <table className="w-full text-left text-sm text-gray-700">
-                      <thead className="border-b border-gray-200 bg-gray-50 text-xs font-semibold uppercase tracking-wider text-gray-900">
+                    <table className="w-full text-left text-base text-gray-700">
+                      <thead className="border-b border-gray-200 bg-gray-50 text-sm font-semibold uppercase tracking-wider text-gray-900">
                         <tr>
                           <th className="px-4 py-3.5">Purchase Value</th>
                           <th className="px-4 py-3.5">First Home Buyer</th>
@@ -347,56 +384,58 @@ export default function StampDutyGuidePage() {
                       </tbody>
                     </table>
                   </div>
-                  <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+                  <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
                     <Info className="w-4 h-4 text-primary shrink-0" />
                     <span>Calculations computed live based on {compState} transfer duty guidelines for FY 2026-27.</span>
                   </div>
                 </div>
 
                 {/* Who Pays Stamp Duty & Timing Section */}
-                <article id="who-pays-and-when" className="prose max-w-none text-gray-700 space-y-6 rounded-3xl border border-white/85 bg-white/90 p-6 md:p-8 shadow-md backdrop-blur-sm">
-                  <h2 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
-                    <span className="text-primary">3.</span> Who Pays Stamp Duty and When is it Due?
+                <article id="who-pays-and-when" className="prose prose-base max-w-none text-gray-700 space-y-6 rounded-3xl border border-white/85 bg-white/90 p-6 md:p-8 shadow-md backdrop-blur-sm">
+                  <h2 className="flex items-start gap-3 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+                    <span className="shrink-0 leading-[1.15] text-primary">4.</span>
+                    <span className="leading-[1.15]">Who Pays and When is Stamp Duty Due?</span>
                   </h2>
-                  <p className="leading-relaxed">
+                  <p className="text-base leading-relaxed md:text-lg">
                     The purchaser is strictly responsible for paying stamp duty. State revenue offices enforce strict payment timelines that begin from either the exchange of contracts or the settlement date.
                   </p>
-                  <p className="font-semibold text-gray-800">
+                  <p className="text-base font-semibold text-gray-800 md:text-lg">
                     Deadlines vary by state and territory:
                   </p>
-                  <ul className="list-disc pl-5 space-y-2 leading-relaxed">
-                    <li>**NSW &amp; Victoria**: Stamp duty is usually due within 30 days from the settlement date.</li>
-                    <li>**Queensland**: You must pay within 30 days from the date of the contract becoming unconditional.</li>
-                    <li>**Western Australia &amp; South Australia**: Paid directly at or shortly before settlement to ensure registration of transfer of land occurs.</li>
+                  <ul className="list-disc space-y-2 pl-5 text-base leading-relaxed md:text-lg">
+                    <li>"NSW &amp; Victoria": Stamp duty is usually due within 30 days from the settlement date.</li>
+                    <li>"Queensland": You must pay within 30 days from the date of the contract becoming unconditional.</li>
+                    <li>"Western Australia &amp; South Australia": Paid directly at or shortly before settlement to ensure registration of transfer of land occurs.</li>
                   </ul>
-                  <p className="leading-relaxed">
+                  <p className="text-base leading-relaxed md:text-lg">
                     Most transactions are handled digitally. Your mortgage broker and conveyancer coordinate with the lender through electronic platforms (such as PEXA) to lodge the necessary declarations and transfer the tax amount from your loan or savings account to the Revenue Office at settlement.
                   </p>
                 </article>
 
                 {/* Can You Avoid Stamp Duty? Section */}
-                <article id="how-to-reduce" className="prose max-w-none text-gray-700 space-y-6 rounded-3xl border border-white/85 bg-white/90 p-6 md:p-8 shadow-md backdrop-blur-sm">
-                  <h2 className="text-3xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
-                    <span className="text-primary">4.</span> How Can You Avoid or Reduce Stamp Duty?
+                <article id="how-to-reduce" className="prose prose-base max-w-none text-gray-700 space-y-6 rounded-3xl border border-white/85 bg-white/90 p-6 md:p-8 shadow-md backdrop-blur-sm">
+                  <h2 className="flex items-start gap-3 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+                    <span className="shrink-0 leading-[1.15] text-primary">5.</span>
+                    <span className="leading-[1.15]">How to reduce stamp duty?</span>
                   </h2>
-                  <p className="leading-relaxed">
+                  <p className="text-base leading-relaxed md:text-lg">
                     While you cannot simply refuse to pay, you can qualify for complete exemptions or concessional rates under specific legislation.
                   </p>
-                  <ul className="space-y-4">
+                  <ul className="space-y-4 text-base md:text-lg">
                     <li className="flex items-start gap-3">
-                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary mt-1">1</span>
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary mt-1">1</span>
                       <div>
                         <strong className="text-gray-900">First Home Buyer Schemes:</strong> Almost all states offer assistance. For example, NSW provides full exemptions up to $800k (and partial concessions up to $1M), and Victoria provides full exemptions up to $600k (with concessions up to $750k).
                       </div>
                     </li>
                     <li className="flex items-start gap-3">
-                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary mt-1">2</span>
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary mt-1">2</span>
                       <div>
                         <strong className="text-gray-900">Transferring to a Spouse:</strong> Spousal exemptions allow transferring the family residence between spouses or de facto partners without attracting stamp duty.
                       </div>
                     </li>
                     <li className="flex items-start gap-3">
-                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary mt-1">3</span>
+                      <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary mt-1">3</span>
                       <div>
                         <strong className="text-gray-900">Pensioners &amp; Seniors:</strong> Concessions exist in several states (like Victoria and Tasmania) allowing pensioners a one-off concession on homes below statutory price caps.
                       </div>
@@ -406,8 +445,9 @@ export default function StampDutyGuidePage() {
 
                 {/* FAQ Section */}
                 <div id="faqs" className="space-y-6 rounded-3xl border border-white/85 bg-white/90 p-6 md:p-8 shadow-md backdrop-blur-sm">
-                  <h2 className="text-2xl font-bold tracking-tight text-gray-900 flex items-center gap-2">
-                    <HelpCircle className="w-6 h-6 text-primary" /> Frequently Asked Questions
+                  <h2 className="flex items-start gap-3 text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+                    <span className="shrink-0 leading-[1.15] text-primary">6.</span>
+                    <span className="leading-[1.15]">Frequently Asked Questions</span>
                   </h2>
                   <div className="space-y-4">
                     {FAQ_ITEMS.map((faq, index) => {
@@ -422,7 +462,7 @@ export default function StampDutyGuidePage() {
                             onClick={() => toggleFaq(index)}
                             className="w-full px-6 py-5 text-left flex items-center justify-between hover:bg-primary/5 transition-colors cursor-pointer"
                           >
-                            <h3 className="text-base font-bold text-gray-900 pr-4">
+                            <h3 className="text-base font-bold text-gray-900 pr-4 md:text-lg">
                               {faq.question}
                             </h3>
                             <motion.div
@@ -441,7 +481,7 @@ export default function StampDutyGuidePage() {
                                 transition={{ duration: 0.25, ease: 'easeInOut' }}
                                 className="overflow-hidden"
                               >
-                                <div className="px-6 pb-5 pt-3 bg-gray-50/50 border-t border-gray-100 text-sm leading-relaxed text-gray-600">
+                                <div className="px-6 pb-5 pt-3 bg-gray-50/50 border-t border-gray-100 text-sm leading-relaxed text-gray-600 md:text-base">
                                   {faq.answer}
                                 </div>
                               </motion.div>
@@ -459,9 +499,9 @@ export default function StampDutyGuidePage() {
               <div className="lg:col-span-4 self-stretch">
                 <div className="sticky top-24 space-y-6">
 
-                  {/* Table of Contents Navigation Card */}
-                  <div className="rounded-3xl border border-white/80 bg-white/95 p-6 text-gray-900 shadow-xl backdrop-blur-sm">
-                    <h3 className="mb-3 text-sm font-bold text-gray-900">Guide Sections</h3>
+                  {/* Table of Contents Navigation Card — desktop only */}
+                  <div className="hidden md:block rounded-3xl border border-white/80 bg-white/95 p-6 text-gray-900 shadow-xl backdrop-blur-sm">
+                    <h3 className="mb-3 text-base font-bold text-gray-900">Guide Sections</h3>
                     <nav className="flex flex-col divide-y divide-gray-100">
                       {[
                         { name: '1. What is Stamp Duty?', id: 'what-is-stamp-duty' },
@@ -475,7 +515,7 @@ export default function StampDutyGuidePage() {
                           key={sec.id}
                           type="button"
                           onClick={() => scrollToSection(sec.id)}
-                          className="w-full text-left text-xs font-semibold text-gray-600 hover:text-primary transition-colors py-2.5 cursor-pointer flex items-center justify-between group"
+                          className="w-full text-left text-sm font-semibold text-gray-600 hover:text-primary transition-colors py-2.5 cursor-pointer flex items-center justify-between group"
                         >
                           <span>{sec.name}</span>
                           <ArrowRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
@@ -484,46 +524,14 @@ export default function StampDutyGuidePage() {
                     </nav>
                   </div>
 
-                  {/* Main Calculator CTA Card */}
-                  <div className="rounded-3xl border border-white/80 bg-white/95 p-6 text-gray-900 shadow-xl backdrop-blur-sm">
-                    <h3 className="mb-2 text-xl font-bold">Get your stamp duty estimate</h3>
-                    <p className="mb-6 text-sm leading-relaxed text-gray-600">
-                      Try our{' '}
-                      <Link href="/stamp-duty" className="text-primary underline font-semibold hover:text-primary/80 transition-colors">
-                        easy calculator
-                      </Link>{' '}
-                      to quickly check your rates, or use our comprehensive calculator to include government concessions, bank fees, and other details so you can plan your budget with confidence.
-                    </p>
-
-                    <Link
-                      href="/calculator"
-                      onClick={() => saveSurveyReturnPath('/guides/stamp-duty')}
-                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3.5 text-sm font-medium text-secondary transition-all hover:bg-primary/90 hover:shadow-lg"
-                    >
-                      Launch Full Calculator
-                      <ArrowRight className="h-4 w-4" />
-                    </Link>
-
-                    <div className="mt-4 space-y-2 border-t border-gray-100 pt-4 text-xs text-gray-500">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                        <span>Concessions &amp; first home grants</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                        <span>Conveyancing, registration &amp; bank fees</span>
-                      </div>
-                    </div>
-                  </div>
-
                   {/* State Guide Reference Links */}
                   <div className="rounded-2xl border border-white/80 bg-base-200/90 p-5 backdrop-blur-sm space-y-4">
                     <div>
-                      <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-900">
+                      <h4 className="flex items-center gap-2 text-base font-semibold text-gray-900">
                         <Building2 className="h-4 w-4 text-primary" />
                         State Revenue Authorities
                       </h4>
-                      <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                      <p className="text-sm text-gray-500 mt-1 leading-relaxed">
                         For more details, consult the official Revenue Office guidelines in your state:
                       </p>
                     </div>
@@ -532,7 +540,7 @@ export default function StampDutyGuidePage() {
                       <button
                         type="button"
                         onClick={() => setIsRevenueLinksOpen(!isRevenueLinksOpen)}
-                        className="w-full flex items-center justify-between py-1 text-xs font-bold text-gray-700 hover:text-primary transition-colors cursor-pointer"
+                        className="w-full flex items-center justify-between py-1 text-sm font-bold text-gray-700 hover:text-primary transition-colors cursor-pointer"
                       >
                         <span>{isRevenueLinksOpen ? 'Hide Official Websites' : 'Show Official Websites'}</span>
                         <motion.div
@@ -552,7 +560,7 @@ export default function StampDutyGuidePage() {
                             transition={{ duration: 0.25, ease: 'easeInOut' }}
                             className="overflow-hidden"
                           >
-                            <ul className="space-y-2 text-xs font-semibold text-gray-700 pt-3">
+                            <ul className="space-y-2 text-sm font-semibold text-gray-700 pt-3">
                               <li>
                                 <a href="https://www.revenue.nsw.gov.au" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors underline flex items-center justify-between">
                                   <span>NSW Revenue NSW</span> <ArrowRight className="w-3 h-3" />
@@ -610,8 +618,8 @@ export default function StampDutyGuidePage() {
         <section className="relative z-10 w-full py-8 bg-base-200 border-t border-gray-200/50">
           <div className="relative z-10 container mx-auto max-w-6xl px-4">
             <div className="rounded-2xl border border-primary/20 bg-white px-8 py-6 text-gray-700">
-              <h3 className="mb-2 text-sm font-semibold text-primary">Regulatory Disclaimer</h3>
-              <p className="text-xs leading-relaxed text-gray-500">
+              <h3 className="mb-2 text-base font-semibold text-primary">Regulatory Disclaimer</h3>
+              <p className="text-sm leading-relaxed text-gray-800">
                 Proppers estimates transfer duty guidelines based on public state revenue office thresholds for the 2026-27 financial year. Stamp duty legislation, tax brackets, and concession limits are subject to statutory amendments by state governments. Always verify your specific stamp duty and settlement obligations with a licensed conveyancing practitioner or legal professional before signing contracts.
               </p>
             </div>
